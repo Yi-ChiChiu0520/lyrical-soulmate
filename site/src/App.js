@@ -1,17 +1,15 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
 
-function App() {
+const App = () => {
     return (
-        <div>
             <Routes>
-                {/* Root pages, located in /pages/ */}
-
-                {/* 404 page not found redirect */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
-        </div>
     );
-}
+};
 
 export default App;
