@@ -76,9 +76,9 @@ const Auth = () => {
                 )}
                 {error && <p style={{ color: "red" }}>{error}</p>}
                 {message && <p style={{ color: "green" }}>{message}</p>}
-                <button type="submit">{isSignup ? "Sign Up" : "Login"}</button>
+                <button id={isSignup ? "signupButton" : "loginButton"} type="submit">{isSignup ? "Sign Up" : "Login"}</button>
             </form>
-            <button onClick={() => setIsSignup(!isSignup)}>
+            <button id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
                 {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
             </button>
         </div>
