@@ -94,7 +94,7 @@ const Auth = () => {
                     {isSignup ? "Sign Up" : "Login"}
                 </button>
             </form>
-            <button onClick={() => setIsSignup(!isSignup)}>
+            <button id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
                 {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
             </button>
         </div>
