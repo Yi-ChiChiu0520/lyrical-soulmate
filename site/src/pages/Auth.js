@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Auth = () => {
-    const [isSignup, setIsSignup] = useState(true);
+    const [isSignup, setIsSignup] = useState(false); // Default to Login page
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
