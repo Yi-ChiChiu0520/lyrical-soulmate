@@ -6,9 +6,7 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -88,14 +86,15 @@ public class SignupStepDefs {
     @Then("I should be registered successfully")
     public void iShouldBeRegisteredSuccessfully() {
         // "User registered successfully" message should be in the page
-        WebElement successMessage = driver.findElement(By.xpath("//*[@id=\"root\"]/div/form/p"));
-        assert(successMessage.isDisplayed());
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> driver.getPageSource().contains("User registered successfully"));
+        boolean successTextPresent = driver.getPageSource().contains("User registered successfully");
+        assertTrue(successTextPresent);
     }
 
     @And("I click the signup button")
     public void iClickTheSignupButton() {
         // clear db first
-        resetUserDatabase();
         WebElement signupButton = driver.findElement(By.id("signupButton"));
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(d -> signupButton.isDisplayed());
