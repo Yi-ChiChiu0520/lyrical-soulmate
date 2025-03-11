@@ -86,7 +86,11 @@ const Auth = () => {
                 )}
                 {error && <p style={{ color: "red" }}>{error}</p>}
                 {message && <p style={{ color: "green" }}>{message}</p>}
-                <button type="submit" disabled={isSignup && passwordError}>
+                <button
+                    id={isSignup ? "signupButton" : "loginButton"}
+                    type="submit"
+                    disabled={isSignup && passwordError}
+                >
                     {isSignup ? "Sign Up" : "Login"}
                 </button>
             </form>
