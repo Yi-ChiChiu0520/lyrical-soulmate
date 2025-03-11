@@ -10,6 +10,7 @@ const Auth = () => {
     const [error, setError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [message, setMessage] = useState("");
+    const [showConfirmation, setShowConfirmation] = useState(false); // Confirmation step
 
     const navigate = useNavigate();
 
@@ -28,15 +29,14 @@ const Auth = () => {
         setMessage("");
 
         if (isSignup) {
-
             if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
                 setError("Password must contain at least one uppercase letter, one lowercase letter, and one number.");
                 return;
             }
 
             try {
-                const response = await axios.post("http://localhost:8080/auth/signup", { username, password });
-                setMessage(response.data);
+                await axios.post("http://localhost:8080/auth/signup", { username, password });
+                setShowConfirmation(true); // Show confirmation modal after successful signup
             } catch (err) {
                 setError("Username already taken or server error");
             }
@@ -52,6 +52,16 @@ const Auth = () => {
                 setError("Invalid username or password");
             }
         }
+    };
+
+    const confirmSignup = () => {
+        setShowConfirmation(false);
+        setMessage("Signup successful! Please log in.");
+        setIsSignup(false); // Switch to login after confirmation
+    };
+
+    const cancelSignup = () => {
+        setShowConfirmation(false); // Close modal and stay on signup form
     };
 
     return (
@@ -97,6 +107,26 @@ const Auth = () => {
             <button id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
                 {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
             </button>
+
+            {/* Confirmation Modal */}
+            {showConfirmation && (
+                <div style={{
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    background: "white",
+                    padding: "20px",
+                    boxShadow: "0px 0px 10px gray",
+                    textAlign: "center",
+                    zIndex: 1000
+                }}>
+                    <h3>Account Created!</h3>
+                    <p>Would you like to proceed to login?</p>
+                    <button onClick={confirmSignup} style={{ marginRight: "10px" }}>Yes, Log in</button>
+                    <button onClick={cancelSignup} style={{ background: "red", color: "white" }}>No, Cancel</button>
+                </div>
+            )}
         </div>
     );
 };
