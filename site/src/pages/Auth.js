@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -8,9 +8,19 @@ const Auth = () => {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
     const [message, setMessage] = useState("");
 
-    const navigate = useNavigate(); // Use React Router for navigation
+    const navigate = useNavigate();
+
+    // Real-time password validation
+    useEffect(() => {
+        if (isSignup && confirmPassword) {
+            setPasswordError(password !== confirmPassword ? "Passwords do not match" : "");
+        } else {
+            setPasswordError("");
+        }
+    }, [password, confirmPassword, isSignup]);
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -18,10 +28,7 @@ const Auth = () => {
         setMessage("");
 
         if (isSignup) {
-            if (password !== confirmPassword) {
-                setError("Passwords do not match");
-                return;
-            }
+
             if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
                 setError("Password must contain at least one uppercase letter, one lowercase letter, and one number.");
                 return;
@@ -38,8 +45,8 @@ const Auth = () => {
                 const response = await axios.post("http://localhost:8080/auth/login", { username, password });
                 setMessage(response.data);
                 if (response.data === "Login successful") {
-                    localStorage.setItem("user", username); // Store session
-                    navigate("/dashboard"); // Redirect properly using useNavigate
+                    localStorage.setItem("user", username);
+                    navigate("/dashboard");
                 }
             } catch (err) {
                 setError("Invalid username or password");
@@ -66,17 +73,22 @@ const Auth = () => {
                     required
                 />
                 {isSignup && (
-                    <input
-                        type="password"
-                        placeholder="Confirm Password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                    />
+                    <>
+                        <input
+                            type="password"
+                            placeholder="Confirm Password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                        />
+                        {passwordError && <p style={{ color: "red" }}>{passwordError}</p>}
+                    </>
                 )}
                 {error && <p style={{ color: "red" }}>{error}</p>}
                 {message && <p style={{ color: "green" }}>{message}</p>}
-                <button type="submit">{isSignup ? "Sign Up" : "Login"}</button>
+                <button type="submit" disabled={isSignup && passwordError}>
+                    {isSignup ? "Sign Up" : "Login"}
+                </button>
             </form>
             <button onClick={() => setIsSignup(!isSignup)}>
                 {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}

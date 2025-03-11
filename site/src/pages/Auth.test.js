@@ -143,4 +143,28 @@ describe('Auth Component', () => {
         expect(await screen.findByText('Login successful')).toBeInTheDocument();
         expect(window.location.pathname).toBe('/dashboard');
     });
+    test("handles incorrect login credentials", async () => {
+        // Mock a failed login response (anything other than "Login successful")
+        axios.post.mockResolvedValueOnce({ data: "Invalid credentials" });
+
+        render(
+            <Router>
+                <Auth />
+            </Router>
+        );
+
+        // Switch to login form
+        fireEvent.click(screen.getByRole("button", { name: "Already have an account? Login" }));
+
+        // Enter credentials
+        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "wronguser" } });
+        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "WrongPassword1" } });
+
+        // Click login button
+        fireEvent.click(screen.getByRole("button", { name: "Login" }));
+
+        // Ensure error message is displayed for failed login
+        expect(await screen.findByText("Invalid credentials")).toBeInTheDocument();
+    });
+
 });
