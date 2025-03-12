@@ -33,11 +33,11 @@ Feature: Login Functionality
     When I enter "" in the username field
     And I enter "AnyPass1" in the password field
     And I click the "Login" button
-    Then I should see an input error message "Please fill out this field"
+    Then The login input "username" should show error message "Please fill out this field."
 
   Scenario: Blank password
     Given I am on the login page
     When I enter "AnyUser" in the username field
     And I enter "" in the password field
     And I click the "Login" button
-    Then I should see an input error message "Please fill out this field"
+    Then The login input "password" should show error message "Please fill out this field."

@@ -6,6 +6,7 @@ Feature: Signup Functionality
     And I enter the password "Valid1Pass"
     And I confirm the password with "Valid1Pass"
     And I click the signup button
+    And I accept the terms
     Then I should see a signup error message "Username already taken"
 
   # Validate various invalid password formats
@@ -28,14 +29,50 @@ Feature: Signup Functionality
     Given I am on the signup page
     When I enter the username "mismatchUser"
     And I enter the password "Valid1Pass"
-    And I confirm the password with "Invalid1Pass"
-    And I click the signup button
+    And I confirm the password with "DiffPass"
     Then I should see a signup error message "Passwords do not match"
 
-  Scenario: Successful signup with valid details
+  Scenario: Successful signup then stay on signup
     Given I am on the signup page
     When I enter the username "newUser"
     And I enter the password "Valid1Pass"
     And I confirm the password with "Valid1Pass"
     And I click the signup button
+    And I accept the terms
     Then I should be registered successfully
+    When I proceed to login
+    Then I should be on the login page
+
+  Scenario: Valid signup but decline terms
+    Given I am on the signup page
+    When I enter the username "newUser1"
+    And I enter the password "Valid1Pass"
+    And I confirm the password with "Valid1Pass"
+    And I click the signup button
+    And I do not accept the terms
+    Then I should not be registered
+
+
+  Scenario: Blank username
+    Given I am on the signup page
+    When I enter the username ""
+    And I enter the password "Valid1Pass"
+    And I confirm the password with "Valid1Pass"
+    And I click the signup button
+    Then The signup input "username" should show error message "Please fill out this field."
+
+  Scenario: Blank password
+    Given I am on the signup page
+    When I enter the username "existingUser"
+    And I enter the password ""
+    And I confirm the password with "Valid1Pass"
+    And I click the signup button
+    Then I should see a signup error message "Passwords do not match"
+
+  Scenario: Blank confirm password
+    Given I am on the signup page
+    When I enter the username "existingUser"
+    And I enter the password "Valid1Pass"
+    And I confirm the password with ""
+    And I click the signup button
+    Then The signup input "confirmPassword" should show error message "Please fill out this field."
