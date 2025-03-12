@@ -27,3 +27,17 @@ Feature: Login Functionality
     Then I should not see a "Logout" button
     And when I navigate to the signup page
     Then I should not see a "Logout" button
+
+  Scenario: Blank username
+    Given I am on the login page
+    When I enter "" in the username field
+    And I enter "AnyPass1" in the password field
+    And I click the "Login" button
+    Then I should see an input error message "Please fill out this field"
+
+  Scenario: Blank password
+    Given I am on the login page
+    When I enter "AnyUser" in the username field
+    And I enter "" in the password field
+    And I click the "Login" button
+    Then I should see an input error message "Please fill out this field"
