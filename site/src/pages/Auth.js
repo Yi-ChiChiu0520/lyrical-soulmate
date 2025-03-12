@@ -40,10 +40,12 @@ const Auth = () => {
         } else {
             try {
                 const response = await axios.post("http://localhost:8080/auth/login", { username, password });
-                setMessage(response.data);
                 if (response.data === "Login successful") {
+                    setMessage(response.data);
                     localStorage.setItem("user", username);
                     navigate("/dashboard");
+                } else if (response.data === "Invalid username or password") {
+                    setError(response.data);
                 }
             } catch (err) {
                 setError("Invalid username or password");
@@ -83,87 +85,105 @@ const Auth = () => {
     };
 
     return (
-        <div style={{ maxWidth: "400px", margin: "auto", textAlign: "center" }}>
-            <h2>{isSignup ? "Sign Up" : "Login"}</h2>
-            <form onSubmit={handleAuth}>
-                <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                {isSignup && (
-                    <>
+        <div className="w-screen h-screen bg-fuchsia-950 text-center flex justify-center items-center flex-col">
+            <div className="w-3/4 h-1/2 my-10 flex justify-center items-center flex-col">
+                <div className="m-10">
+                    <h1 className="font-bold text-3xl text-white">Let’s Get Lyrical!</h1>
+                </div>
+                <form
+                    className="flex justify-center items-center flex-col w-full max-w-3xl min-w-96 bg-fuchsia-900 p-10 rounded-xl mb-10"
+                    onSubmit={handleAuth}>
+                    <h2 className="text-white mb-5 font-bold text-2xl">{isSignup ? "Sign Up" : "Login"}</h2>
+                    <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
+                        <label className="text-white py-2">Username</label>
                         <input
-                            type="password"
-                            placeholder="Confirm Password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full p-2 rounded-md"
+                            type="text"
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             required
                         />
-                        {passwordError && <p style={{ color: "red" }}>{passwordError}</p>}
-                    </>
-                )}
-                {error && <p id="errorMessage" style={{ color: "red" }}>{error}</p>}
-                {message && <p id="successMessage" style={{ color: "green" }}>{message}</p>}
-                <button
-                    id={isSignup ? "signupButton" : "loginButton"}
-                    type="submit"
-                    disabled={isSignup && passwordError}
-                >
-                    {isSignup ? "Sign Up" : "Login"}
+                    </div>
+                    <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
+                        <label className="text-white py-2">Password</label>
+                        <input
+                            className="w-full p-2 rounded-md"
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    {isSignup && (
+                        <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
+                            <label className="text-white py-2">Confirm Password</label>
+                            <input
+                                className="w-full p-2 rounded-md"
+                                type="password"
+                                placeholder="Confirm Password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                            />
+                            {passwordError && <p className="py-3 text-red-400">{passwordError}</p>}
+                        </div>
+                    )}
+                    {error && <p id="errorMessage" className="text-red-400">{error}</p>}
+                    {message && <p id="successMessage" className="text-green-400">{message}</p>}
+                    <button
+                        className="rounded-full bg-white hover:bg-neutral-200 p-2 w-40 mt-10"
+                        id={isSignup ? "signupButton" : "loginButton"}
+                        type="submit"
+                        disabled={isSignup && passwordError}
+                    >
+                        {isSignup ? "Sign Up" : "Login"}
+                    </button>
+                </form>
+                <button className="text-white" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
+                    {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
                 </button>
-            </form>
-            <button id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
-                {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
-            </button>
 
-            {/* Signup Agreement Modal */}
-            {showAgreement && (
-                <div style={{
-                    position: "fixed",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "white",
-                    padding: "20px",
-                    boxShadow: "0px 0px 10px gray",
-                    textAlign: "center",
-                    zIndex: 1000
-                }}>
-                    <h3>Before Signing Up</h3>
-                    <p>I would like to sign up. Do you agree?</p>
-                    <button onClick={confirmSignup} style={{ marginRight: "10px" }}>Yes, Create Account</button>
-                    <button onClick={cancelAgreement} style={{ background: "red", color: "white" }}>No, Cancel</button>
-                </div>
-            )}
+                {/* Signup Agreement Modal */}
+                {showAgreement && (
+                    <div className="rounded-md p-5" style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "white",
+                        padding: "20px",
+                        boxShadow: "0px 0px 10px gray",
+                        textAlign: "center",
+                        zIndex: 1000
+                    }}>
+                        <h3>Before Signing Up</h3>
+                        <p>I would like to sign up. Do you agree?</p>
+                        <button onClick={confirmSignup} className="my-4 p-1 mr-3">Yes, Create Account</button>
+                        <button onClick={cancelAgreement} className="my-4 p-1 text-red-400">No, Cancel</button>
+                    </div>
+                )}
 
-            {/* Final Confirmation Modal */}
-            {showConfirmation && (
-                <div style={{
-                    position: "fixed",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "white",
-                    padding: "20px",
-                    boxShadow: "0px 0px 10px gray",
-                    textAlign: "center",
-                    zIndex: 1000
-                }}>
-                    <h3>Account Created!</h3>
-                    <p>Would you like to proceed to login?</p>
-                    <button onClick={confirmFinalSignup} style={{ marginRight: "10px" }}>Yes, Log in</button>
-                </div>
-            )}
+                {/* Final Confirmation Modal */}
+                {showConfirmation && (
+                    <div className="rounded-md p-5" style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "white",
+                        padding: "20px",
+                        boxShadow: "0px 0px 10px gray",
+                        textAlign: "center",
+                        zIndex: 1000
+                    }}>
+                        <h3>Account Created!</h3>
+                        <p>Would you like to proceed to login?</p>
+                        <button onClick={confirmFinalSignup} className="mr-3">Yes, Log in</button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
