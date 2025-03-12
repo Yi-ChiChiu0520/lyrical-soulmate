@@ -90,6 +90,9 @@ public class LoginStepDefs {
 
     @Then("I should see an error message {string}")
     public void iShouldSeeAnErrorMessage(String arg0) {
+        // wait 2 seconds
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> d.getPageSource().contains(arg0));
         boolean errorTextPresent = driver.getPageSource().contains(arg0);
         assertTrue(errorTextPresent);
     }
@@ -116,5 +119,22 @@ public class LoginStepDefs {
         Thread.sleep(1000);
         String currentUrl = driver.getCurrentUrl();
         assertEquals("http://localhost:8080/dashboard", currentUrl);
+    }
+
+    @Then("I should see an input error message {string}")
+    public void iShouldSeeAnInputErrorMessage(String arg0) {
+        // locate username and password fields
+        WebElement usernameField = driver.findElement(By.cssSelector("input[placeholder='Username']"));
+        WebElement passwordField = driver.findElement(By.cssSelector("input[placeholder='Password']"));
+
+        // get input error fields
+        String usernameValidationMessage = usernameField.getAttribute("validationMessage");
+        String passwordValidationMessage = passwordField.getAttribute("validationMessage");
+        String expectedError = "Please fill out this field.";
+
+        // assert message exists/is correct
+        boolean usernameInvalid = usernameValidationMessage.equals(expectedError);
+        boolean passwordInvald = passwordValidationMessage.equals(expectedError);
+        assertTrue(usernameInvalid || passwordInvald);
     }
 }
