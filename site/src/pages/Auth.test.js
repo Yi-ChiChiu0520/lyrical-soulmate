@@ -158,9 +158,9 @@ describe("Auth Component", () => {
         // Step 2: Currently on login, click "Don't have an account? Sign up" to switch to signup mode
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         // Step 3: Fill in the signup form
-        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "lebron james" } });
-        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "thegoat23" } });
-        fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "thegoat23" } });
+        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "testuser" } });
+        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "TestPass123" } });
+        fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "TestPass123" } });
         // Step 4: Click "Sign Up"
         fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
 
