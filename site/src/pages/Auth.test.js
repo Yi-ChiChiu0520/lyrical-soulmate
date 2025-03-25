@@ -147,14 +147,7 @@ describe("Auth Component", () => {
             expect(screen.queryByText("I would like to sign up. Do you agree?")).not.toBeInTheDocument();
         });
     });
-    test("shows error message for server error during signup", async () => {
-        // Step 1: Render the component
-        render(
-            <MemoryRouter>
-                <Auth />
-            </MemoryRouter>
-        );
-
+    async function fillSignupForm() {
         // Step 2: Currently on login, click "Don't have an account? Sign up" to switch to signup mode
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         // Step 3: Fill in the signup form
@@ -163,7 +156,20 @@ describe("Auth Component", () => {
         fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "TestPass123" } });
         // Step 4: Click "Sign Up"
         fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
+        // Step 5: Expect agreement modal to show up
+        await waitFor(() => {
+            expect(screen.getByText("I would like to sign up. Do you agree?")).toBeInTheDocument();
+        });
+    }
+    test("shows error message for server error during signup", async () => {
+        // Step 1: Render the component
+        render(
+            <MemoryRouter>
+                <Auth />
+            </MemoryRouter>
+        );
 
+        await fillSignupForm();
         // Step 5: await for agreement modal to show up
         await waitFor(() => {
             expect(screen.getByText("I would like to sign up. Do you agree?")).toBeInTheDocument();
@@ -188,22 +194,7 @@ describe("Auth Component", () => {
             </MemoryRouter>
         );
 
-        // Step 2: Click "Don't have an account? Sign up" to switch to signup mode
-        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
-
-        // Step 3: Fill in the signup form
-        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "testuser" } });
-        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "TestPass123" } });
-        fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "TestPass123" } });
-
-        // Step 4: Click "Sign Up"
-        fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
-
-        // Step 5: Expect agreement modal to show up
-        await waitFor(() => {
-            expect(screen.getByText("I would like to sign up. Do you agree?")).toBeInTheDocument();
-        });
-
+        await fillSignupForm();
         // Step 6: Mock the API response to simulate "Username already taken"
         axios.post.mockResolvedValueOnce({ data: "Username already taken" });
 
