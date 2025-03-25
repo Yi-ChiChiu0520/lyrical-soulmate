@@ -155,18 +155,16 @@ describe("Auth Component", () => {
             </MemoryRouter>
         );
 
-        // Step 2: Click "Don't have an account? Sign up" to switch to signup mode
+        // Step 2: Currently on login, click "Don't have an account? Sign up" to switch to signup mode
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
-
         // Step 3: Fill in the signup form
-        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "testuser" } });
-        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "TestPass123" } });
-        fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "TestPass123" } });
-
+        fireEvent.change(screen.getByPlaceholderText("Username"), { target: { value: "lebron james" } });
+        fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: "thegoat23" } });
+        fireEvent.change(screen.getByPlaceholderText("Confirm Password"), { target: { value: "thegoat23" } });
         // Step 4: Click "Sign Up"
         fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
 
-        // Step 5: Expect agreement modal to show up
+        // Step 5: await for agreement modal to show up
         await waitFor(() => {
             expect(screen.getByText("I would like to sign up. Do you agree?")).toBeInTheDocument();
         });
