@@ -9,15 +9,29 @@ jest.mock('axios', () => ({
     get: jest.fn(() => Promise.resolve({ data: { response: { hits: [] } } }))
 }));
 
+// Helper function to DRY up search tests
+const setupAndSearch = async (mockResponse) => {
+    axios.get.mockResolvedValueOnce({ data: mockResponse });
+
+    render(
+        <Router>
+            <Dashboard />
+        </Router>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Search for a song...'), {
+        target: { value: 'test' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+};
+
 describe('Dashboard Component', () => {
     beforeEach(() => {
-        // Clear localStorage and mocks before each test
         localStorage.clear();
         jest.clearAllMocks();
     });
 
     test('redirects to home if user is not logged in', () => {
-        // Render the Dashboard component without a user in localStorage
         render(
             <MemoryRouter initialEntries={['/dashboard']}>
                 <Routes>
@@ -27,12 +41,10 @@ describe('Dashboard Component', () => {
             </MemoryRouter>
         );
 
-        // Check if the user is redirected to the home page
         expect(screen.getByText('Home Page')).toBeInTheDocument();
     });
 
     test('renders welcome message and logout button when user is logged in', () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
         render(
@@ -41,13 +53,11 @@ describe('Dashboard Component', () => {
             </Router>
         );
 
-        // Check if the welcome message and logout button are displayed
         expect(screen.getByText('Welcome, testuser!')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
     });
 
     test('logs out user and redirects to home when logout button is clicked', async () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
         render(
@@ -59,23 +69,18 @@ describe('Dashboard Component', () => {
             </MemoryRouter>
         );
 
-        // Click the logout button
         fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
 
-        // Check if the user is removed from localStorage
         expect(localStorage.getItem('user')).toBeNull();
 
-        // Wait for the redirection to happen
         await waitFor(() => {
             expect(screen.getByText('Home Page')).toBeInTheDocument();
         });
     });
 
     test('shows alert when search query is empty', () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
-        // Mock window.alert
         window.alert = jest.fn();
 
         render(
@@ -84,18 +89,14 @@ describe('Dashboard Component', () => {
             </Router>
         );
 
-        // Click the search button without entering a query
         fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-        // Check if the alert is shown
         expect(window.alert).toHaveBeenCalledWith('Please enter a song title!');
     });
 
     test('fetches and displays songs when search query is valid', async () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
-        // Mock axios response
         const mockSongs = {
             response: {
                 hits: [
@@ -116,61 +117,32 @@ describe('Dashboard Component', () => {
                 ]
             }
         };
-        axios.get.mockResolvedValueOnce({ data: mockSongs });
 
-        render(
-            <Router>
-                <Dashboard />
-            </Router>
-        );
+        await setupAndSearch(mockSongs);
 
-        // Enter a search query and click the search button
-        fireEvent.change(screen.getByPlaceholderText('Search for a song...'), {
-            target: { value: 'test' }
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-        // Wait for the songs to be displayed
         expect(await screen.findByText('🎵 Song 1')).toBeInTheDocument();
         expect(await screen.findByText('🎵 Song 2')).toBeInTheDocument();
     });
 
     test('displays "No songs found" message when no songs are returned', async () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
-        // Mock axios response with no songs
         const mockSongs = {
             response: {
                 hits: []
             }
         };
-        axios.get.mockResolvedValueOnce({ data: mockSongs });
 
-        render(
-            <Router>
-                <Dashboard />
-            </Router>
-        );
+        await setupAndSearch(mockSongs);
 
-        // Enter a search query and click the search button
-        fireEvent.change(screen.getByPlaceholderText('Search for a song...'), {
-            target: { value: 'test' }
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-        // Wait for the "No songs found" message to be displayed
         expect(await screen.findByText('No songs found.')).toBeInTheDocument();
     });
 
     test('logs error when fetching songs fails', async () => {
-        // Simulate a logged-in user
         localStorage.setItem('user', 'testuser');
 
-        // Mock console.error to verify it is called
         const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        // Mock axios.get to reject with an error
         axios.get.mockRejectedValueOnce(new Error('Failed to fetch songs'));
 
         render(
@@ -179,18 +151,15 @@ describe('Dashboard Component', () => {
             </Router>
         );
 
-        // Enter a search query and click the search button
         fireEvent.change(screen.getByPlaceholderText('Search for a song...'), {
             target: { value: 'test' }
         });
         fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-        // Wait for the error to be logged
         await waitFor(() => {
             expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching songs:', expect.any(Error));
         });
 
-        // Restore the original console.error implementation
         consoleErrorSpy.mockRestore();
     });
 });
