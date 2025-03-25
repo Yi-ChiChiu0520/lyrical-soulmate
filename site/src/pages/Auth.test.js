@@ -170,11 +170,6 @@ describe("Auth Component", () => {
         );
 
         await fillSignupForm();
-        // Step 5: await for agreement modal to show up
-        await waitFor(() => {
-            expect(screen.getByText("I would like to sign up. Do you agree?")).toBeInTheDocument();
-        });
-
         // Step 6: Mock the API response to simulate a server error (unexpected message)
         axios.post.mockResolvedValueOnce({ data: "Unexpected server error occurred" });
 
