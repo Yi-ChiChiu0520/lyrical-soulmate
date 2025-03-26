@@ -3,6 +3,7 @@ package edu.usc.csci310.project;
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
 import io.cucumber.java.Before;
+import io.cucumber.java.bs.A;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -122,7 +123,7 @@ public class SignupStepDefs {
         signupButton.click();
     }
 
-    @Given("I see error {string}")
+    @Given("I should see a signup error message {string}")
     public void iShouldSeeASignupErrorMessage(String arg0) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(d -> driver.getPageSource().contains(arg0));
@@ -144,7 +145,7 @@ public class SignupStepDefs {
         assertTrue(loginPagePresent);
     }
 
-    @Then("Input {string} shows error {string}")
+    @Then("The signup input {string} should show error message {string}")
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) throws InterruptedException {
         String path;
         switch (input) {
