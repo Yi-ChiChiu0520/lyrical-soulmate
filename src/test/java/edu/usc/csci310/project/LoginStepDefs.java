@@ -2,59 +2,28 @@ package edu.usc.csci310.project;
 
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.JavascriptExecutor;
 
-
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LoginStepDefs {
+public class LoginStepDefs extends BaseStepDefs {
 
-    private static WebDriver driver = new ChromeDriver();
-
-    private final Connection connection;
-
-    public LoginStepDefs(Connection connection) { this.connection = connection;}
-
-    @Before
-    public void resetUserDatabase() {
-        try (Statement stmt = connection.createStatement()) {
-
-            String deleteTableSQL = "DROP TABLE IF EXISTS users";
-            stmt.executeUpdate(deleteTableSQL);
-
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
-            stmt.executeUpdate(createTableSQL);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error clearing the database before scenario", e);
-        }
-    }
-
-    @AfterAll
-    public static void closeDriver() {
-        driver.quit();
+    public LoginStepDefs(Connection connection) {
+        super(connection);
     }
 
     @Given("I am on the login page")
@@ -63,7 +32,8 @@ public class LoginStepDefs {
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         WebElement loginButton = driver.findElement(By.id("loginButton"));
-        wait.until(d -> loginButton.isDisplayed());}
+        wait.until(d -> loginButton.isDisplayed());
+    }
 
     @And("a user exists with username {string} and password {string}")
     public void aUserExistsWithUsernameAndPassword(String username, String password) {
@@ -142,6 +112,5 @@ public class LoginStepDefs {
         String actualMessage = inputField.getAttribute("validationMessage");
         assertEquals(expectedMessage, actualMessage);
     }
-
 
 }

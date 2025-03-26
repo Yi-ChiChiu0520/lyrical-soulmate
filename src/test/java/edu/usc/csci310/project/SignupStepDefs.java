@@ -2,52 +2,25 @@ package edu.usc.csci310.project;
 
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SignupStepDefs {
-    private static WebDriver driver = new ChromeDriver();
+public class SignupStepDefs extends BaseStepDefs {
 
-    private final Connection connection;
-
-    public SignupStepDefs(Connection connection) { this.connection = connection;}
-
-    @Before
-    public void resetUserDatabase() {
-        try (Statement stmt = connection.createStatement()) {
-
-            String deleteTableSQL = "DROP TABLE IF EXISTS users";
-            stmt.executeUpdate(deleteTableSQL);
-
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
-            stmt.executeUpdate(createTableSQL);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error clearing the database before scenario", e);
-        }
-    }
-
-    @AfterAll
-    public static void closeDriver() {
-        driver.quit();
+    public SignupStepDefs(Connection connection) {
+        super(connection);
     }
 
     @Given("I am on the signup page")
