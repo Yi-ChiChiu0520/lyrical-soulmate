@@ -26,18 +26,18 @@ Feature: Login Functionality
     Given I am on the login page
     Then I should not see a "Logout" button
     And when I navigate to the signup page
-    Then I should not see a "Logout" button
+    And I should not see a "Logout" button
 
   Scenario: Blank username
     Given I am on the login page
     When I enter "" in the username field
     And I enter "AnyPass1" in the password field
     And I click the "Login" button
-    Then The login input "username" should show error message "Please fill out this field."
+    Then The login field "username" should show required error
 
   Scenario: Blank password
     Given I am on the login page
     When I enter "AnyUser" in the username field
     And I enter "" in the password field
     And I click the "Login" button
-    Then The login input "password" should show error message "Please fill out this field."
+    Then The login field "password" should show required error
