@@ -13,6 +13,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
 
+import static edu.usc.csci310.project.util.HashUtil.hashUsername;
+
 @Repository
 public class UserRepository {
 
@@ -24,22 +26,6 @@ public class UserRepository {
         this.connection = connection;
     }
 
-    /**
-     * Helper method to hash the username using SHA-256 for deterministic encryption.
-     */
-    private String hashUsername(String username) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(username.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing username", e);
-        }
-    }
 
     /**
      * Registers a new user with an encrypted username and hashed password.

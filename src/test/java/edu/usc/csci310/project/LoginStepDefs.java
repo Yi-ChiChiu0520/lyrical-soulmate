@@ -14,11 +14,14 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.JavascriptExecutor;
+
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -121,20 +124,24 @@ public class LoginStepDefs {
         assertEquals("http://localhost:8080/dashboard", currentUrl);
     }
 
-    @Then("I should see an input error message {string}")
-    public void iShouldSeeAnInputErrorMessage(String arg0) {
-        // locate username and password fields
-        WebElement usernameField = driver.findElement(By.cssSelector("input[placeholder='Username']"));
-        WebElement passwordField = driver.findElement(By.cssSelector("input[placeholder='Password']"));
-
-        // get input error fields
-        String usernameValidationMessage = usernameField.getAttribute("validationMessage");
-        String passwordValidationMessage = passwordField.getAttribute("validationMessage");
-        String expectedError = "Please fill out this field.";
-
-        // assert message exists/is correct
-        boolean usernameInvalid = usernameValidationMessage.equals(expectedError);
-        boolean passwordInvald = passwordValidationMessage.equals(expectedError);
-        assertTrue(usernameInvalid || passwordInvald);
+    @Then("The login input {string} should show error message {string}")
+    public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) {
+        String path;
+        switch (input) {
+            case "password" -> path = "//*[@id=\"password\"]";
+            case "username" -> path = "//*[@id=\"username\"]";
+            case "confirmPassword" -> path = "//*[@id=\"confirmPassword\"]";
+            default -> {
+                path = "";
+                assert (false);
+            }
+        }
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
+        WebElement inputField = driver.findElement(By.xpath(path));
+        String actualMessage = inputField.getAttribute("validationMessage");
+        assertEquals(expectedMessage, actualMessage);
     }
+
+
 }

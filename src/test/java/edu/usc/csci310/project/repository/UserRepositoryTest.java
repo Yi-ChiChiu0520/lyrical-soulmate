@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
 
+import static edu.usc.csci310.project.util.HashUtil.hashUsername;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -59,64 +60,6 @@ class UserRepositoryTest {
         System.setErr(originalErr); // ✅ Restore original System.err
     }
 
-
-    /**
-     * ✅ Helper: Hashes username the same way as UserRepository
-     */
-    private String hashUsername(String username) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(username.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing username", e);
-        }
-    }
-
-    /**
-     * ✅ Test successful hashing of username
-     */
-    @Test
-    void testHashUsername_Success() {
-        String username = "testUser";
-        String hashedUsername = invokePrivateMethod(userRepository, "hashUsername", username);
-
-        assertNotNull(hashedUsername);
-        assertEquals(64, hashedUsername.length()); // SHA-256 produces a 64-character hex string
-    }
-
-    /**
-     * ✅ Test handling NoSuchAlgorithmException in hashUsername()
-     */
-    @Test
-    void testHashUsername_ThrowsNoSuchAlgorithmException() {
-        try (MockedStatic<MessageDigest> mockedMessageDigest = Mockito.mockStatic(MessageDigest.class)) {
-            mockedMessageDigest.when(() -> MessageDigest.getInstance("SHA-256"))
-                    .thenThrow(new NoSuchAlgorithmException("Test Exception"));
-
-            RuntimeException thrown = assertThrows(RuntimeException.class,
-                    () -> invokePrivateMethod(userRepository, "hashUsername", "testUser"));
-
-            assertTrue(thrown.getMessage().contains("Error hashing username"),
-                    "Expected exception message to contain 'Error hashing username' but got: " + thrown.getMessage());
-        }
-    }
-
-
-
-    private String invokePrivateMethod(UserRepository userRepository, String methodName, String param) {
-        try {
-            java.lang.reflect.Method method = UserRepository.class.getDeclaredMethod(methodName, String.class);
-            method.setAccessible(true);
-            return (String) method.invoke(userRepository, param);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Reflection error: " + e.getCause(), e);
-        }
-    }
 
 
     /**

@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
 
 // Mock the Auth and Dashboard components
 jest.mock('./pages/Auth', () => () => <div>Auth Component</div>);

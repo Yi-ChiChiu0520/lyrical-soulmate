@@ -98,6 +98,7 @@ const Auth = () => {
                         <label className="text-white py-2">Username</label>
                         <input
                             className="w-full p-2 rounded-md"
+                            id="username"
                             type="text"
                             placeholder="Username"
                             value={username}
@@ -109,6 +110,7 @@ const Auth = () => {
                         <label className="text-white py-2">Password</label>
                         <input
                             className="w-full p-2 rounded-md"
+                            id="password"
                             type="password"
                             placeholder="Password"
                             value={password}
@@ -121,6 +123,7 @@ const Auth = () => {
                             <label className="text-white py-2">Confirm Password</label>
                             <input
                                 className="w-full p-2 rounded-md"
+                                id="confirmPassword"
                                 type="password"
                                 placeholder="Confirm Password"
                                 value={confirmPassword}
