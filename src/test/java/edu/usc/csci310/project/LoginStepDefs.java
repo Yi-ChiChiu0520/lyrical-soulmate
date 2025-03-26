@@ -112,5 +112,4 @@ public class LoginStepDefs extends BaseStepDefs {
         String actualMessage = inputField.getAttribute("validationMessage");
         assertEquals(expectedMessage, actualMessage);
     }
-
 }
