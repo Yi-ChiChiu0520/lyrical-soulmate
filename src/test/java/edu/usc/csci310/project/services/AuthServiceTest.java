@@ -1,123 +1,154 @@
 package edu.usc.csci310.project.services;
 
+import edu.usc.csci310.project.model.User;
 import edu.usc.csci310.project.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class AuthServiceTest {
 
-    @Mock
     private UserRepository userRepository;
-
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        userRepository = mock(UserRepository.class);
         authService = new AuthService(userRepository);
     }
 
+    // ───────── registerUser ─────────
+
     @Test
-    void registerUser_UsernameTaken_ReturnsErrorMessage() {
-        // Arrange
-        when(userRepository.existsByUsername("existingUser")).thenReturn(true);
-
-        // Act
-        String result = authService.registerUser("existingUser", "ValidPass1");
-
-        // Assert
+    void testRegisterUserFailsWhenUsernameTaken() {
+        when(userRepository.existsByUsername("existing")).thenReturn(true);
+        String result = authService.registerUser("existing", "Password1");
         assertEquals("Username already taken", result);
-        verify(userRepository, never()).registerUser(anyString(), anyString());
     }
 
     @Test
-    void registerUser_InvalidPassword_ReturnsErrorMessage() {
-        // Arrange
-        when(userRepository.existsByUsername("newUser")).thenReturn(false);
-
-        // Act
-        String result = authService.registerUser("newUser", "weakpassword");
-
-        // Assert
+    void testRegisterUserFailsWhenPasswordInvalid() {
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        String result = authService.registerUser("newuser", "weak");
         assertEquals("Password must contain at least one uppercase letter, one lowercase letter, and one number.", result);
-        verify(userRepository, never()).registerUser(anyString(), anyString());
     }
 
     @Test
-    void registerUser_ValidUsernameAndPassword_Success() {
-        // Arrange
-        when(userRepository.existsByUsername("newUser")).thenReturn(false);
-        when(userRepository.registerUser("newUser", "ValidPass1")).thenReturn(true);
+    void testRegisterUserSuccess() {
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.registerUser(eq("newuser"), anyString())).thenReturn(true);
 
-        // Act
-        String result = authService.registerUser("newUser", "ValidPass1");
-
-        // Assert
+        String result = authService.registerUser("newuser", "StrongPass1");
         assertEquals("User registered successfully", result);
-        verify(userRepository).registerUser("newUser", "ValidPass1");
     }
 
     @Test
-    void registerUser_RepositoryError_ReturnsErrorMessage() {
-        // Arrange
-        when(userRepository.existsByUsername("newUser")).thenReturn(false);
-        when(userRepository.registerUser("newUser", "ValidPass1")).thenReturn(false);
+    void testRegisterUserFailsOnInsert() {
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.registerUser(eq("newuser"), anyString())).thenReturn(false);
 
-        // Act
-        String result = authService.registerUser("newUser", "ValidPass1");
-
-        // Assert
+        String result = authService.registerUser("newuser", "StrongPass1");
         assertEquals("Error registering user", result);
-        verify(userRepository).registerUser("newUser", "ValidPass1");
     }
 
-    @Test
-    void authenticateUser_UserDoesNotExist_ReturnsFalse() {
-        // Arrange
-        when(userRepository.getUserPassword("nonExistentUser")).thenReturn(Optional.empty());
-
-        // Act
-        boolean result = authService.authenticateUser("nonExistentUser", "AnyPassword1");
-
-        // Assert
-        assertFalse(result);
-    }
+    // ───────── loginWithLockout ─────────
 
     @Test
-    void authenticateUser_IncorrectPassword_ReturnsFalse() {
-        // Arrange
+    void testLoginSuccessResetsState() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String hashedPassword = encoder.encode("CorrectPass1");
-        when(userRepository.getUserPassword("existingUser")).thenReturn(Optional.of(hashedPassword));
+        String hashed = encoder.encode("Password1");
 
-        // Act
-        boolean result = authService.authenticateUser("existingUser", "WrongPass1");
+        User user = new User("user", hashed, 2, false, null);
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
 
-        // Assert
-        assertFalse(result);
+        int status = authService.loginWithLockout("user", "Password1");
+
+        assertEquals(200, status);
+        verify(userRepository).updateUser(argThat(updated ->
+                !updated.isAccountLocked() &&
+                        updated.getFailedLoginAttempts() == 0 &&
+                        updated.getLockTime() == null
+        ));
     }
 
     @Test
-    void authenticateUser_CorrectPassword_ReturnsTrue() {
-        // Arrange
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String correctPassword = "CorrectPass1";
-        String hashedPassword = encoder.encode(correctPassword);
-        when(userRepository.getUserPassword("existingUser")).thenReturn(Optional.of(hashedPassword));
+    void testLoginWrongPasswordIncrementsAttempts() {
+        String hashed = new BCryptPasswordEncoder().encode("CorrectPass");
 
-        // Act
-        boolean result = authService.authenticateUser("existingUser", correctPassword);
+        User user = new User("user", hashed, 0, false, null);
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
 
-        // Assert
-        assertTrue(result);
+        int status = authService.loginWithLockout("user", "WrongPass");
+        assertEquals(401, status);
+        verify(userRepository).updateUser(argThat(u -> u.getFailedLoginAttempts() == 1));
+    }
+
+    @Test
+    void testLoginLocksAccountAfterThreeFailures() {
+        String hashed = new BCryptPasswordEncoder().encode("CorrectPass");
+
+        User user = new User("user", hashed, 2, false, null);
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
+
+        int status = authService.loginWithLockout("user", "WrongPass");
+        assertEquals(401, status);
+        verify(userRepository).updateUser(argThat(u -> u.isAccountLocked() && u.getFailedLoginAttempts() == 3));
+    }
+
+    @Test
+    void testLoginFailsWhenAccountLockedAndStillLocked() {
+        User user = new User("user", "pass", 3, true, LocalDateTime.now());
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
+
+        int status = authService.loginWithLockout("user", "pass");
+        assertEquals(423, status); // Locked
+    }
+
+    @Test
+    void testLoginUnlocksAfterTimeout() {
+        String hashed = new BCryptPasswordEncoder().encode("Password1");
+
+        LocalDateTime past = LocalDateTime.now().minusSeconds(35);
+        User user = new User("user", hashed, 3, true, past);
+
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
+
+        int status = authService.loginWithLockout("user", "Password1");
+
+        assertEquals(200, status);
+        verify(userRepository).updateUser(argThat(u -> !u.isAccountLocked()));
+    }
+
+    @Test
+    void testLoginFailsWhenUserNotFound() {
+        when(userRepository.findByUsername("nouser")).thenReturn(Optional.empty());
+        assertEquals(401, authService.loginWithLockout("nouser", "pass"));
+    }
+
+    // ───────── deleteUser ─────────
+
+    @Test
+    void testDeleteUserSuccess() {
+        when(userRepository.deleteByUsername("john")).thenReturn(true);
+        assertTrue(authService.deleteUser("john"));
+    }
+
+    @Test
+    void testDeleteUserFails() {
+        when(userRepository.deleteByUsername("jane")).thenReturn(false);
+        assertFalse(authService.deleteUser("jane"));
+    }
+
+    @Test
+    void testDeleteUserException() {
+        when(userRepository.deleteByUsername("oops")).thenThrow(new RuntimeException("Boom"));
+        assertFalse(authService.deleteUser("oops"));
     }
 }
