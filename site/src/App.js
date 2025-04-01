@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
+
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Favorites from "./pages/Favorites";
@@ -24,7 +25,6 @@ const App = () => {
                 <Route path="/" element={<Auth setUser={setUser} />} />
                 <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/favorites" element={user ? <Favorites user={user} /> : <Navigate to="/" replace />} />
-
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>
