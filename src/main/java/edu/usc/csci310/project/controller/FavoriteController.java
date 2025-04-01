@@ -31,8 +31,9 @@ public class FavoriteController {
                 favoriteSong.getTitle(),
                 favoriteSong.getUrl(),
                 favoriteSong.getImageUrl(),
-                favoriteSong.getReleaseDate(),  // ✅ Store release date
-                favoriteSong.getArtistName()// ✅ Store artist name
+                favoriteSong.getReleaseDate(),
+                favoriteSong.getArtistName(),
+                favoriteSong.getLyrics()
         );
 
         return success ? ResponseEntity.ok("✅ Song added to favorites")
@@ -45,12 +46,9 @@ public class FavoriteController {
     @GetMapping("/{username}")
     public ResponseEntity<List<FavoriteSong>> getFavorites(@PathVariable String username) {
         List<FavoriteSong> favorites = favoriteService.getFavorites(username);
-
-        // ✅ Debugging Log: Ensure rank is included
-        for (FavoriteSong song : favorites) {
-            System.out.println("📤 Sending song with rank: " + song.getRank());
-        }
-
+//        for (FavoriteSong song : favorites) {
+//            System.out.println("🎵 " + song.getTitle() + " — Lyrics: " + song.getLyrics());
+//        }
         return favorites.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(favorites);
     }
 

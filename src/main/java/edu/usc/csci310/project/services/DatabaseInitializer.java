@@ -27,24 +27,47 @@ public class DatabaseInitializer {
             String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
+                    "password TEXT NOT NULL, " +
+                    "failed_login_attempts INTEGER DEFAULT 0, " +
+                    "account_locked BOOLEAN DEFAULT FALSE, " +
+                    "lock_time TIMESTAMP DEFAULT NULL)";
             stmt.executeUpdate(createUsersTableSQL);
             System.out.println("✅ Users table created or already exists.");
 
-            // Create Favorites Table
+            // Drop and Create Favorites Table
+            stmt.executeUpdate("DROP TABLE IF EXISTS favorites");
+
             String createFavoritesTableSQL = "CREATE TABLE IF NOT EXISTS favorites (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT NOT NULL, " +
                     "song_id TEXT NOT NULL, " +
-                    "title TEXT NOT NULL, " + // Will store encrypted data
-                    "url TEXT NOT NULL, " + // Will store encrypted data
-                    "image_url TEXT NOT NULL, " + // Will store encrypted data
-                    "release_date TEXT, " + // Will store encrypted data
-                    "artist_name TEXT, " + // Will store encrypted data
+                    "title TEXT NOT NULL, " +
+                    "url TEXT NOT NULL, " +
+                    "image_url TEXT NOT NULL, " +
+                    "release_date TEXT, " +
+                    "artist_name TEXT, " +
+                    "lyrics TEXT, " +
                     "rank INTEGER NOT NULL, " +
-                    "UNIQUE (username, song_id))"; // Prevent duplicate song favorites
+                    "UNIQUE (username, song_id))";
             stmt.executeUpdate(createFavoritesTableSQL);
             System.out.println("✅ Favorites table created or already exists.");
+
+            stmt.executeUpdate("DROP TABLE IF EXISTS wordcloud");
+
+            // 🔥 Create Word Cloud Table
+            String createWordCloudTableSQL = "CREATE TABLE IF NOT EXISTS wordcloud (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "username TEXT NOT NULL, " +
+                    "song_id TEXT NOT NULL, " +
+                    "title TEXT NOT NULL, " +
+                    "url TEXT NOT NULL, " +
+                    "image_url TEXT NOT NULL, " +
+                    "release_date TEXT, " +
+                    "artist_name TEXT, " +
+                    "lyrics TEXT, " +
+                    "UNIQUE (username, song_id))";
+            stmt.executeUpdate(createWordCloudTableSQL);
+            System.out.println("✅ Word Cloud table created or already exists.");
 
         } catch (SQLException e) {
             System.err.println("❌ Database initialization error: " + e.getMessage());

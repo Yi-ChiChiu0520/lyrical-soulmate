@@ -1,5 +1,6 @@
 package edu.usc.csci310.project.repository;
 
+import edu.usc.csci310.project.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static edu.usc.csci310.project.util.HashUtil.hashUsername;
@@ -32,13 +34,12 @@ public class UserRepository {
      */
     public boolean registerUser(String username, String password) {
         String hashedUsername = hashUsername(username);
-        String hashedPassword = passwordEncoder.encode(password);
 
         String sql = "INSERT INTO users (username, password) VALUES (?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, hashedUsername);
-            stmt.setString(2, hashedPassword);
+            stmt.setString(2, password);
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -98,5 +99,87 @@ public class UserRepository {
 
         return false;
     }
+
+
+    /**
+     * Deletes a user by their username (using hashed username for lookup)
+     */
+    public boolean deleteByUsername(String username) {
+        String hashedUsername = hashUsername(username);
+        String sql = "DELETE FROM users WHERE username = ?";
+
+
+
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, hashedUsername);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Error deleting user: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public Optional<User> findByUsername(String username) {
+        String hashedUsername = hashUsername(username);
+        String sql = "SELECT * FROM users WHERE username = ?";
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            stmt = connection.prepareStatement(sql);
+            stmt.setString(1, hashedUsername);
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String password = rs.getString("password");
+                int attempts = rs.getInt("failed_login_attempts");
+                boolean locked = rs.getBoolean("account_locked");
+                java.sql.Timestamp lockTimeStamp = rs.getTimestamp("lock_time");
+                LocalDateTime lockTime = lockTimeStamp != null ? lockTimeStamp.toLocalDateTime() : null;
+
+                return Optional.of(new User(hashedUsername, password, attempts, locked, lockTime));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error retrieving user: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+            } catch (SQLException e) {
+                System.err.println("❌ Error closing ResultSet: " + e.getMessage());
+            }
+            try {
+                if (stmt != null) stmt.close();
+            } catch (SQLException e) {
+                System.err.println("❌ Error closing PreparedStatement: " + e.getMessage());
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean updateUser(User user) {
+        String sql = "UPDATE users SET password = ?, failed_login_attempts = ?, account_locked = ?, lock_time = ? WHERE username = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, user.getPassword());
+            stmt.setInt(2, user.getFailedLoginAttempts());
+            stmt.setBoolean(3, user.isAccountLocked());
+            if (user.getLockTime() != null) {
+                stmt.setTimestamp(4, java.sql.Timestamp.valueOf(user.getLockTime()));
+            } else {
+                stmt.setTimestamp(4, null);
+            }
+            stmt.setString(5, user.getUsername());
+
+            int updated = stmt.executeUpdate();
+            return updated > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Error updating user: " + e.getMessage());
+            return false;
+        }
+    }
+
 
 }

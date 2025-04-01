@@ -1,13 +1,9 @@
 package edu.usc.csci310.project.repository;
 
 import edu.usc.csci310.project.model.FavoriteSong;
-import edu.usc.csci310.project.util.EncryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,47 +22,23 @@ public class FavoriteRepository {
     }
 
     /**
-     * Hash the username using SHA-256 for privacy.
+     * Adds a song to the user's favorite list (no encryption).
      */
-    private String hashUsername(String username) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(username.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing username", e);
-        }
-    }
-
-    /**
-     * Adds a song to the user's favorite list.
-     */
-    public boolean addFavorite(String username, String songId, String title, String url, String imageUrl, String releaseDate, String artistName) {
+    public boolean addFavorite(String username, String songId, String title, String url, String imageUrl, String releaseDate, String artistName, String lyrics) {
         int rank = getNextRank(username); // ✅ Ensure a valid rank is assigned
-        String hashedUsername = hashUsername(username);
 
-        // Encrypt sensitive data
-        String encryptedTitle = EncryptionUtil.encrypt(title);
-        String encryptedUrl = EncryptionUtil.encrypt(url);
-        String encryptedImageUrl = EncryptionUtil.encrypt(imageUrl);
-        String encryptedReleaseDate = EncryptionUtil.encrypt(releaseDate);
-        String encryptedArtistName = EncryptionUtil.encrypt(artistName);
-
-        String sql = "INSERT INTO favorites (username, song_id, title, url, image_url, release_date, artist_name, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO favorites (username, song_id, title, url, image_url, release_date, artist_name, lyrics, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, hashedUsername);
+            stmt.setString(1, username);
             stmt.setString(2, songId);
-            stmt.setString(3, encryptedTitle);
-            stmt.setString(4, encryptedUrl);
-            stmt.setString(5, encryptedImageUrl);
-            stmt.setString(6, encryptedReleaseDate);
-            stmt.setString(7, encryptedArtistName);
-            stmt.setInt(8, rank);  // ✅ Assign the next available rank
+            stmt.setString(3, title);
+            stmt.setString(4, url);
+            stmt.setString(5, imageUrl);
+            stmt.setString(6, releaseDate);
+            stmt.setString(7, artistName);
+            stmt.setString(8, lyrics);
+            stmt.setInt(9, rank);
             stmt.executeUpdate();
             System.out.println("✅ Added song with rank: " + rank);
             return true;
@@ -81,37 +53,27 @@ public class FavoriteRepository {
      */
     public List<FavoriteSong> getFavorites(String username) {
         List<FavoriteSong> favorites = new ArrayList<>();
-        String hashedUsername = hashUsername(username);
 
-        String sql = "SELECT song_id, title, url, image_url, release_date, artist_name, COALESCE(rank, 1) AS rank FROM favorites WHERE username = ? ORDER BY rank ASC";
+        String sql = "SELECT song_id, title, url, image_url, release_date, artist_name, lyrics, COALESCE(rank, 1) AS rank FROM favorites WHERE username = ? ORDER BY rank ASC";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, hashedUsername);
+            stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 int rank = rs.getInt("rank");
-                if (rank < 1) { // ✅ Ensure rank is always valid
-                    rank = 1;
-                }
-                System.out.println("📥 Retrieved song with rank: " + rank); // Debugging log
-
-                // Decrypt sensitive data
-                String decryptedTitle = EncryptionUtil.decrypt(rs.getString("title"));
-                String decryptedUrl = EncryptionUtil.decrypt(rs.getString("url"));
-                String decryptedImageUrl = EncryptionUtil.decrypt(rs.getString("image_url"));
-                String decryptedReleaseDate = EncryptionUtil.decrypt(rs.getString("release_date"));
-                String decryptedArtistName = EncryptionUtil.decrypt(rs.getString("artist_name"));
+                if (rank < 1) rank = 1;
 
                 FavoriteSong song = new FavoriteSong(
-                        hashedUsername,
+                        username,
                         rs.getString("song_id"),
-                        decryptedTitle,
-                        decryptedUrl,
-                        decryptedImageUrl,
-                        decryptedReleaseDate,
-                        decryptedArtistName,
-                        rank  // ✅ Assign a valid rank
+                        rs.getString("title"),
+                        rs.getString("url"),
+                        rs.getString("image_url"),
+                        rs.getString("release_date"),
+                        rs.getString("artist_name"),
+                        rs.getString("lyrics"),
+                        rank
                 );
                 favorites.add(song);
             }
@@ -121,22 +83,18 @@ public class FavoriteRepository {
         return favorites;
     }
 
-    // Other methods remain unchanged...
-
-
     /**
      * Removes a song from the user's favorite list.
      */
     public boolean removeFavorite(String username, String songId) {
-        String hashedUsername = hashUsername(username);
         String sql = "DELETE FROM favorites WHERE username = ? AND song_id = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, hashedUsername);
+            stmt.setString(1, username);
             stmt.setString(2, songId);
 
             int affectedRows = stmt.executeUpdate();
-            System.out.println("🔄 DELETE Query executed. Affected Rows: " + affectedRows); // Debugging log
+            System.out.println("🔄 DELETE Query executed. Affected Rows: " + affectedRows);
 
             return affectedRows > 0;
         } catch (SQLException e) {
@@ -144,43 +102,39 @@ public class FavoriteRepository {
             return false;
         }
     }
+
     /**
      * Updates the rank of two songs to swap their positions.
      */
     public boolean swapRanks(String username, int rank1, int rank2) {
-        String hashedUsername = hashUsername(username);
-
         try {
-            connection.setAutoCommit(false); // Begin transaction
+            connection.setAutoCommit(false);
 
-            // Step 1: Move rank1 to a temporary unique value (-rank1)
             String tempUpdate = "UPDATE favorites SET rank = ? WHERE username = ? AND rank = ?";
             try (PreparedStatement stmt = connection.prepareStatement(tempUpdate)) {
                 stmt.setInt(1, -rank1);
-                stmt.setString(2, hashedUsername);
+                stmt.setString(2, username);
                 stmt.setInt(3, rank1);
                 stmt.executeUpdate();
             }
 
-            // Step 2: Move rank2 to rank1's original position
             String updateRank2 = "UPDATE favorites SET rank = ? WHERE username = ? AND rank = ?";
             try (PreparedStatement stmt = connection.prepareStatement(updateRank2)) {
                 stmt.setInt(1, rank1);
-                stmt.setString(2, hashedUsername);
+                stmt.setString(2, username);
                 stmt.setInt(3, rank2);
                 stmt.executeUpdate();
             }
 
-            // Step 3: Move temporary value to rank2's original position
             String updateTemp = "UPDATE favorites SET rank = ? WHERE username = ? AND rank = ?";
             try (PreparedStatement stmt = connection.prepareStatement(updateTemp)) {
                 stmt.setInt(1, rank2);
-                stmt.setString(2, hashedUsername);
+                stmt.setString(2, username);
                 stmt.setInt(3, -rank1);
                 stmt.executeUpdate();
             }
 
-            connection.commit(); // Commit transaction
+            connection.commit();
             return true;
         } catch (SQLException e) {
             try {
@@ -202,23 +156,43 @@ public class FavoriteRepository {
     /**
      * Get the next available rank for a new favorite song.
      */
+    /**
+     * Get the next available rank for a new favorite song.
+     */
     private int getNextRank(String username) {
-        String hashedUsername = hashUsername(username); // Ensure consistent hashing
+        final int DEFAULT_RANK = 1;
+        String sql = "SELECT COALESCE(MAX(rank), 0) FROM favorites WHERE username = ?";
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
 
-        String sql = "SELECT COALESCE(MAX(rank), 0) FROM favorites WHERE username = ?"; // ✅ Ensure no NULL issues
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, hashedUsername);
-            ResultSet rs = stmt.executeQuery();
+        try {
+            stmt = connection.prepareStatement(sql);
+            stmt.setString(1, username);
+            rs = stmt.executeQuery();
+
             if (rs.next()) {
-                int nextRank = rs.getInt(1) + 1; // ✅ Always returns a valid integer
+                int maxRank = rs.getInt(1);
+                int nextRank = Math.max(maxRank + 1, DEFAULT_RANK);
                 System.out.println("📤 Assigning new rank: " + nextRank);
-                return nextRank > 0 ? nextRank : 1; // Ensure rank is never negative
+                return nextRank;
             }
+            return DEFAULT_RANK;
+
         } catch (SQLException e) {
             System.err.println("❌ Error fetching next rank: " + e.getMessage());
+            return DEFAULT_RANK;
+        } finally {
+            try {
+                if (rs != null) rs.close();
+            } catch (SQLException e) {
+                System.err.println("❌ Error closing ResultSet: " + e.getMessage());
+            }
+            try {
+                if (stmt != null) stmt.close();
+            } catch (SQLException e) {
+                System.err.println("❌ Error closing PreparedStatement: " + e.getMessage());
+            }
         }
-        return 1; // ✅ Default rank if no previous entries
     }
-
 
 }

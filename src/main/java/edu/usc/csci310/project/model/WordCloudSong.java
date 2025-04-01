@@ -1,6 +1,6 @@
 package edu.usc.csci310.project.model;
 
-public class FavoriteSong {
+public class WordCloudSong {
     private String username;
     private String songId;
     private String title;
@@ -8,12 +8,12 @@ public class FavoriteSong {
     private String imageUrl;
     private String releaseDate;
     private String artistName;
-    private String lyrics;     // ✅ NEW: lyrics field
-    private int rank;
+    private String lyrics;
 
+    public WordCloudSong() {}
 
-    // ✅ Constructor including lyrics and rank
-    public FavoriteSong(String username, String songId, String title, String url, String imageUrl, String releaseDate, String artistName, String lyrics, int rank) {
+    public WordCloudSong(String username, String songId, String title, String url, String imageUrl,
+                         String releaseDate, String artistName, String lyrics) {
         this.username = username;
         this.songId = songId;
         this.title = title;
@@ -22,32 +22,6 @@ public class FavoriteSong {
         this.releaseDate = releaseDate;
         this.artistName = artistName;
         this.lyrics = lyrics;
-        this.rank = rank;
-    }
-
-    // ✅ Getter and Setter for lyrics
-    public String getLyrics() {
-        return lyrics;
-    }
-
-    public void setLyrics(String lyrics) {
-        this.lyrics = lyrics;
-    }
-
-    public int getRank() {
-        return rank;
-    }
-
-    public void setRank(int rank) {
-        this.rank = rank;
-    }
-
-    public String getArtistName() {
-        return artistName;
-    }
-
-    public void setArtistName(String artistName) {
-        this.artistName = artistName;
     }
 
     public String getUsername() {
@@ -96,5 +70,21 @@ public class FavoriteSong {
 
     public void setReleaseDate(String releaseDate) {
         this.releaseDate = releaseDate;
+    }
+
+    public String getArtistName() {
+        return artistName;
+    }
+
+    public void setArtistName(String artistName) {
+        this.artistName = artistName;
+    }
+
+    public String getLyrics() {
+        return lyrics;
+    }
+
+    public void setLyrics(String lyrics) {
+        this.lyrics = lyrics;
     }
 }

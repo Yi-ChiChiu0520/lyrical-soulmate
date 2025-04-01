@@ -20,8 +20,8 @@ public class FavoriteService {
     /**
      * Adds a song to the user's favorites.
      */
-    public boolean addFavorite(String username, String songId, String title, String url, String imageUrl, String releaseDate, String artistName) {
-        return favoriteRepository.addFavorite(username, songId, title, url, imageUrl, releaseDate, artistName);
+    public boolean addFavorite(String username, String songId, String title, String url, String imageUrl, String releaseDate, String artistName, String lyrics) {
+        return favoriteRepository.addFavorite(username, songId, title, url, imageUrl, releaseDate, artistName, lyrics);
     }
 
     /**

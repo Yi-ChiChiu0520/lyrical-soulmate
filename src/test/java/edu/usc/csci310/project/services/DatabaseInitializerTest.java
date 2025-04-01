@@ -2,52 +2,46 @@ package edu.usc.csci310.project.services;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class DatabaseInitializerTest {
 
-    @Mock
     private Connection mockConnection;
-
-    @Mock
     private Statement mockStatement;
-
     private DatabaseInitializer databaseInitializer;
 
     @BeforeEach
     void setUp() throws SQLException {
-        MockitoAnnotations.openMocks(this);
+        mockConnection = mock(Connection.class);
+        mockStatement = mock(Statement.class);
+
         when(mockConnection.createStatement()).thenReturn(mockStatement);
+
         databaseInitializer = new DatabaseInitializer(mockConnection);
     }
 
     @Test
-    void testInitializeDatabaseSuccess() throws SQLException {
+    void testInitializeDatabaseExecutesStatements() throws SQLException {
         databaseInitializer.initializeDatabase();
 
-        verify(mockConnection, times(1)).createStatement();
-        verify(mockStatement, times(1)).executeUpdate(anyString());
-        verify(mockStatement, times(1)).close();
+        // Verify statements were executed
+        verify(mockStatement, atLeastOnce()).executeUpdate(anyString());
+        verify(mockStatement).close();
     }
 
     @Test
-    void testInitializeDatabaseFailure() throws SQLException {
-        when(mockConnection.createStatement()).thenThrow(new SQLException("Test SQL Exception"));
+    void testInitializeDatabaseThrowsOnSqlError() throws SQLException {
+        when(mockConnection.createStatement()).thenThrow(new SQLException("DB error"));
 
-        try {
-            databaseInitializer.initializeDatabase();
-        } catch (RuntimeException e) {
-            assert e.getMessage().contains("Error initializing the database");
-        }
+        DatabaseInitializer failingInitializer = new DatabaseInitializer(mockConnection);
 
-        verify(mockConnection, times(1)).createStatement();
-        verify(mockStatement, never()).executeUpdate(anyString());
+        assertThrows(RuntimeException.class, failingInitializer::initializeDatabase);
     }
 }
