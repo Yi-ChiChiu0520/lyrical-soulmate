@@ -2,16 +2,15 @@ package edu.usc.csci310.project;
 
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
+import io.cucumber.java.AfterAll;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.JavascriptExecutor;
 
 import java.sql.Connection;
 import java.time.Duration;
@@ -20,10 +19,24 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LoginStepDefs extends BaseStepDefs {
+public class LoginStepDefs {
+
+    private final WebDriver driver;
+    private final Connection connection;
 
     public LoginStepDefs(Connection connection) {
-        super(connection);
+        driver = DriverManager.getDriver();
+        this.connection = connection;
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        DriverManager.closeDriver();
+    }
+
+    @Before
+    public void before() {
+        DriverManager.resetUserDatabase(connection);
     }
 
     @Given("I am on the login page")
@@ -94,7 +107,7 @@ public class LoginStepDefs extends BaseStepDefs {
         assertEquals("http://localhost:8080/dashboard", currentUrl);
     }
 
-    @Then("The login input {string} should show error message {string}")
+    @Then("The input {string} shows error {string}")
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) {
         String path;
         switch (input) {
@@ -112,4 +125,42 @@ public class LoginStepDefs extends BaseStepDefs {
         String actualMessage = inputField.getAttribute("validationMessage");
         assertEquals(expectedMessage, actualMessage);
     }
+
+    @When("I am not authenticated")
+    public void iAmNotAuthenticated() {
+        driver.manage().deleteAllCookies();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.localStorage.clear();");
+    }
+
+    @Given("I navigate to the dashboard page")
+    public void iNavigateToTheDashboardPage() throws InterruptedException {
+        driver.get("http://localhost:8080/dashboard");
+        Thread.sleep(1000);
+    }
+
+    @And("I wait {int} seconds")
+    public void iWaitSeconds(int arg0) throws InterruptedException {
+        Thread.sleep(arg0 * 1000);
+    }
+
+    @And("I click the {string} button {int} times with {int} seconds between")
+    public void iClickTheButtonTimesWithSecondBetween(String arg0, int arg1, int arg2) throws InterruptedException {
+        for (int i = 0; i <= arg1; i++) {
+            driver.findElement(By.id("loginButton")).click();
+            Thread.sleep(arg2 * 1000);
+        }
+    }
+
+    @And("I clear the forms")
+    public void iClearTheForms() {
+        List<WebElement> inputs = driver.findElements(By.tagName("input"));
+        for (WebElement input : inputs) {
+            while(!input.getAttribute("value").equals("")){
+                input.sendKeys(Keys.BACK_SPACE);
+            }
+        }
+    }
+
+
 }

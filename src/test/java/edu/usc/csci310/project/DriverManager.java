@@ -9,16 +9,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class BaseStepDefs {
-    protected static WebDriver driver = new ChromeDriver();
-    protected final Connection connection;
+public class DriverManager {
+    protected static WebDriver driver;
 
-    public BaseStepDefs(Connection connection) {
-        this.connection = connection;
+    public DriverManager() {}
+
+    public static WebDriver getDriver() {
+        if (driver == null) {
+           driver = new ChromeDriver();
+        }
+        return driver;
     }
 
-    @Before
-    public void resetUserDatabase() {
+    public static void resetUserDatabase(Connection connection) {
         try (Statement stmt = connection.createStatement()) {
             String deleteTableSQL = "DROP TABLE IF EXISTS users";
             stmt.executeUpdate(deleteTableSQL);
@@ -26,15 +29,21 @@ public class BaseStepDefs {
             String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
+                    "password TEXT NOT NULL, " +
+                    "failed_login_attempts INTEGER DEFAULT 0, " +
+                    "account_locked BOOLEAN DEFAULT FALSE, " +
+                    "lock_time TIMESTAMP DEFAULT NULL)";
+
             stmt.executeUpdate(createTableSQL);
         } catch (SQLException e) {
             throw new RuntimeException("Error clearing the database before scenario", e);
         }
     }
 
-    @AfterAll
     public static void closeDriver() {
-        driver.quit();
+        if (driver != null) {
+            driver.quit();
+            driver = null; // Reset driver to null after quitting
+        }
     }
 } 
