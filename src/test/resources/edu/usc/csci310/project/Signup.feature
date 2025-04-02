@@ -1,4 +1,14 @@
 Feature: Signup Functionality
+  Scenario: Cancel signup and confirming clears forms and redirects to login
+    Given I am on the signup page
+    When I enter the username "testUser1"
+    And I enter the password "testPass1"
+    And I confirm the password with "testPass1"
+    And I click the cancel button
+    And I confirm the cancellation
+    Then I should be redirected to the login page
+    And Inputs should be empty
+
   Scenario: Unsuccessful signup with duplicate username
     Given a user with username "existingUser" already exists
     And I am on the signup page
@@ -6,7 +16,6 @@ Feature: Signup Functionality
     And I enter the password "Valid1Pass"
     And I confirm the password with "Valid1Pass"
     And I click the signup button
-    And I accept the terms
     Then I see error "Username already taken"
 
   # Validate various invalid password formats
@@ -32,25 +41,25 @@ Feature: Signup Functionality
     And I confirm the password with "DiffPass"
     Then I see error "Passwords do not match"
 
-  Scenario: Successful signup then stay on signup
+  Scenario: Successful signup then redirect to login
     Given I am on the signup page
     When I enter the username "newUser"
     And I enter the password "Valid1Pass"
     And I confirm the password with "Valid1Pass"
     And I click the signup button
-    And I accept the terms
+    And I confirm signup
     Then I should be registered successfully
-    When I proceed to login
-    Then I should be on the login page
+    And I should be redirected to the login page
 
-  Scenario: Valid signup but decline terms
+  Scenario: Valid signup but decline confirm redirects to login
     Given I am on the signup page
     When I enter the username "newUser1"
     And I enter the password "Valid1Pass"
     And I confirm the password with "Valid1Pass"
     And I click the signup button
-    And I do not accept the terms
+    And I do not confirm signup
     Then I should not be registered
+    And I should be redirected to the login page
 
   Scenario: Blank username
     Given I am on the signup page

@@ -181,6 +181,7 @@ const Auth = ({ setUser }) => {
 
                 {isSignup && (
                     <button
+                        id="cancelButton"
                         className="text-white mt-2 underline hover:text-gray-200"
                         onClick={() => {
                             setShowCancelSignupConfirm(true); // <-- show confirmation
@@ -208,12 +209,14 @@ const Auth = ({ setUser }) => {
                         <h3>Are you sure you want to register?</h3>
                         <div className="mt-4">
                             <button
+                                id="confirmSignup"
                                 onClick={confirmFinalSignup}
                                 className="mr-3 bg-fuchsia-900 text-white p-2 rounded-md hover:bg-fuchsia-800"
                             >
                                 Yes
                             </button>
                             <button
+                                id="cancelSignup"
                                 onClick={confirmCancel}
                                 className="bg-gray-300 text-gray-800 p-2 rounded-md hover:bg-gray-400"
                             >
@@ -237,6 +240,7 @@ const Auth = ({ setUser }) => {
                         <h3>Are you sure you want to cancel account creation?</h3>
                         <div className="mt-4">
                             <button
+                                id="confirmCancel"
                                 onClick={() => {
                                     // Reset everything and switch to login
                                     setShowCancelSignupConfirm(false);
@@ -253,6 +257,7 @@ const Auth = ({ setUser }) => {
                                 Yes
                             </button>
                             <button
+                                id="dontCancel"
                                 onClick={() => setShowCancelSignupConfirm(false)}
                                 className="bg-gray-300 text-gray-800 p-2 rounded-md hover:bg-gray-400"
                             >
