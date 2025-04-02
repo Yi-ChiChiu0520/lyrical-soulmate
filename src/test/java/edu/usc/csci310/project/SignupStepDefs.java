@@ -150,11 +150,9 @@ public class SignupStepDefs {
                 assert (false);
             }
         }
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
-        WebElement inputField = driver.findElement(By.xpath(path));
-        String actualMessage = inputField.getAttribute("validationMessage");
-        assertEquals(expectedMessage, actualMessage);
+
+        assertNotNull(path);
+        assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
     @And("I click the cancel button")
@@ -178,10 +176,12 @@ public class SignupStepDefs {
     }
 
     @Then("I should be redirected to the login page")
-    public void iShouldBeRedirectedToTheLoginPage() throws InterruptedException {
+    public void iShouldBeRedirectedToTheLoginPage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        WebElement loginButton = driver.findElement(By.id("loginButton"));
-        wait.until(d -> loginButton.isDisplayed());
+        WebElement loginButton = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("loginButton"));
+            return el.isDisplayed() ? el : null;
+        });
         String url = driver.getCurrentUrl();
         assertEquals("http://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());
