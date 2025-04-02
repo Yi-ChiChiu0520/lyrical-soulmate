@@ -16,8 +16,7 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LoginStepDefs {
 
@@ -113,17 +112,11 @@ public class LoginStepDefs {
         switch (input) {
             case "password" -> path = "//*[@id=\"password\"]";
             case "username" -> path = "//*[@id=\"username\"]";
-            case "confirmPassword" -> path = "//*[@id=\"confirmPassword\"]";
-            default -> {
-                path = "";
-                assert (false);
-            }
+            default -> path = null;
         }
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
-        WebElement inputField = driver.findElement(By.xpath(path));
-        String actualMessage = inputField.getAttribute("validationMessage");
-        assertEquals(expectedMessage, actualMessage);
+
+        assertNotNull(path);
+        assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
     @When("I am not authenticated")
