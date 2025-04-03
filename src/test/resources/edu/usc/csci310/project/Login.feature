@@ -2,8 +2,9 @@ Feature: Login and Security Functionality
 
   # NOTE Accessing login page while authenticated
   Scenario: Restricted access for non-authenticated users
-    Given I navigate to the dashboard page
-    When I am not authenticated
+    Given I am on the login page
+    And I am not authenticated
+    When I navigate to the dashboard page
     Then I should be redirected to the login page
 
   Scenario: Lockout ends after 30 seconds
