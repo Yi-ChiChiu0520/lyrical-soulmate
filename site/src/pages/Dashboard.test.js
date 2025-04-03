@@ -804,6 +804,7 @@ describe('Dashboard Component - Inactivity Logout', () => {
         });
 
     });
+
     test('redirects to home if user is not provided', () => {
         render(
             <BrowserRouter>
@@ -815,6 +816,7 @@ describe('Dashboard Component - Inactivity Logout', () => {
         expect(redirect).toBeInTheDocument();
         expect(redirect).toHaveAttribute('data-to', '/');
     });
+
     test('shows warning and sets lyrics to "Unknown" when lyrics API fails during word cloud addition', async () => {
         const mockSong = {
             result: {
