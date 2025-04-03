@@ -162,5 +162,19 @@ public class LoginStepDefs {
         }
     }
 
+    @Given("I am authenticated")
+    public void iAmAuthenticated() {
+        // remove user
 
+
+        // create user in the database
+        DriverManager.createUserWithUsername(connection,"testUser");
+
+        // go to the login page
+        driver.get("http://localhost:8080");
+
+        // add the user to localstorage so frontend sees that we are logged in
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.localStorage.setItem('user', 'testUser');");
+    }
 }

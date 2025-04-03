@@ -1,11 +1,14 @@
 package edu.usc.csci310.project;
 
+import edu.usc.csci310.project.repository.UserRepository;
+import edu.usc.csci310.project.services.AuthService;
 import io.cucumber.java.Before;
 import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -38,6 +41,12 @@ public class DriverManager {
         } catch (SQLException e) {
             throw new RuntimeException("Error clearing the database before scenario", e);
         }
+    }
+
+    public static void createUserWithUsername(Connection connection, String username) {
+        UserRepository userRepository = new UserRepository(connection);
+        AuthService authService = new AuthService(userRepository);
+        authService.registerUser(username, "Valid1Pass");
     }
 
     public static void closeDriver() {

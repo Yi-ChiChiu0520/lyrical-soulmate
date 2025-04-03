@@ -76,9 +76,7 @@ public class SignupStepDefs {
 
     @Given("a user with username {string} already exists")
     public void aUserWithUsernameAlreadyExists(String arg0) {
-        UserRepository userRepository = new UserRepository(connection);
-        AuthService authService = new AuthService(userRepository);
-        authService.registerUser(arg0, "Valid1Pass");
+        DriverManager.createUserWithUsername(connection, arg0);
     }
 
     @Then("I should be registered successfully")
@@ -178,10 +176,12 @@ public class SignupStepDefs {
     }
 
     @Then("I should be redirected to the login page")
-    public void iShouldBeRedirectedToTheLoginPage() throws InterruptedException {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        WebElement loginButton = driver.findElement(By.id("loginButton"));
-        wait.until(d -> loginButton.isDisplayed());
+    public void iShouldBeRedirectedToTheLoginPage() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
+        WebElement loginButton = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("loginButton"));
+            return el.isDisplayed() ? el : null;
+        });
         String url = driver.getCurrentUrl();
         assertEquals("http://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());

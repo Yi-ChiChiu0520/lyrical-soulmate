@@ -114,7 +114,7 @@ const Favorites = ({ user }) => {
 
             {favorites.length > 0 ? (
                 <>
-                    <ul style={{ listStyleType: "none", padding: 0 }}>
+                    <ul id="favorites-list" style={{ listStyleType: "none", padding: 0 }}>
                         {favorites.map((song, index) => (
                             <li key={song.songId} style={{ marginBottom: "20px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -125,7 +125,7 @@ const Favorites = ({ user }) => {
                                         style={{ marginRight: "10px" }}
                                     />
                                     <img src={song.imageUrl} alt="cover" style={{ width: "50px", height: "50px", borderRadius: "5px", marginRight: "10px" }} />
-                                    <span onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
+                                    <span id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
                                         🎵 <strong>{song.title}</strong>
                                     </span>
                                 </div>

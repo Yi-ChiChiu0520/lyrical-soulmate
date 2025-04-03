@@ -202,6 +202,7 @@ const Dashboard = ({ user }) => {
                     <h3>🔍 Search for a Song</h3>
 
                     <input
+                        id="song-title"
                         type="text"
                         placeholder="Enter song title..."
                         value={query}
@@ -210,6 +211,7 @@ const Dashboard = ({ user }) => {
                     />
 
                     <input
+                        id="song-limit"
                         type="number"
                         placeholder="Number of songs to display"
                         value={songLimit}
@@ -217,9 +219,16 @@ const Dashboard = ({ user }) => {
                         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
                     />
 
-                    <button onClick={fetchSongs} style={{ width: "100%", padding: "8px" }}>Search</button>
+                    <button
+                        id="search-button"
+                        onClick={fetchSongs}
+                        style={{ width: "100%", padding: "8px" }}
+                    >
+                        Search
+                    </button>
 
                     <button
+                        id="add-to-favorites"
                         onClick={bulkAddToFavorites}
                         disabled={isAddingFavorites}
                         style={{
@@ -248,13 +257,13 @@ const Dashboard = ({ user }) => {
                         Add Selected to Word Cloud
                     </button>
 
-                    {successMessage && <p style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
-                    {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+                    {successMessage && <p id="search-message" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
+                    {errorMessage && <p id="search-message" style={{ color: "red" }}>{errorMessage}</p>}
 
                     <h3 style={{ marginTop: "20px" }}>🎶 Search Results</h3>
 
                     {songs.length > 0 ? (
-                        <ul style={{ listStyleType: "none", padding: 0 }}>
+                        <ul id="results-list" style={{ listStyleType: "none", padding: 0 }}>
                             {songs.map((song) => (
                                 <li key={song.result.id} style={{ marginBottom: "10px", display: "flex", alignItems: "center" }}>
                                     <input
@@ -274,7 +283,7 @@ const Dashboard = ({ user }) => {
                                         }}
                                     />
                                     <div style={{ display: "flex", flexDirection: "column" }}>
-                                        <span style={{ fontWeight: "bold", cursor: "pointer" }}>🎵 {song.result.full_title}</span>
+                                        <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>🎵 {song.result.full_title}</span>
                                         <span style={{ fontSize: "12px", color: "gray" }}>
                                             📅 {song.result.release_date || song.result.release_date_for_display || "Unknown"}
                                         </span>
