@@ -119,6 +119,7 @@ const Favorites = ({ user }) => {
                             <li id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} key={song.songId} style={{ marginBottom: "20px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                                     <input
+                                        id="select-favorite"
                                         type="checkbox"
                                         checked={selectedFavorites.includes(song.songId)}
                                         onChange={() => toggleSelectFavorite(song.songId)}
@@ -147,6 +148,7 @@ const Favorites = ({ user }) => {
                     </ul>
 
                     <button
+                        id="add-to-word-cloud"
                         onClick={handleAddToWordCloud}
                         disabled={selectedFavorites.length === 0}
                         style={{

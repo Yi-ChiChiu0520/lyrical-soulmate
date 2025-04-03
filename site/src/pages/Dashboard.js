@@ -298,7 +298,7 @@ const Dashboard = ({ user }) => {
             </div>
 
             {showWordCloud && (
-                <div style={{ marginTop: "40px" }}>
+                <div id="word-cloud" style={{ marginTop: "40px" }}>
                     <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading} />
                 </div>
             )}
