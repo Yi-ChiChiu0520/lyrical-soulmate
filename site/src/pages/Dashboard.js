@@ -257,8 +257,8 @@ const Dashboard = ({ user }) => {
                         Add Selected to Word Cloud
                     </button>
 
-                    {successMessage && <p id="search-message" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
-                    {errorMessage && <p id="search-message" style={{ color: "red" }}>{errorMessage}</p>}
+                    {successMessage && <p id="search-success" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
+                    {errorMessage && <p id="search-error" style={{ color: "red" }}>{errorMessage}</p>}
 
                     <h3 style={{ marginTop: "20px" }}>🎶 Search Results</h3>
 

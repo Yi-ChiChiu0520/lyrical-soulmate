@@ -110,13 +110,13 @@ const Favorites = ({ user }) => {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }} onClick={resetInactivityTimer}>
-            <h2>💖 {user}'s Favorite Songs</h2>
+            <h2 id="favorites-header">💖 {user}'s Favorite Songs</h2>
 
             {favorites.length > 0 ? (
                 <>
                     <ul id="favorites-list" style={{ listStyleType: "none", padding: 0 }}>
                         {favorites.map((song, index) => (
-                            <li key={song.songId} style={{ marginBottom: "20px", cursor: "pointer" }}>
+                            <li id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} key={song.songId} style={{ marginBottom: "20px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                                     <input
                                         type="checkbox"
@@ -125,22 +125,22 @@ const Favorites = ({ user }) => {
                                         style={{ marginRight: "10px" }}
                                     />
                                     <img src={song.imageUrl} alt="cover" style={{ width: "50px", height: "50px", borderRadius: "5px", marginRight: "10px" }} />
-                                    <span id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
+                                    <span id="song-title" onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
                                         🎵 <strong>{song.title}</strong>
                                     </span>
                                 </div>
 
                                 {expandedSong === song.songId && (
                                     <div style={{ marginTop: "5px", fontSize: "14px", color: "gray" }}>
-                                        <p><strong>🎤 Artist:</strong> {song.artistName}</p>
-                                        <p><strong>📅 Release Date:</strong> {song.releaseDate}</p>
+                                        <p id="artist-name"><strong>🎤 Artist:</strong> {song.artistName}</p>
+                                        <p id="release-date"><strong>📅 Release Date:</strong> {song.releaseDate}</p>
                                     </div>
                                 )}
 
                                 <div style={{ marginTop: "5px" }}>
-                                    <button onClick={() => removeFromFavorites(song.songId)} style={{ marginRight: "5px", padding: "5px", color: "red" }}>❌ Remove</button>
-                                    <button onClick={() => moveFavorite(index, "up")} style={{ marginRight: "5px", padding: "5px" }}>⬆️</button>
-                                    <button onClick={() => moveFavorite(index, "down")} style={{ padding: "5px" }}>⬇️</button>
+                                    <button id="remove-favorite" onClick={() => removeFromFavorites(song.songId)} style={{ marginRight: "5px", padding: "5px", color: "red" }}>❌ Remove</button>
+                                    <button id="move-up" onClick={() => moveFavorite(index, "up")} style={{ marginRight: "5px", padding: "5px" }}>⬆️</button>
+                                    <button id="move-down" onClick={() => moveFavorite(index, "down")} style={{ padding: "5px" }}>⬇️</button>
                                 </div>
                             </li>
                         ))}
