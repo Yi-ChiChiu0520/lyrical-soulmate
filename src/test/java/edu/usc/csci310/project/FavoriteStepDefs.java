@@ -1,5 +1,6 @@
 package edu.usc.csci310.project;
 
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
@@ -11,11 +12,11 @@ import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.sql.Connection;
+import java.sql.Driver;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FavoriteStepDefs {
     private final WebDriver driver;
@@ -44,10 +45,14 @@ public class FavoriteStepDefs {
         }
     }
 
-    // assumes that we are already on a fully loaded favorites song page, and that some songs exist
+    // assumes that we are already on a fully loaded favorites song page, and returns null if the list is empty
     public List<WebElement> getFavoritesList() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        return driver.findElement(By.id("favorites-list")).findElements(By.tagName("li"));
+        try {
+            return wait.until(driver -> driver.findElement(By.id("favorites-list")).findElements(By.tagName("li")));
+        } catch (TimeoutException e) {
+            return null;
+        }
     }
 
     @Given("I have added {string} to my favorites")
@@ -245,5 +250,120 @@ public class FavoriteStepDefs {
         WebElement song = findSongInFavoritesList(songName);
 
         assert song.findElement(By.id("release-date")).getText().contains(releaseDate);
+    }
+
+    @And("I select favorite {string}")
+    public void iSelectFavorite(String arg0) {
+        // I should already be on the favorites page
+        WebElement song = findSongInFavoritesList(arg0);
+        assertNotNull(song); // just in case
+
+        // find the the select button and click it
+        song.findElement(By.id("select-favorite")).click();
+    }
+
+    @When("I do not select any favorites")
+    public void iDoNotSelectAnyFavorites() { /* does nothing since nothing should be selected */ }
+
+    @Then("I cannot click the Generate Word Cloud button")
+    public void iCannotClickTheGenerateWordCloudButton() {
+        WebElement wordCloudButton = driver.findElement(By.id("add-to-word-cloud"));
+        assert !wordCloudButton.isEnabled();
+    }
+
+    @Then("I click the Generate Word Cloud button")
+    public void iClickTheGenerateWordCloudButton() {
+        WebElement wordCloudButton = driver.findElement(By.id("add-to-word-cloud"));
+        assert wordCloudButton.isEnabled();
+        wordCloudButton.click();
+    }
+
+    @Then("I should get an alert {string}")
+    public void iShouldGetAnAlert(String alertDescription) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        String alertText = wait.until(driver -> driver.switchTo().alert().getText());
+        driver.switchTo().alert().accept(); // close the alert
+
+        assertEquals(alertDescription, alertText);
+    }
+
+    @Then("I should see a word cloud")
+    public void iShouldSeeAWordCloud() {
+        // wait until the page is loaded (assuming we are on the dashboard)
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement wordCloud = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("word-cloud"));
+            return el.isDisplayed() ? el : null;
+        });
+
+        assertNotNull(wordCloud);
+    }
+
+    @When("I refresh the favorites page")
+    public void iRefreshThePage() {
+        driver.navigate().refresh();
+        // wait until the page is loaded
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement el = wait.until(driver -> {
+            WebElement element = driver.findElement(By.id("favorites-header"));
+            return element.isDisplayed() ? element : null;
+        });
+        assertNotNull(el);
+    }
+
+    @And("the order of songs in my favorites list should be:")
+    public void theOrderOfSongsInMyFavoritesListShouldBe() {
+    }
+
+    @Then("^I should have the following order in my favorites list$")
+    public void iShouldHaveTheFollowingOrderInMyFavoritesList(DataTable table) {
+        // parse data table
+        List<List<String>> rows = table.asLists(String.class);
+
+        // navigate to the favorites page
+        iNavigateToTheFavoritesPage();
+
+        // get favorite songs
+        List<WebElement> favorites = getFavoritesList();
+        assertNotNull(favorites);
+
+        // check that the order is correct
+        for (int i = 0; i < rows.size(); i++) {
+            WebElement songName = favorites.get(i).findElement(By.id("song-title"));
+            assert songName.getText().contains(rows.get(i).get(1)) : "Expected " + rows.get(i).get(1) + " to be at index " + i + ", but it was not.";
+        }
+    }
+    
+
+    @And("{string} is at index {} in my favorites list")
+    public void isAtIndexInMyFavoritesList(String arg0, int arg1) {
+        // I should already be on the favorites page
+        WebElement song = findSongInFavoritesList(arg0);
+        assertNotNull(song); // just in case
+
+        // get the index of the song
+        List<WebElement> favorites = getFavoritesList();
+        int idx = -1;
+        for (int i = 0; i < favorites.size(); i++) {
+            // find the song name
+            WebElement songName = favorites.get(i).findElement(By.id("song-title"));
+            if (songName.getText().contains(arg0)) {
+                idx = i;
+            }
+        }
+
+        // check that both are found
+        assert idx != -1;
+        assertEquals(arg1, idx, "Expected " + arg0 + " to be at index " + arg1 + ", but it was not.");
+    }
+
+    @Given("My favorites list is empty")
+    public void myFavoritesListIsEmpty() {
+        // reset user
+        DriverManager.resetUserFavorites(connection, "testUser");
+
+        iNavigateToTheFavoritesPage();
+        List<WebElement> favorites = getFavoritesList();
+        assertNull(favorites, "Expected favorites list to be empty, but it was not.");
     }
 }
