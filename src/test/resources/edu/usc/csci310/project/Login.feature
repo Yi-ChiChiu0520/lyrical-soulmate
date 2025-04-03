@@ -16,6 +16,7 @@ Feature: Login and Security Functionality
     And I click the "Login" button 3 times with 1 seconds between
     And I wait 30 seconds
     And I clear the forms
+    # ^ not needed (maybe)
     And I enter "validUser" in the username field
     And I enter "Valid1Pass" in the password field
     And I click the "Login" button
@@ -28,8 +29,10 @@ Feature: Login and Security Functionality
     When I enter "validUser1" in the username field
     And I enter "wrong1Pass" in the password field
     And I click the "Login" button 3 times with 1 seconds between
+    # ^ can be 3 times within a minute to be more clear
     Then I see error "Account temporarily locked. Please try again shortly."
 
+    # 3 failed login attempts not within one minute
   Scenario: 3 failed logins with 30 sec. between doesn't cause lockout
     Given I am on the login page
     And I am not authenticated

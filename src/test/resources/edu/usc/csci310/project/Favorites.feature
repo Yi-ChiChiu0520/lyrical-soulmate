@@ -7,6 +7,7 @@ Feature: User Favorites List Feature
     And I try to navigate to the favorites page
     Then I should be redirected to the login page
 
+# do with changed order
   Scenario: Favorites persist across sessions with correct order
     Given I am authenticated
     And My favorites list is empty
@@ -28,6 +29,7 @@ Feature: User Favorites List Feature
       | 2 | 4EVER by Clairo                      |
 
   # -- Add/Remove Favorites --
+  # move to search
   Scenario: Add no songs to favorites (none selected)
     Given I am authenticated
     When I navigate to the dashboard page
@@ -35,6 +37,7 @@ Feature: User Favorites List Feature
     And I click the "Add Selected to Favorites" button
     Then I should get an alert "Please select at least one song to add."
 
+  # only by artist name for search
   Scenario: User adds one song to favorites
     Given I am authenticated
     And I navigate to the dashboard page
@@ -44,6 +47,7 @@ Feature: User Favorites List Feature
     Then I should see search success message "✅ Added: TESTS by The Microphones"
     And I should see "TESTS by The Microphones" in my favorites list
 
+    # remove/move button only appears on hover, theres a confirmation message
   Scenario: User removes a favorite song
     Given I am authenticated
     And I have added "Sugar by Men I Trust" to my favorites
@@ -60,6 +64,7 @@ Feature: User Favorites List Feature
     And I click the "Add Selected to Favorites" button
     Then I should see search error message "⚠️ Already in favorites: Toxic by Britney Spears"
 
+    # move to search
   Scenario: Bulk add songs to favorites
     Given I am authenticated
     And I have added "Despacito (Remix) by Luis Fonsi & Daddy Yankee (Ft. Justin Bieber)" to my favorites
@@ -77,6 +82,7 @@ Feature: User Favorites List Feature
     And I should see "Bad and Boujee by Migos (Ft. Lil Uzi Vert)" in my favorites list
 
   # -- Interacting with Songs --
+  # add hovering scenario + specificity
   Scenario: User moves song up
     Given I am authenticated
     And I have added "Loose Change by The Alchemist (Ft. Earl Sweatshirt)" to my favorites
@@ -98,10 +104,12 @@ Feature: User Favorites List Feature
     Given I am authenticated
     And I have added "Hazey Jane II by Nick Drake" to my favorites
     When I navigate to the favorites page
+    # i click on song title
     And I click on favorite "Hazey Jane II by Nick Drake"
     Then I should see the artist name "Nick Drake" for "Hazey Jane II by Nick Drake"
     And I should see the release date "1971" for "Hazey Jane II by Nick Drake"
 
+    # not needed
   Scenario: Reordering a single song (no-op)
     Given I am authenticated
     And My favorites list is empty
@@ -113,6 +121,7 @@ Feature: User Favorites List Feature
     Then "Kyoto by Yung Lean" is at index 0 in my favorites list
 
   # -- Word cloud --
+  # button to add all favs  to word cloud on dashboard, not button in favorites page
   Scenario: User does not select any songs and tries to make word cloud
     Given I am authenticated
     And I have added "Huey by Earl Sweatshirt" to my favorites
