@@ -148,11 +148,9 @@ public class SignupStepDefs {
                 assert (false);
             }
         }
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
-        WebElement inputField = driver.findElement(By.xpath(path));
-        String actualMessage = inputField.getAttribute("validationMessage");
-        assertEquals(expectedMessage, actualMessage);
+
+        assertNotNull(path);
+        assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
     @And("I click the cancel button")
