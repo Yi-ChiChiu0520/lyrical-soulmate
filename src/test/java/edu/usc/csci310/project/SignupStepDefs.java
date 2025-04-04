@@ -193,5 +193,6 @@ public class SignupStepDefs {
 
             assertTrue(input.getText().isEmpty());
         }
+
     }
 }
