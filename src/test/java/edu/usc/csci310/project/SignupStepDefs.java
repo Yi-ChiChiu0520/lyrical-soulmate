@@ -190,6 +190,7 @@ public class SignupStepDefs {
     public void inputsShouldBeEmpty() {
         List<WebElement> inputs = driver.findElements(By.tagName("input"));
         for (WebElement input : inputs) {
+
             assertTrue(input.getText().isEmpty());
         }
     }
