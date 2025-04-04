@@ -259,6 +259,7 @@ const Dashboard = ({ user }) => {
                     </button>
 
                     <button
+                        id="add-to-wordcloud"
                         onClick={addSelectedToWordCloud}
                         style={{
                             width: "100%",
