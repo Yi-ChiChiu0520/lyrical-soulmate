@@ -139,11 +139,19 @@ public class LoginStepDefs {
         Thread.sleep(arg0 * 1000);
     }
 
-    @And("I click the {string} button {int} times with {int} seconds between")
-    public void iClickTheButtonTimesWithSecondBetween(String arg0, int arg1, int arg2) throws InterruptedException {
+    @And("I click the login button {int} times within a minute")
+    public void iClickTheLoginButtonTimesWithinAMinute(int arg1) throws InterruptedException {
         for (int i = 0; i <= arg1; i++) {
             driver.findElement(By.id("loginButton")).click();
-            Thread.sleep(arg2 * 1000);
+            Thread.sleep(1000);
+        }
+    }
+
+    @And("I click the login button {int} times within more than a minute")
+    public void iClickTheLoginButtonTimesWithinMoreThanAMinute(int arg1) throws InterruptedException {
+        for (int i = 0; i <= arg1; i++) {
+            driver.findElement(By.id("loginButton")).click();
+            Thread.sleep(21000);
         }
     }
 
@@ -160,5 +168,12 @@ public class LoginStepDefs {
     @Given("I am authenticated")
     public void iAmAuthenticated() {
         DriverManager.signInAsTester(connection);
+    }
+
+    @And("My access to the app is restricted")
+    public void myAccessToTheAppIsRestricted() {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        String user = (String) js.executeScript("return window.localStorage.getItem('user');");
+        assertNull(user);
     }
 }

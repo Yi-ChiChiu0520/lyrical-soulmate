@@ -148,7 +148,6 @@ public class SignupStepDefs {
                 assert (false);
             }
         }
-
         assertNotNull(path);
         assert(StepHelper.InputShowsError(path, expectedMessage));
     }
@@ -162,6 +161,7 @@ public class SignupStepDefs {
 
         Wait<WebDriver> wait2 = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(d -> driver.getPageSource().contains("Are you sure you want to cancel account creation?"));
+
     }
 
     @And("I confirm the cancellation")
@@ -178,18 +178,22 @@ public class SignupStepDefs {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
         WebElement loginButton = wait.until(driver -> {
             WebElement el = driver.findElement(By.id("loginButton"));
+
             return el.isDisplayed() ? el : null;
         });
         String url = driver.getCurrentUrl();
         assertEquals("http://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());
+
     }
 
     @And("Inputs should be empty")
     public void inputsShouldBeEmpty() {
         List<WebElement> inputs = driver.findElements(By.tagName("input"));
         for (WebElement input : inputs) {
+
             assertTrue(input.getText().isEmpty());
         }
+
     }
 }
