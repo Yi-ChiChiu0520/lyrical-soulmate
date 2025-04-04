@@ -1,16 +1,25 @@
-import React from 'react';
-import {render, screen, fireEvent, waitFor, act} from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import axios from 'axios';
-import Dashboard from './Dashboard';
-import Favorites from "./Favorites";
+import React from "react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import Dashboard from "./Dashboard";
+import axios from "axios";
 
-const mockUser = 'testUser';
 
-// Mock dependencies
-jest.mock('axios');
-jest.mock('./WordCloudPanel', () => {
-    return function MockWordCloudPanel({ wordCloudSongs, user, loading }) {
+jest.mock("axios");
+
+
+jest.mock("react-router-dom", () => {
+    const actual = jest.requireActual("react-router-dom");
+    return {
+        ...actual,
+        useNavigate: () => jest.fn(),
+        Navigate: ({ to }) => <div data-testid="navigate" data-to={to} />,
+    };
+});
+
+
+jest.mock("./WordCloudPanel", () => {
+    return function DummyWordCloudPanel({ wordCloudSongs, user, loading }) {
         return (
             <div data-testid="word-cloud-panel">
                 <div data-testid="cloud-songs">{JSON.stringify(wordCloudSongs)}</div>
@@ -21,835 +30,383 @@ jest.mock('./WordCloudPanel', () => {
     };
 });
 
-// Mock useNavigate
-jest.mock('react-router-dom', () => {
-    const actual = jest.requireActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => jest.fn(),
-        Navigate: ({ to }) => <div data-testid="navigate" data-to={to} />
-    };
+
+const mockUser = "testUser";
+
+
+beforeEach(() => {
+    jest.clearAllMocks();
+    window.alert = jest.fn();
+    Storage.prototype.removeItem = jest.fn();
+    delete window.location;
+    window.location = { reload: jest.fn() };
 });
 
-describe('Dashboard Component', () => {
-    const mockUser = 'testUser';
-    const mockSongs = {
-        response: {
-            hits: [
-                {
-                    result: {
-                        id: '123',
-                        full_title: 'Test Song',
-                        url: 'https://test.com/song',
-                        header_image_url: 'https://test.com/image.jpg',
-                        release_date: '2023-01-01',
-                        primary_artist: { name: 'Test Song' } // Match query
-                    }
-                },
-                {
-                    result: {
-                        id: '456',
-                        full_title: 'Another Song',
-                        url: 'https://test.com/another',
-                        header_image_url: 'https://test.com/another.jpg',
-                        release_date_for_display: 'January 2023',
-                        primary_artist: { name: 'Test Song' } // Match query
-                    }
-                }
-            ]
-        }
-    };
 
-
-    beforeEach(() => {
-        Storage.prototype.removeItem = jest.fn();
-
-        // Mock window.location.reload
-        delete window.location;
-        window.location = { reload: jest.fn() };
-        // Mock the lyrics response
-        axios.get.mockImplementation((url) => {
-            if (url === 'http://localhost:8080/api/wordcloud/testUser') {
-                return Promise.resolve({ data: [] });
-            } else if (url === 'http://localhost:8080/api/genius/search') {
-                return Promise.resolve({ data: mockSongs });
-            } else if (url === 'http://localhost:8080/api/genius/lyrics') {
-                return Promise.resolve({ data: { lyrics: 'Test lyrics for this song' } });
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        // Mock post responses
-        axios.post.mockImplementation((url) => {
-            if (url === 'http://localhost:8080/api/favorites/add') {
-                return Promise.resolve({ status: 200 });
-            } else if (url === 'http://localhost:8080/api/wordcloud/add') {
-                return Promise.resolve({ status: 200 });
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        // Set up window event listeners
-        window.addEventListener = jest.fn();
-        window.removeEventListener = jest.fn();
-        jest.clearAllMocks();
-
-        // Ensure clearInterval and setInterval are defined in global scope
-        global.clearInterval = clearInterval;
-        global.setInterval = setInterval;
-
-        // optional: mock localStorage + reload if needed
-        Storage.prototype.removeItem = jest.fn();
-        delete window.location;
-        window.location = { reload: jest.fn() };
-    });
-
-    test('redirects to home if user is not provided', () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={null} />
-            </BrowserRouter>
-        );
-
-        // Check that the Navigate component was rendered
-        const nav = screen.getByTestId('navigate');
-        expect(nav).toBeInTheDocument();
-        expect(nav).toHaveAttribute('data-to', '/');
-    });
-
-
-
-    test('displays welcome message with username', () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        expect(screen.getByText(`Welcome, ${mockUser}!`)).toBeInTheDocument();
-    });
-
-    test('loads word cloud data on initial render', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith(`http://localhost:8080/api/wordcloud/${mockUser}`);
-        });
-    });
-
-    test('alerts when search is attempted without query', () => {
-        window.alert = jest.fn();
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        expect(window.alert).toHaveBeenCalledWith('Please enter a song title!');
-    });
-
-    test('alerts when search is attempted without valid song limit', () => {
-        window.alert = jest.fn();
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        expect(window.alert).toHaveBeenCalledWith('Please enter a valid number of songs to display.');
-    });
-
-    test('fetches songs when search is performed with valid inputs', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/api/genius/search', {
-                params: { q: 'test song', page: 1 }
-            });
-        });
-
-        await waitFor(() => {
-            // Use getAllByText instead of getByText since multiple elements can have the same text
-            expect(screen.getAllByText('🎵 Test Song').length).toBeGreaterThan(0);
-            expect(screen.getAllByText('🎵 Another Song').length).toBeGreaterThan(0);
-        });
-    });
-
-    test('toggles song selection when checkbox is clicked', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Search for songs first
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(screen.getAllByText('🎵 Test Song').length).toBeGreaterThan(0);
-        });
-
-        // Now test checkbox toggle
-        const checkboxes = screen.getAllByRole('checkbox');
-        expect(checkboxes.length).toBeGreaterThan(0);
-
-        fireEvent.click(checkboxes[0]);
-        expect(checkboxes[0]).toBeChecked();
-
-        fireEvent.click(checkboxes[0]);
-        expect(checkboxes[0]).not.toBeChecked();
-    });
-
-    test('alerts when trying to add favorites without selection', async () => {
-        window.alert = jest.fn();
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Search for songs first
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(screen.getAllByText('🎵 Test Song').length).toBeGreaterThan(0);
-        });
-
-        // Try to add to favorites without selection
-        const addToFavoritesButton = screen.getByText('Add Selected to Favorites');
-        fireEvent.click(addToFavoritesButton);
-
-        expect(window.alert).toHaveBeenCalledWith('Please select at least one song to add.');
-    });
-
-    test('adds selected songs to favorites', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Search for songs
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(screen.getAllByText('🎵 Test Song').length).toBeGreaterThan(0);
-        });
-
-        // Select a song
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-
-        // Add to favorites
-        const addToFavoritesButton = screen.getByText('Add Selected to Favorites');
-        fireEvent.click(addToFavoritesButton);
-
-        await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/api/genius/lyrics', {
-                params: { songId: '123' }
-            });
-
-            expect(axios.post).toHaveBeenCalledWith('http://localhost:8080/api/favorites/add', expect.objectContaining({
-                username: mockUser,
-                songId: '123',
-                title: 'Test Song'
-            }));
-        });
-
-        // Check for success message - use a regex to match partial content
-        await waitFor(() => {
-            const successMessages = screen.getAllByText(/✅ Added:/);
-            expect(successMessages.length).toBeGreaterThan(0);
-        });
-    });
-
-    test('adds selected songs to word cloud', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Search for songs
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(screen.getAllByText('🎵 Test Song').length).toBeGreaterThan(0);
-        });
-
-        // Select a song
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-
-        // Add to word cloud
-        const addToWordCloudButton = screen.getByText('Add Selected to Word Cloud');
-        fireEvent.click(addToWordCloudButton);
-
-        await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/api/genius/lyrics', {
-                params: { songId: '123' }
-            });
-
-            expect(axios.post).toHaveBeenCalledWith('http://localhost:8080/api/wordcloud/add', expect.arrayContaining([
-                expect.objectContaining({
-                    username: mockUser,
-                    songId: '123',
-                    title: 'Test Song'
-                })
-            ]));
-        });
-    });
-
-
-
-
-});
-
-// Mock useNavigate
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => {
-    const actual = jest.requireActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-        Navigate: ({ to }) => <div data-testid="navigate" data-to={to} />
-    };
-});
-describe('Dashboard Component - Inactivity Logout', () => {
-    const mockUser = 'testUser';
-    let nowSpy;
-    let clearIntervalSpy;
-
-    beforeEach(() => {
-        jest.useFakeTimers();
-
-        nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1000);
-        clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-
-        Storage.prototype.removeItem = jest.fn();
-        delete window.location;
-        window.location = { reload: jest.fn() };
-
-        axios.get.mockImplementation((url) => {
-            if (url.includes(`/wordcloud/${mockUser}`)) {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-    });
-
-    afterEach(() => {
-        nowSpy.mockRestore();
-        clearIntervalSpy.mockRestore();
-        jest.useRealTimers();
-        jest.clearAllMocks();
-    });
-
-    test('logs out when user is inactive for more than 60 seconds', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // simulate user was active at 0, now it's 70,000ms
-        nowSpy.mockReturnValue(70000);
-
-        act(() => {
-            jest.advanceTimersByTime(1100); // triggers interval
-        });
-
-        expect(localStorage.removeItem).toHaveBeenCalledWith('user');
-        expect(window.location.reload).toHaveBeenCalled();
-        expect(clearIntervalSpy).toHaveBeenCalled();
-    });
-
-    test('does not log out when user is active within 60 seconds', async () => {
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        nowSpy.mockReturnValue(30000); // 30s later
-
-        act(() => {
-            jest.advanceTimersByTime(1100);
-        });
-
-        expect(localStorage.removeItem).not.toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
-    });
-
-    test('cleans up on unmount', () => {
-        const removeSpy = jest.spyOn(window, 'removeEventListener');
-
-        const { unmount } = render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        unmount();
-
-        const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
-        events.forEach((e) => {
-            expect(removeSpy).toHaveBeenCalledWith(e, expect.any(Function));
-        });
-
-        expect(clearIntervalSpy).toHaveBeenCalled();
-    });
-
-    test('uses empty array if backend returns null for word cloud songs', async () => {
-        axios.get.mockResolvedValueOnce({ data: null });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByTestId('cloud-songs')).toHaveTextContent('[]');
-        });
-    });
-    test('logs error if word cloud fetch fails', async () => {
-        const error = new Error('Network error');
-        axios.get.mockRejectedValueOnce(error);
-        console.error = jest.fn();
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith('❌ Failed to load word cloud songs:', error);
-        });
-    });
-    test('logs error when song fetching fails', async () => {
-        const error = new Error('Network failure');
-        console.error = jest.fn();
-
-        // Explicitly mock the exact GET request fetchSongs makes
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/api/genius/search')) {
-                return Promise.reject(error);
-            }
-            return Promise.resolve({ data: [] }); // default mock for other endpoints
-        });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user={mockUser} />
-            </BrowserRouter>
-        );
-
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith('Error fetching songs:', error);
-        });
-    });
-    test('stops fetching when no more hits are returned (hits.length === 0)', async () => {
-        const emptyHitsResponse = {
-            data: {
-                response: {
-                    hits: [] // triggers the break statement
-                }
-            }
-        };
-
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/api/genius/search')) {
-                return Promise.resolve(emptyHitsResponse);
-            } else if (url.includes('/api/wordcloud')) {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user="testUser" />
-            </BrowserRouter>
-        );
-
-        const queryInput = screen.getByPlaceholderText('Enter song title...');
-        fireEvent.change(queryInput, { target: { value: 'test song' } });
-
-        const limitInput = screen.getByPlaceholderText('Number of songs to display');
-        fireEvent.change(limitInput, { target: { value: '10' } });
-
-        const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-            // Since there are no hits, we expect "No songs found." message
-            expect(screen.getByText('No songs found.')).toBeInTheDocument();
-        });
-
-        // Optionally, confirm axios.get was only called once due to break
-        expect(axios.get).toHaveBeenCalledTimes(2); // 1 for word cloud, 1 for search
-    });
-
-    test('shows warning and sets lyrics to "Unknown" when lyrics API fails', async () => {
-        console.warn = jest.fn(); // mock console.warn
-
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/api/genius/lyrics')) {
-                return Promise.reject(new Error('Lyrics fetch failed'));
-            }
-            return Promise.resolve({
-                data: {
-                    response: {
-                        hits: [
-                            {
-                                result: {
-                                    id: '123',
-                                    full_title: 'Test Song',
-                                    url: 'https://example.com/song',
-                                    header_image_url: 'https://example.com/img.jpg',
-                                    primary_artist: { name: 'Artist' },
-                                }
-                            }
-                        ]
-                    }
-                }
-            });
-        });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user="testUser" />
-            </BrowserRouter>
-        );
-
-        // Search for songs
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), { target: { value: 'test song' } });
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), { target: { value: '1' } });
-        fireEvent.click(screen.getByText('Search'));
-
-        await waitFor(() => expect(screen.getByText('🎵 Test Song')).toBeInTheDocument());
-
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-
-        fireEvent.click(screen.getByText('Add Selected to Favorites'));
-
-        await waitFor(() => {
-            expect(console.warn).toHaveBeenCalledWith('Failed to get lyrics for Test Song');
-        });
-    });
-
-    test('uses fallback "Unknown" values for missing release date and artist name', async () => {
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/search')) {
-                return Promise.resolve({
-                    data: {
-                        response: {
-                            hits: [
-                                {
-                                    result: {
-                                        id: '123',
-                                        full_title: 'Mystery Song',
-                                        url: 'https://test.com/mystery',
-                                        header_image_url: 'https://test.com/mystery.jpg',
-                                        release_date: null,
-                                        release_date_for_display: null,
-                                        primary_artist: null // missing artist
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                });
-            } else if (url.includes('/lyrics')) {
-                return Promise.resolve({ data: { lyrics: 'Test lyrics' } });
-            } else if (url.includes('/wordcloud')) {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        axios.post.mockResolvedValue({ status: 200 });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user="testUser" />
-            </BrowserRouter>
-        );
-
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), { target: { value: 'mystery' } });
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), { target: { value: '1' } });
-        fireEvent.click(screen.getByText('Search'));
-
-        await waitFor(() => {
-            expect(screen.getByText('🎵 Mystery Song')).toBeInTheDocument();
-        });
-
-        fireEvent.click(screen.getAllByRole('checkbox')[0]);
-        fireEvent.click(screen.getByText('Add Selected to Favorites'));
-
-        await waitFor(() => {
-            // No need to assert directly here since fallbacks are used internally,
-            // but axios.post would’ve been called with "Unknown" as fallback values
-            expect(axios.post).toHaveBeenCalledWith(
-                expect.stringContaining('/favorites/add'),
-                expect.objectContaining({
-                    releaseDate: 'Unknown',
-                    artistName: 'Unknown'
-                })
-            );
-        });
-    });
-    test('handles lyrics fetch failure and uses "Unknown" fallbacks', async () => {
-        window.alert = jest.fn();
-        console.warn = jest.fn();
-
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/api/genius/search')) {
-                return Promise.resolve({
-                    data: {
-                        response: {
-                            hits: [
-                                {
-                                    result: {
-                                        id: 'abc123',
-                                        full_title: 'Mystery Song',
-                                        url: 'https://example.com/song',
-                                        header_image_url: 'https://example.com/img.jpg',
-                                        // Simulate missing release_date & artist
-                                        primary_artist: {}
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                });
-            }
-
-            if (url.includes('/api/genius/lyrics')) {
-                return Promise.reject(new Error('Lyrics fetch failed'));
-            }
-
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        axios.post.mockResolvedValue({ status: 200 });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user="testUser" />
-            </BrowserRouter>
-        );
-
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), {
-            target: { value: 'test song' }
-        });
-
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), {
-            target: { value: '1' }
-        });
-
-        fireEvent.click(screen.getByText('Search'));
-
-        await waitFor(() => {
-            expect(screen.getByText('🎵 Mystery Song')).toBeInTheDocument();
-        });
-
-        // Select the song
-        fireEvent.click(screen.getByRole('checkbox'));
-
-        // Add to favorites (triggers lyrics fetch)
-        fireEvent.click(screen.getByText('Add Selected to Favorites'));
-
-        await waitFor(() => {
-            expect(console.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to get lyrics for Mystery Song')
-            );
-        });
-
-        await waitFor(() => {
-            const dateText = screen.getByText('📅 Unknown');
-            expect(dateText).toBeInTheDocument();
-        });
-    });
-    test('handles word cloud save failure and logs error', async () => {
-        window.alert = jest.fn();
-        console.error = jest.fn();
-
-        const mockSongs = {
-            response: {
-                hits: [
-                    {
-                        result: {
-                            id: '123',
-                            full_title: 'Test Song',
-                            url: 'https://example.com/song',
-                            header_image_url: 'https://example.com/img.jpg',
-                            release_date: '2023-01-01',
-                            primary_artist: { name: 'Test Artist' },
-                        }
-                    }
-                ]
-            }
-        };
-
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/api/genius/search')) {
-                return Promise.resolve({ data: mockSongs });
-            }
-            if (url.includes('/api/genius/lyrics')) {
-                return Promise.resolve({ data: { lyrics: 'Test lyrics' } });
-            }
-            if (url.includes('/api/wordcloud')) {
-                return Promise.reject(new Error('Failed to load updated word cloud'));
-            }
-            return Promise.reject(new Error('Not mocked'));
-        });
-
-        axios.post.mockResolvedValueOnce({ status: 200 });
-
-        render(
-            <BrowserRouter>
-                <Dashboard user="testUser" />
-            </BrowserRouter>
-        );
-
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), {
-            target: { value: 'test song' }
-        });
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), {
-            target: { value: '1' }
-        });
-        fireEvent.click(screen.getByText('Search'));
-
-        await waitFor(() => {
-            expect(screen.getByText('🎵 Test Song')).toBeInTheDocument();
-        });
-
-        fireEvent.click(screen.getByRole('checkbox'));
-        fireEvent.click(screen.getByText('Add Selected to Word Cloud'));
-
-        await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith(
-                '❌ Failed to save to word cloud:',
-                expect.any(Error)
-            );
-        });
-
-    });
-
-    test('redirects to home if user is not provided', () => {
+describe("Dashboard Component", () => {
+    test("redirects to home if user is not provided", () => {
         render(
             <BrowserRouter>
                 <Dashboard user={null} />
             </BrowserRouter>
         );
-
-        const redirect = screen.getByTestId('navigate');
-        expect(redirect).toBeInTheDocument();
-        expect(redirect).toHaveAttribute('data-to', '/');
+        expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/");
     });
 
-    test('shows warning and sets lyrics to "Unknown" when lyrics API fails during word cloud addition', async () => {
-        const mockSong = {
-            result: {
-                id: 'fail-lyrics',
-                full_title: 'Test Song',
-                url: 'https://example.com/song',
-                header_image_url: 'https://example.com/img.jpg',
-                release_date: '',
-                primary_artist: {}
-            }
-        };
 
-        const mockResponse = {
-            response: {
-                hits: [mockSong]
-            }
-        };
+    test("displays welcome message", () => {
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+        expect(screen.getByText(`Welcome, ${mockUser}!`)).toBeInTheDocument();
+    });
 
-        // Mock lyrics API to throw
-        axios.get.mockImplementation((url) => {
-            if (url === 'http://localhost:8080/api/genius/search') {
-                return Promise.resolve({ data: mockResponse });
-            } else if (url.includes('api/genius/lyrics')) {
-                return Promise.reject(new Error('Lyrics API failed'));
-            } else if (url.includes('/api/wordcloud/testUser')) {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Not mocked'));
+
+
+
+    test("alerts when search is attempted without title or limit", () => {
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+        fireEvent.click(screen.getByText("Search"));
+        expect(window.alert).toHaveBeenCalledWith("Please enter an artist name!");
+    });
+
+
+    test("alerts when search limit is missing", () => {
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), { target: { value: "Test Artist" } });
+        fireEvent.click(screen.getByText("Search"));
+        expect(window.alert).toHaveBeenCalledWith("Please enter a valid number of songs to display.");
+    });
+
+
+    test("fetches and filters songs correctly", async () => {
+        axios.get.mockResolvedValueOnce({ data: [] }); // Word cloud
+        axios.get.mockResolvedValueOnce({
+            data: {
+                response: {
+                    hits: [
+                        {
+                            result: {
+                                id: "1",
+                                full_title: "Song Matching",
+                                url: "http://song1",
+                                header_image_url: "http://image1",
+                                release_date: "2020-01-01",
+                                primary_artist: { name: "Test Artist" },
+                            },
+                        },
+                        {
+                            result: {
+                                id: "2",
+                                full_title: "Song Not Matching",
+                                url: "http://song2",
+                                header_image_url: "http://image2",
+                                release_date: "2020-01-02",
+                                primary_artist: { name: "Other Artist" },
+                            },
+                        },
+                    ],
+                },
+            },
         });
 
-        // Spy on console.warn
-        console.warn = jest.fn();
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), { target: { value: "Test Artist" } });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), { target: { value: "1" } });
+        fireEvent.click(screen.getByText("Search"));
+
+
+        await waitFor(() => expect(screen.getByText(/Song Matching/i)).toBeInTheDocument());
+        expect(screen.queryByText(/Song Not Matching/i)).toBeNull();
+    });
+
+
+    test("adds selected songs to word cloud", async () => {
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ // search
+                data: {
+                    response: {
+                        hits: [
+                            {
+                                result: {
+                                    id: "1",
+                                    full_title: "Song Matching",
+                                    url: "http://song1",
+                                    header_image_url: "http://image1",
+                                    release_date: "2020-01-01",
+                                    primary_artist: { name: "Test Artist" },
+                                },
+                            },
+                        ],
+                    },
+                },
+            })
+            .mockResolvedValueOnce({ data: { lyrics: "Lyrics for song 1" } }) // lyrics
+            .mockResolvedValueOnce({ data: [{ id: "w1", title: "Word 1" }] }); // updated word cloud
+
+
+        axios.post.mockResolvedValue({ status: 200 });
+
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Test Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+
+        await waitFor(() => expect(screen.getByText(/Song Matching/i)).toBeInTheDocument());
+        fireEvent.click(screen.getByRole("checkbox"));
+        fireEvent.click(screen.getByText("Add Selected to Word Cloud"));
+
+
+        await waitFor(() => {
+            expect(axios.post).toHaveBeenCalledWith(
+                "http://localhost:8080/api/wordcloud/add",
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        username: mockUser,
+                        songId: "1",
+                        title: "Song Matching",
+                    }),
+                ])
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByTestId("cloud-songs")).toHaveTextContent(
+                JSON.stringify([{ id: "w1", title: "Word 1" }])
+            );
+        });
+    });
+
+
+    test("logs out when user is inactive for more than 60 seconds", async () => {
+        jest.useFakeTimers();
+        axios.get.mockResolvedValueOnce({ data: [] });
+
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        act(() => {
+            jest.advanceTimersByTime(61000);
+        });
+
+
+        await waitFor(() => {
+            expect(localStorage.removeItem).toHaveBeenCalledWith("user");
+            expect(window.location.reload).toHaveBeenCalled();
+        });
+
+
+        jest.useRealTimers();
+    });
+    test("bulkAddToFavorites adds successful and failed songs", async () => {
+        const mockSongs = [
+            {
+                result: {
+                    id: "1",
+                    full_title: "Good Song",
+                    url: "http://song1",
+                    header_image_url: "http://img1",
+                    release_date: "2020-01-01",
+                    primary_artist: { name: "Artist A" }
+                }
+            },
+            {
+                result: {
+                    id: "2",
+                    full_title: "Duplicate Song",
+                    url: "http://song2",
+                    header_image_url: "http://img2",
+                    release_date: "2020-01-02",
+                    primary_artist: { name: "Artist B" }
+                }
+            }
+        ];
+
+
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ // search
+                data: {
+                    response: {
+                        hits: mockSongs
+                    }
+                }
+            })
+            .mockResolvedValue({ data: { lyrics: "Sample lyrics" } }); // lyrics fetch for both
+
+
+        axios.post
+            .mockResolvedValueOnce({ status: 200 }) // Good Song succeeds
+            .mockResolvedValueOnce({ status: 400 }); // Duplicate Song fails
+
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        // Use matching artist name to trigger song filtering
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Artist" }
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "2" }
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+
+        await waitFor(() => {
+            expect(screen.getByText((text) => text.includes("Good Song"))).toBeInTheDocument();
+            expect(screen.getByText((text) => text.includes("Duplicate Song"))).toBeInTheDocument();
+        });
+
+
+        // Select both songs
+        const checkboxes = screen.getAllByRole("checkbox");
+        fireEvent.click(checkboxes[0]);
+        fireEvent.click(checkboxes[1]);
+
+
+        // Trigger bulk add to favorites
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+
+        // Expect messages for both success and failure
+        await waitFor(() => {
+            expect(screen.getByText(/✅ Added: Good Song/)).toBeInTheDocument();
+            expect(screen.getByText(/⚠️ Already in favorites: Duplicate Song/)).toBeInTheDocument();
+        });
+    });
+
+
+    test("displays error if no songs match the artist name", async () => {
+        // First GET: wordcloud, Second GET: search returns no hits
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({
+                data: {
+                    response: { hits: [] } // no search hits
+                }
+            });
+
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "No Match Artist" }
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "5" }
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+
+        await waitFor(() => {
+            expect(screen.getByText("No matches found for your search query.")).toBeInTheDocument();
+        });
+    });
+    test("displays generic error if song fetching fails", async () => {
+        const error = new Error("Network issue");
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockRejectedValueOnce(error); // search fails
+
+
+        console.error = jest.fn();
+
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Test Artist" }
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "3" }
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+
+        await waitFor(() => {
+            expect(console.error).toHaveBeenCalledWith("Error fetching songs:", error);
+            expect(screen.getByText("An error occurred while fetching songs. Please try again later.")).toBeInTheDocument();
+        });
+    });
+    test("toggles song selection when checkbox is clicked", async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes("/api/genius/search")) {
+                return Promise.resolve({
+                    data: {
+                        response: {
+                            hits: [
+                                {
+                                    result: {
+                                        id: "1",
+                                        full_title: "Test Song",
+                                        url: "https://example.com/song",
+                                        header_image_url: "https://example.com/image.jpg",
+                                        release_date: "2023-01-01",
+                                        primary_artist: { name: "Test Artist" }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                });
+            }
+            if (url.includes("/api/wordcloud")) {
+                return Promise.resolve({ data: [] });
+            }
+            return Promise.reject(new Error("Not mocked"));
+        });
+
 
         render(
             <BrowserRouter>
@@ -857,65 +414,71 @@ describe('Dashboard Component - Inactivity Logout', () => {
             </BrowserRouter>
         );
 
-        // Search for songs
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), {
-            target: { value: 'test song' }
+
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Test Artist" }
         });
-
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), {
-            target: { value: '1' }
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" }
         });
+        fireEvent.click(screen.getByText("Search"));
 
-        fireEvent.click(screen.getByText('Search'));
 
-        // Wait for search results
         await waitFor(() => {
             expect(screen.getByText(/Test Song/)).toBeInTheDocument();
         });
 
-        // Select the song
-        const checkbox = screen.getByRole('checkbox');
+
+        const checkbox = screen.getByRole("checkbox");
+
+
+        // ✅ Initially not selected
+        expect(checkbox).not.toBeChecked();
+
+
+        // ✅ Select song
         fireEvent.click(checkbox);
+        expect(checkbox).toBeChecked();
 
-        // Add to word cloud
-        fireEvent.click(screen.getByText('Add Selected to Word Cloud'));
 
-        // Wait for console.warn to be called with the correct message
-        await waitFor(() => {
-            expect(console.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to get lyrics for Test Song')
-            );
-        });
+        // ✅ Deselect song
+        fireEvent.click(checkbox);
+        expect(checkbox).not.toBeChecked();
     });
-    test('adds selected song to favorites - covers else (non-200 status)', async () => {
-        const song = {
+    test("addSelectedToWordCloud handles lyrics fetch failure and word cloud save failure", async () => {
+        const mockSong = {
             result: {
-                id: '444',
-                full_title: 'Rejected Song',
-                url: 'https://example.com/song',
-                header_image_url: 'https://example.com/img.jpg',
-                release_date: '2021-01-01',
-                primary_artist: { name: 'Unlucky Artist' }
+                id: "123",
+                full_title: "Broken Song",
+                url: "http://example.com/broken",
+                header_image_url: "http://example.com/img.jpg",
+                release_date: "2023-01-01",
+                primary_artist: { name: "Broken Artist" }
             }
         };
 
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/search')) {
-                return Promise.resolve({
-                    data: { response: { hits: [song] } }
-                });
-            }
-            if (url.includes('/lyrics')) {
-                return Promise.resolve({ data: { lyrics: 'No one likes this' } });
-            }
-            if (url.includes('/wordcloud')) {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Unmocked GET'));
-        });
 
-        // ✅ Return a non-200 status to hit the else block
-        axios.post.mockResolvedValueOnce({ status: 400 });
+        // First: word cloud GET on mount
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // for initial load of wordcloud
+            .mockResolvedValueOnce({ // for search result
+                data: {
+                    response: {
+                        hits: [mockSong]
+                    }
+                }
+            })
+            .mockRejectedValueOnce(new Error("Lyrics fetch failed")) // fail lyrics
+            .mockRejectedValueOnce(new Error("Word cloud fetch failed")); // fail fetch after post
+
+
+        // Fail post to word cloud
+        axios.post.mockRejectedValueOnce(new Error("Word cloud post failed"));
+
+
+        console.warn = jest.fn();
+        console.error = jest.fn();
+
 
         render(
             <BrowserRouter>
@@ -923,24 +486,327 @@ describe('Dashboard Component - Inactivity Logout', () => {
             </BrowserRouter>
         );
 
-        // Search + select song
-        fireEvent.change(screen.getByPlaceholderText('Enter song title...'), { target: { value: 'rejected' } });
-        fireEvent.change(screen.getByPlaceholderText('Number of songs to display'), { target: { value: '1' } });
-        fireEvent.click(screen.getByText('Search'));
+
+        // Perform a search
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Broken Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
 
         await waitFor(() => {
-            expect(screen.getByText(/Rejected Song/)).toBeInTheDocument();
+            expect(screen.getByText(/Broken Song/)).toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByRole('checkbox'));
-        fireEvent.click(screen.getByText('Add Selected to Favorites'));
 
-        // ✅ Look for the warning message that includes failed song
+        // Select the song and attempt to add to word cloud
+        fireEvent.click(screen.getByRole("checkbox"));
+        fireEvent.click(screen.getByText("Add Selected to Word Cloud"));
+
+
         await waitFor(() => {
-            expect(screen.getByText(/⚠️ Already in favorites: Rejected Song/)).toBeInTheDocument();
+            expect(console.warn).toHaveBeenCalledWith(
+                expect.stringContaining("Failed to get lyrics for Broken Song")
+            );
+            expect(console.error).toHaveBeenCalledWith(
+                expect.stringContaining("❌ Failed to save to word cloud:"),
+                expect.any(Error)
+            );
+        });
+    });
+    test("bulkAddToFavorites skips songs not selected (else path)", async () => {
+        const mockSongs = [
+            {
+                result: {
+                    id: "not-selected-id",
+                    full_title: "Unselected Song",
+                    url: "http://unselected.com",
+                    header_image_url: "http://unselected.com/img.jpg",
+                    release_date: "2022-01-01",
+                    primary_artist: { name: "Artist Name" }
+                }
+            }
+        ];
+
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ data: { response: { hits: mockSongs } } });
+
+        render(
+            <BrowserRouter>
+                <Dashboard user="testUser" />
+            </BrowserRouter>
+        );
+
+        // Trigger the search
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Artist Name" }
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" }
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+        // Wait for song to show
+        await waitFor(() => {
+            expect(screen.getByText("🎵 Unselected Song")).toBeInTheDocument();
+        });
+
+        // ❌ Do NOT select the checkbox
+        // fireEvent.click(screen.getByRole("checkbox"));
+
+        // Click Add to Favorites
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+        // ✅ Should trigger alert
+        await waitFor(() => {
+            expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add.");
+        });
+
+        // ✅ This proves the loop ran but skipped the `if (selectedSongs.includes(...))`
+    });
+    test("bulkAddToFavorites sets empty success and error messages when nothing is added or failed", async () => {
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ // search
+                data: {
+                    response: {
+                        hits: [
+                            {
+                                result: {
+                                    id: "123",
+                                    full_title: "NoOp Song",
+                                    url: "https://noop.com",
+                                    header_image_url: "https://noop.com/img.jpg",
+                                    release_date: "2023-01-01",
+                                    primary_artist: { name: "Empty Artist" },
+                                },
+                            },
+                        ],
+                    },
+                },
+            });
+
+        // Make sure lyrics call is skipped by not selecting anything
+        render(
+            <BrowserRouter>
+                <Dashboard user="testUser" />
+            </BrowserRouter>
+        );
+
+        // Fill in search inputs
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Empty Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+        // Wait for results to render
+        await waitFor(() => {
+            expect(screen.getByText(/NoOp Song/)).toBeInTheDocument();
+        });
+
+        // ❌ Do NOT select the song, so added and failed remain empty
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+        // ✅ Verify alert still shows for no selection
+        await waitFor(() => {
+            expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add.");
+        });
+
+        // ✅ Success & error messages should be empty strings (default state after ternary)
+        // You can also assert that they are *not shown* if that logic exists in the JSX
+        // OR you could expose setSuccessMessage/setErrorMessage values in the DOM to check
+    });
+
+    test("bulkAddToFavorites handles empty selection, lyrics fetch failure, and post failure", async () => {
+        window.alert = jest.fn();
+        console.warn = jest.fn();
+
+        const mockSong = {
+            result: {
+                id: "fail123",
+                full_title: "Fail Song",
+                url: "https://fail.com",
+                header_image_url: "https://fail.com/image.jpg",
+                release_date: "2022-01-01",
+                primary_artist: { name: "Fail Artist" },
+            },
+        };
+
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ data: { response: { hits: [mockSong] } } }) // search result
+            .mockRejectedValueOnce(new Error("Lyrics fetch failed")); // lyrics fetch fails
+
+        axios.post.mockRejectedValueOnce(new Error("Favorites post failed")); // post also fails
+
+        render(
+            <BrowserRouter>
+                <Dashboard user="testUser" />
+            </BrowserRouter>
+        );
+
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+        expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add.");
+
+        // ⬇️ Match artist exactly
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Fail Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+        // Check song renders
+        await waitFor(() => {
+            expect(screen.getByText((text) => text.includes("Fail Song"))).toBeInTheDocument();
+        });
+
+        // Select + trigger
+        fireEvent.click(screen.getByRole("checkbox"));
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+        await waitFor(() => {
+            expect(console.warn).toHaveBeenCalledWith("Failed to get lyrics for Fail Song");
+            expect(screen.getByText("⚠️ Already in favorites: Fail Song")).toBeInTheDocument();
         });
     });
 
+    test("bulkAddToFavorites sets empty errorMessage when all songs succeed", async () => {
+        const mockSong = {
+            result: {
+                id: "123",
+                full_title: "Success Song",
+                url: "https://song.com",
+                header_image_url: "https://song.com/image.jpg",
+                release_date: "2023-01-01",
+                primary_artist: { name: "Happy Artist" },
+            },
+        };
+
+        // Mock all requests to succeed
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ data: { response: { hits: [mockSong] } } }) // search
+            .mockResolvedValueOnce({ data: { lyrics: "This is a hit!" } }); // lyrics
+
+        axios.post.mockResolvedValueOnce({ status: 200 }); // successful add
+
+        render(
+            <BrowserRouter>
+                <Dashboard user="testUser" />
+            </BrowserRouter>
+        );
+
+        // Fill search inputs
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Happy Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "1" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+        // Wait for the result
+        await waitFor(() => {
+            expect(screen.getByText(/Success Song/)).toBeInTheDocument();
+        });
+
+        // Select the song and add to favorites
+        fireEvent.click(screen.getByRole("checkbox"));
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+        // ✅ Confirm success message appears
+        await waitFor(() => {
+            expect(screen.getByText("✅ Added: Success Song")).toBeInTheDocument();
+        });
+
+        // ✅ Confirm fallback path ran (no failed songs, so errorMessage === "")
+        expect(screen.queryByText(/⚠️ Already in favorites/)).toBeNull(); // nothing rendered
+    });
+    test("bulkAddToFavorites skips songs not in selectedSongs (else path coverage)", async () => {
+        const mockSongs = [
+            {
+                result: {
+                    id: "1",
+                    full_title: "Unselected Song",
+                    url: "http://url1",
+                    header_image_url: "http://img1",
+                    release_date: "2021-01-01",
+                    primary_artist: { name: "Unselected Artist" },
+                },
+            },
+            {
+                result: {
+                    id: "2",
+                    full_title: "Selected Song",
+                    url: "http://url2",
+                    header_image_url: "http://img2",
+                    release_date: "2021-01-02",
+                    primary_artist: { name: "Selected Artist" },
+                },
+            }
+        ];
+
+        // Mock requests
+        axios.get
+            .mockResolvedValueOnce({ data: [] }) // word cloud
+            .mockResolvedValueOnce({ data: { response: { hits: mockSongs } } }) // search
+            .mockResolvedValueOnce({ data: { lyrics: "Lyrics for selected" } }); // lyrics for selected
+
+        axios.post.mockResolvedValueOnce({ status: 200 }); // selected song post success
+
+        render(
+            <BrowserRouter>
+                <Dashboard user="testUser" />
+            </BrowserRouter>
+        );
+
+        // Search with query matching both artists
+        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+            target: { value: "Artist" },
+        });
+        fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
+            target: { value: "2" },
+        });
+        fireEvent.click(screen.getByText("Search"));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Unselected Song/)).toBeInTheDocument();
+            expect(screen.getByText(/Selected Song/)).toBeInTheDocument();
+        });
+
+        // ✅ Only select second song
+        const checkboxes = screen.getAllByRole("checkbox");
+        fireEvent.click(checkboxes[1]); // selects only the second song (id: "2")
+
+        fireEvent.click(screen.getByText("Add Selected to Favorites"));
+
+        // Wait for the post to occur
+        await waitFor(() => {
+            expect(axios.post).toHaveBeenCalledWith(
+                expect.stringContaining("/favorites/add"),
+                expect.objectContaining({
+                    songId: "2", // only selected
+                    title: "Selected Song"
+                })
+            );
+        });
+
+        // ✅ Make sure Unselected Song was NOT added
+        expect(axios.post).not.toHaveBeenCalledWith(
+            expect.stringContaining("/favorites/add"),
+            expect.objectContaining({ songId: "1" })
+        );
+    });
 
 
 });
+

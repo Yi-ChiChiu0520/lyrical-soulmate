@@ -54,7 +54,6 @@ const Favorites = ({ user }) => {
         }
     };
 
-    // Removed toggleSelectFavorite and handleAddToWordCloud functions since they were only used for Word Cloud functionality
 
     const removeFromFavorites = async (songId) => {
         try {
