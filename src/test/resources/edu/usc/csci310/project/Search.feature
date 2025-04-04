@@ -16,7 +16,7 @@ Feature: Song Search functionality
     And each song result should display the song name and artist
 
 
-  Scenario: Empty song search
+  Scenario: Empty artist name search
     Given I am logged in
     When I navigate to the search page
     And I enter no artist name
@@ -57,6 +57,7 @@ Feature: Song Search functionality
     And I should see "the Glow pt. 2 by The Microphones" in my favorites list
 
 
+  # SPRINT 2 REVIEW: Repeated
   Scenario: Limit number of search results displayed
     Given I am logged in to the application
     When I navigate to the search page
@@ -75,6 +76,7 @@ Feature: Song Search functionality
     Then I should see the song's word cloud
 
 
+  # SPRINT REVIEW 2: Half points, we must implement the amiguous artist name menu
   Scenario: Search with ambiguous artist name
     Given I am logged in to the application
     When I navigate to the search page
