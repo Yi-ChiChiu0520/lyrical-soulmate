@@ -267,7 +267,8 @@ public class FavoriteStepDefs {
     }
 
     @Then("I should see {string} above {string}")
-    public void iShouldSeeAbove(String arg0, String arg1) {
+    public void iShouldSeeAbove(String arg0, String arg1) throws InterruptedException {
+        Thread.sleep(500);
         List<WebElement> favorites = getFavoritesList();
 
         int idxOne = -1;
@@ -298,7 +299,8 @@ public class FavoriteStepDefs {
     }
 
     @Then("I should see the artist name {string} for {string}")
-    public void iShouldSeeTheArtistName(String artistName, String songName) {
+    public void iShouldSeeTheArtistName(String artistName, String songName) throws InterruptedException {
+        Thread.sleep(500);
         WebElement song = findSongInFavoritesList(songName);
 
         assert song.findElement(By.id("artist-name")).getText().contains(artistName);
