@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import LyricalIcon from '../images/LyricalIcon.png';
 
 
 const Auth = ({ setUser }) => {
@@ -15,12 +16,7 @@ const Auth = ({ setUser }) => {
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [showCancelSignupConfirm, setShowCancelSignupConfirm] = useState(false);
 
-
-
-
     const navigate = useNavigate();
-
-
 
     useEffect(() => {
         if (isSignup && confirmPassword) {
@@ -116,31 +112,40 @@ const Auth = ({ setUser }) => {
 
 
     return (
-        <div className="w-screen h-screen bg-fuchsia-950 text-center flex justify-center items-center flex-col">
-            <div className="w-3/4 h-1/2 my-10 flex justify-center items-center flex-col">
-                <div className="m-10">
-                    <h1 className="font-bold text-3xl text-white">Let's Get Lyrical!</h1>
+        <div className="w-screen h-screen bg-[#e2cdea] text-center flex justify-center items-center">
+            <div className="bg-[#2d203f] rounded-lg shadow-lg p-8 w-[400px]">
+                <div className="flex flex-col items-center mb-4">
+                    <img src={LyricalIcon} alt="Logo" className="h-20 mb-2" />
+                    {isSignup ? (
+                        <h2 className="text-white font-bold text-2xl text-center" aria-label="Sign Up">  Sign up to find your<br />lyrical soulmate
+                        </h2>
+                    ) : (
+                        <>
+                            <h1 className="text-white font-bold text-2xl" aria-label="Login">
+                                Log in to Let's Get Lyrical
+                            </h1>
+                        </>
+                    )}
                 </div>
                 <form
-                    className="flex justify-center items-center flex-col w-full max-w-3xl min-w-96 bg-fuchsia-900 p-10 rounded-xl mb-10"
+                    className="flex flex-col items-center"
                     onSubmit={handleAuth}>
-                    <h2 className="text-white mb-5 font-bold text-2xl">{isSignup ? "Sign Up" : "Login"}</h2>
-                    <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
+                    <div className="w-full mb-4 text-left">
                         <label className="text-white py-2">Username</label>
                         <input
-                            className="w-full p-2 rounded-md"
+                            className="w-full p-2 rounded-md border border-gray-300"
                             id="username"
                             type="text"
                             placeholder="Username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                         />
+                        />
                     </div>
-                    <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
-                        <label className="text-white py-2">Password</label>
+                    <div className="w-full mb-4 text-left">
+                        <label className="text-white block mb-1">Password</label>
                         <input
-                            className="w-full p-2 rounded-md"
+                            className="w-full p-2 rounded-md border border-gray-300"
                             id="password"
                             type="password"
                             placeholder="Password"
@@ -150,10 +155,10 @@ const Auth = ({ setUser }) => {
                         />
                     </div>
                     {isSignup && (
-                        <div className="mb-10 max-w-3xl min-w-80 w-2/3 flex justify-center items-start flex-col">
-                            <label className="text-white py-2">Confirm Password</label>
+                        <div className="w-full mb-4 text-left">
+                            <label className="text-white block mb-1">Confirm Password</label>
                             <input
-                                className="w-full p-2 rounded-md"
+                                className="w-full p-2 rounded-md border border-gray-300"
                                 id="confirmPassword"
                                 type="password"
                                 placeholder="Confirm Password"
@@ -161,13 +166,13 @@ const Auth = ({ setUser }) => {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
-                            {passwordError && <p className="py-3 text-red-400">{passwordError}</p>}
+                            {passwordError && <p className="text-red-400 mt-3 -mb-6">{passwordError}</p>}
                         </div>
                     )}
                     {error && <p id="errorMessage" className="text-red-400">{error}</p>}
                     {message && <p id="successMessage" className="text-green-400">{message}</p>}
                     <button
-                        className="rounded-full bg-white hover:bg-neutral-200 p-2 w-40 mt-10"
+                        className="bg-white text-black font-semibold rounded-full mt-8 py-2 w-32 hover:bg-neutral-200 mt-4"
                         id={isSignup ? "signupButton" : "loginButton"}
                         type="submit"
                         disabled={isSignup && passwordError}
@@ -175,19 +180,19 @@ const Auth = ({ setUser }) => {
                         {isSignup ? "Sign Up" : "Login"}
                     </button>
                 </form>
-                <button className="text-white" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
+                <button className="text-purple-300 mt-8" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
                     {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
                 </button>
 
                 {isSignup && (
                     <button
                         id="cancelButton"
-                        className="text-white mt-2 underline hover:text-gray-200"
+                        className="text-purple-300 mt-2"
                         onClick={() => {
                             setShowCancelSignupConfirm(true); // <-- show confirmation
                         }}
                     >
-                        Cancel and go back to login
+                        Cancel sign up and return to login
                     </button>
 
                 )}
@@ -195,81 +200,62 @@ const Auth = ({ setUser }) => {
 
                 {/* Success Confirmation Modal */}
                 {showConfirmation && (
-                    <div className="rounded-md p-5" style={{
-                        position: "fixed",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        background: "white",
-                        padding: "20px",
-                        boxShadow: "0px 0px 10px gray",
-                        textAlign: "center",
-                        zIndex: 1000
-                    }}>
-                        <h3>Are you sure you want to register?</h3>
-                        <div className="mt-4">
-                            <button
-                                id="confirmSignup"
-                                onClick={confirmFinalSignup}
-                                className="mr-3 bg-fuchsia-900 text-white p-2 rounded-md hover:bg-fuchsia-800"
-                            >
-                                Yes
-                            </button>
-                            <button
-                                id="cancelSignup"
-                                onClick={confirmCancel}
-                                className="bg-gray-300 text-gray-800 p-2 rounded-md hover:bg-gray-400"
-                            >
-                                No
-                            </button>
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" >
+                        <div className="bg-white p-6 rounded-md shadow-lg text-center">
+                            <h3 className="text-lg font-semibold mb-2">Before Signing Up</h3>
+                            <p>Are you sure you want to register?</p>
+                            <div className="mt-4">
+                                <button
+                                    id="confirmSignup"
+                                    onClick={confirmFinalSignup}
+                                    className="mr-3 px-4 py-2 bg-green-500 text-white rounded"
+                                >
+                                    Yes, Create Account
+                                </button>
+                                <button
+                                    id="cancelSignup"
+                                    onClick={confirmCancel}
+                                    className="px-4 py-2 bg-red-500 text-white rounded"
+                                >
+                                    No
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
                 {showCancelSignupConfirm && (
-                    <div className="rounded-md p-5" style={{
-                        position: "fixed",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        background: "white",
-                        padding: "20px",
-                        boxShadow: "0px 0px 10px gray",
-                        textAlign: "center",
-                        zIndex: 1000
-                    }}>
-                        <h3>Are you sure you want to cancel account creation?</h3>
-                        <div className="mt-4">
-                            <button
-                                id="confirmCancel"
-                                onClick={() => {
-                                    // Reset everything and switch to login
-                                    setShowCancelSignupConfirm(false);
-                                    setIsSignup(false);
-                                    setUsername("");
-                                    setPassword("");
-                                    setConfirmPassword("");
-                                    setError("");
-                                    setPasswordError("");
-                                    setMessage("");
-                                }}
-                                className="mr-3 bg-fuchsia-900 text-white p-2 rounded-md hover:bg-fuchsia-800"
-                            >
-                                Yes
-                            </button>
-                            <button
-                                id="dontCancel"
-                                onClick={() => setShowCancelSignupConfirm(false)}
-                                className="bg-gray-300 text-gray-800 p-2 rounded-md hover:bg-gray-400"
-                            >
-                                No
-                            </button>
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-md shadow-lg text-center">
+                            <h3 className="text-lg font-semibold mb-2">Are you sure you want to cancel account creation?</h3>
+                            <div className="mt-4">
+                                <button
+                                    id="confirmCancel"
+                                    onClick={() => {
+                                        // Reset everything and switch to login
+                                        setShowCancelSignupConfirm(false);
+                                        setIsSignup(false);
+                                        setUsername("");
+                                        setPassword("");
+                                        setConfirmPassword("");
+                                        setError("");
+                                        setPasswordError("");
+                                        setMessage("");
+                                    }}
+                                    className="mr-3 px-4 py-2 bg-green-500 text-white rounded"
+                                >
+                                    Yes, Cancel Signup
+                                </button>
+                                <button
+                                    id="dontCancel"
+                                    onClick={() => setShowCancelSignupConfirm(false)}
+                                    className="px-4 py-2 bg-red-500 text-white rounded"
+                                >
+                                    No
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
-
-
-
-
             </div>
         </div>
     );
