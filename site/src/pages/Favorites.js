@@ -9,6 +9,7 @@ const Favorites = ({ user }) => {
     const [favorites, setFavorites] = useState([]);
     const [selectedFavorites, setSelectedFavorites] = useState([]);
     const [expandedSong, setExpandedSong] = useState(null);
+    const [hoveredSongId, setHoveredSongId] = useState(null);
     const [lastActivity, setLastActivity] = useState(Date.now());
     const [showWordCloud, setShowWordCloud] = useState(false);
 
@@ -116,33 +117,66 @@ const Favorites = ({ user }) => {
                 <>
                     <ul id="favorites-list" style={{ listStyleType: "none", padding: 0 }}>
                         {favorites.map((song, index) => (
-                            <li id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} key={song.songId} style={{ marginBottom: "20px", cursor: "pointer" }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <li
+                                key={song.songId}
+                                id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')}
+                                style={{marginBottom: "20px", cursor: "pointer"}}
+                                onMouseEnter={() => setHoveredSongId(song.songId)}
+                                onMouseLeave={() => setHoveredSongId(null)}
+                            >
+                                <div style={{display: "flex", alignItems: "center", justifyContent: "center"}}>
                                     <input
                                         id="select-favorite"
                                         type="checkbox"
                                         checked={selectedFavorites.includes(song.songId)}
                                         onChange={() => toggleSelectFavorite(song.songId)}
-                                        style={{ marginRight: "10px" }}
+                                        style={{marginRight: "10px"}}
                                     />
-                                    <img src={song.imageUrl} alt="cover" style={{ width: "50px", height: "50px", borderRadius: "5px", marginRight: "10px" }} />
-                                    <span id="song-title" onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
+                                    <img src={song.imageUrl} alt="cover" style={{
+                                        width: "50px",
+                                        height: "50px",
+                                        borderRadius: "5px",
+                                        marginRight: "10px"
+                                    }}/>
+                                    <span id="song-title"
+                                          onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}>
                                         🎵 <strong>{song.title}</strong>
                                     </span>
                                 </div>
 
                                 {expandedSong === song.songId && (
-                                    <div style={{ marginTop: "5px", fontSize: "14px", color: "gray" }}>
+                                    <div style={{marginTop: "5px", fontSize: "14px", color: "gray"}}>
                                         <p id="artist-name"><strong>🎤 Artist:</strong> {song.artistName}</p>
                                         <p id="release-date"><strong>📅 Release Date:</strong> {song.releaseDate}</p>
                                     </div>
                                 )}
 
-                                <div style={{ marginTop: "5px" }}>
-                                    <button id="remove-favorite" onClick={() => removeFromFavorites(song.songId)} style={{ marginRight: "5px", padding: "5px", color: "red" }}>❌ Remove</button>
-                                    <button id="move-up" onClick={() => moveFavorite(index, "up")} style={{ marginRight: "5px", padding: "5px" }}>⬆️</button>
-                                    <button id="move-down" onClick={() => moveFavorite(index, "down")} style={{ padding: "5px" }}>⬇️</button>
-                                </div>
+                                {/* Render buttons only on hover */}
+                                {hoveredSongId === song.songId && (
+                                    <div style={{marginTop: "5px"}}>
+                                        <button
+                                            id="remove-favorite"
+                                            onClick={() => removeFromFavorites(song.songId)}
+                                            style={{marginRight: "5px", padding: "5px", color: "red"}}
+                                        >
+                                            ❌ Remove
+                                        </button>
+                                        <button
+                                            id="move-up"
+                                            onClick={() => moveFavorite(index, "up")}
+                                            style={{marginRight: "5px", padding: "5px"}}
+                                        >
+                                            ⬆️
+                                        </button>
+                                        <button
+                                            id="move-down"
+                                            onClick={() => moveFavorite(index, "down")}
+                                            style={{padding: "5px"}}
+                                        >
+                                            ⬇️
+                                        </button>
+                                    </div>
+                                )}
                             </li>
                         ))}
                     </ul>

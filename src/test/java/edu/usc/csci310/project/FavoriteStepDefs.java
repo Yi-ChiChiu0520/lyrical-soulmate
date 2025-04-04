@@ -8,6 +8,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -59,7 +60,17 @@ public class FavoriteStepDefs {
     public void addSongToFavorites(String songName) {
         driver.get("http://localhost:8080/dashboard");
 
-        iSearchForSongsByTheName("10", songName);
+        // get the artist name from input
+        String[] parts = songName.split(" by ", 2); // limit to 2 parts
+
+        String artistName = null;
+        if (parts.length == 2) {
+            artistName = parts[1];
+            System.out.println("Artist: " + artistName);
+        }
+        assertNotNull(artistName);
+
+        iSearchForSongsByArtist("10", artistName);
         iSelect(songName);
 
         WebElement addToFavoritesButton = driver.findElement(By.id("add-to-favorites"));
@@ -95,33 +106,57 @@ public class FavoriteStepDefs {
         assert favsRendered;
     }
 
-    @When("I search for {string} songs by the name {string}")
-    public void iSearchForSongsByTheName(String arg0, String arg1) {
-        // wait until the page is loaded
+    @When("I search for {string} songs by {string}")
+    public void iSearchForSongsByArtist(String limit, String artistName) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement songTitleField = wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("song-title"));
+        WebElement artistField = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("song-title")); // update this ID if it changes
             return el.isDisplayed() ? el : null;
         });
 
-        // send the title
-        assertNotNull(songTitleField);
-        songTitleField.sendKeys(arg1);
+        assertNotNull(artistField);
+        artistField.clear();
+        artistField.sendKeys(artistName);
 
-        // and num songs
         WebElement numSongsField = driver.findElement(By.id("song-limit"));
-        numSongsField.sendKeys(arg0);
+        numSongsField.clear();
+        numSongsField.sendKeys(limit);
 
-        // then search
         WebElement searchButton = driver.findElement(By.id("search-button"));
         searchButton.click();
 
-        // wait for results
         wait.until(driver -> {
             WebElement el = driver.findElement(By.id("results-list"));
             return el.isDisplayed() ? el : null;
         });
     }
+
+//    public void iSearchForSongsByTheName(String arg0, String arg1) {
+//        // wait until the page is loaded
+//        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+//        WebElement songTitleField = wait.until(driver -> {
+//            WebElement el = driver.findElement(By.id("song-title"));
+//            return el.isDisplayed() ? el : null;
+//        });
+//
+//        // send the title
+//        assertNotNull(songTitleField);
+//        songTitleField.sendKeys(arg1);
+//
+//        // and num songs
+//        WebElement numSongsField = driver.findElement(By.id("song-limit"));
+//        numSongsField.sendKeys(arg0);
+//
+//        // then search
+//        WebElement searchButton = driver.findElement(By.id("search-button"));
+//        searchButton.click();
+//
+//        // wait for results
+//        wait.until(driver -> {
+//            WebElement el = driver.findElement(By.id("results-list"));
+//            return el.isDisplayed() ? el : null;
+//        });
+//    }
 
     @When("I select {string}")
     public void iSelect(String arg0) {
@@ -181,7 +216,30 @@ public class FavoriteStepDefs {
         assertNull(song);
     }
 
-    @And("I remove {string} from my favorites list")
+    @And("I hover over {string}")
+    public void iHoverOver(String arg0) {
+        // I should already be on the favorites page
+        WebElement song = findSongInFavoritesList(arg0);
+        assertNotNull(song); // just in case
+
+        // hover over the song
+        Actions actions = new Actions(driver);
+        actions.moveToElement(song).perform();
+    }
+
+    @Then("I should see the move and remove buttons on {string}")
+    public void iShouldSeeTheMoveAndRemoveButtonsOn(String arg0) {
+        // I should already be on the favorites page
+        WebElement song = findSongInFavoritesList(arg0);
+        assertNotNull(song); // just in case
+
+        // check that the buttons are visible
+        assertNotNull(song.findElement(By.id("move-up")));
+        assertNotNull(song.findElement(By.id("move-down")));
+        assertNotNull(song.findElement(By.id("remove-favorite")));
+    }
+
+    @And("I click the remove button on {string}")
     public void iRemoveFromMyFavoritesList(String arg0) {
         // I should already be on the favorites page
         WebElement song = findSongInFavoritesList(arg0);
@@ -191,7 +249,7 @@ public class FavoriteStepDefs {
         song.findElement(By.id("remove-favorite")).click();
     }
 
-    @And("I move {string} up")
+    @And("I click the move up button on {string}")
     public void iMoveUp(String arg0) {
         WebElement song = findSongInFavoritesList(arg0);
         assertNotNull(song);
@@ -199,7 +257,7 @@ public class FavoriteStepDefs {
         song.findElement(By.id("move-up")).click();
     }
 
-    @And("I move {string} down")
+    @And("I click the move down button on {string}")
     public void iMoveDown(String arg0) {
         WebElement song = findSongInFavoritesList(arg0);
         assertNotNull(song);
@@ -228,7 +286,7 @@ public class FavoriteStepDefs {
         assert idxOne < idxTwo : "Expected " + arg0 + " to be above " + arg1 + ", but it was not.";
     }
 
-    @And("I click on favorite {string}")
+    @And("I click on the song title {string}")
     public void iClickOnFavorite(String arg0) {
         // I should already be on the favorites page
         WebElement song = findSongInFavoritesList(arg0);
