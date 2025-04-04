@@ -148,7 +148,6 @@ public class SignupStepDefs {
                 assert (false);
             }
         }
-
         assertNotNull(path);
         assert(StepHelper.InputShowsError(path, expectedMessage));
     }
