@@ -10,8 +10,6 @@ import Favorites from './Favorites';
 jest.mock('axios');
 
 // Mock react-router-dom
-
-
 jest.mock('react-router-dom', () => {
     const actual = jest.requireActual('react-router-dom');
     return {
@@ -35,7 +33,6 @@ jest.mock('./WordCloudPanel', () => {
 
 describe('Favorites Component', () => {
     const mockUser = 'testUser';
-    const mockNavigate = jest.fn();
     const mockFavorites = [
         {
             songId: '1',
@@ -82,7 +79,6 @@ describe('Favorites Component', () => {
         axios.delete.mockResolvedValue({ data: { message: 'Deleted' } });
     });
 
-
     test('fetches and displays favorites when user is logged in', async () => {
         render(
             <BrowserRouter>
@@ -93,7 +89,7 @@ describe('Favorites Component', () => {
         expect(axios.get).toHaveBeenCalledWith(`http://localhost:8080/api/favorites/${mockUser}`);
 
         await waitFor(() => {
-            expect(screen.getByText('💖 testUser\'s Favorite Songs')).toBeInTheDocument();
+            expect(screen.getByText("💖 testUser's Favorite Songs")).toBeInTheDocument();
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
             expect(screen.getByText('Test Song 2')).toBeInTheDocument();
         });
@@ -162,7 +158,7 @@ describe('Favorites Component', () => {
         });
 
         // Simulate user interaction
-        fireEvent.click(screen.getByText('💖 testUser\'s Favorite Songs'));
+        fireEvent.click(screen.getByText("💖 testUser's Favorite Songs"));
 
         // Fast-forward time again
         await act(async () => {
@@ -198,7 +194,7 @@ describe('Favorites Component', () => {
         // Artist info should not be visible initially
         expect(screen.queryByText(/Artist:/)).not.toBeInTheDocument();
 
-        // Click to expand - we need to target the specific span that has the onClick handler
+        // Click to expand
         const songTitleElements = screen.getAllByText(/Test Song/);
         fireEvent.click(songTitleElements[0]);
 
@@ -217,6 +213,10 @@ describe('Favorites Component', () => {
         });
     });
 
+    //
+    // NOTE: The following tests changed to simulate hover before clicking remove/move.
+    //
+
     test('removes a song from favorites', async () => {
         render(
             <BrowserRouter>
@@ -228,10 +228,17 @@ describe('Favorites Component', () => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
+        // Hover over song 1's <li> so the Remove button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
+        // Now the remove button is in the DOM
         const removeButtons = screen.getAllByText('❌ Remove');
         fireEvent.click(removeButtons[0]);
 
-        expect(axios.delete).toHaveBeenCalledWith(`http://localhost:8080/api/favorites/remove/${mockUser}/1`);
+        expect(axios.delete).toHaveBeenCalledWith(
+            `http://localhost:8080/api/favorites/remove/${mockUser}/1`
+        );
         expect(axios.get).toHaveBeenCalledTimes(2); // Initial load and after deletion
     });
 
@@ -243,11 +250,15 @@ describe('Favorites Component', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+            expect(screen.getByText('Test Song 2')).toBeInTheDocument();
         });
 
+        // Hover over song 2's <li> so the up arrow appears
+        const song2Li = screen.getByText('Test Song 2').closest('li');
+        fireEvent.mouseEnter(song2Li);
+
         const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[1]); // Click up button for second song
+        fireEvent.click(upButtons[0]); // or upButtons[1], depending on test indexing
 
         expect(axios.post).toHaveBeenCalledWith(
             'http://localhost:8080/api/favorites/swap',
@@ -273,8 +284,12 @@ describe('Favorites Component', () => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
+        // Hover over song 1's <li> so the down arrow appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
         const downButtons = screen.getAllByText('⬇️');
-        fireEvent.click(downButtons[0]); // Click down button for first song
+        fireEvent.click(downButtons[0]);
 
         expect(axios.post).toHaveBeenCalledWith(
             'http://localhost:8080/api/favorites/swap',
@@ -300,17 +315,24 @@ describe('Favorites Component', () => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
-        const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[0]); // Try to move first song up (should do nothing)
+        // Hover over first song so Up button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
 
+        // Try to move first song up (should do nothing)
+        const upButtons = screen.getAllByText('⬆️');
+        fireEvent.click(upButtons[0]);
         expect(axios.post).not.toHaveBeenCalled();
 
-        const downButtons = screen.getAllByText('⬇️');
-        fireEvent.click(downButtons[1]); // Try to move last song down (should do nothing)
+        // Hover over second song so Down button appears
+        const song2Li = screen.getByText('Test Song 2').closest('li');
+        fireEvent.mouseEnter(song2Li);
 
+        // Try to move last song down (should do nothing)
+        const downButtons = screen.getAllByText('⬇️');
+        fireEvent.click(downButtons[0]);
         expect(axios.post).not.toHaveBeenCalled();
     });
-
 
     test('handles swap ranks error', async () => {
         console.error = jest.fn(); // Mock console.error
@@ -326,13 +348,21 @@ describe('Favorites Component', () => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
+        // Hover over first song so the down button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
         const downButtons = screen.getAllByText('⬇️');
         fireEvent.click(downButtons[0]);
 
         await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith('Error swapping ranks:', expect.any(Error));
+            expect(console.error).toHaveBeenCalledWith(
+                'Error swapping ranks:',
+                expect.any(Error)
+            );
         });
     });
+
     test('handles null response data gracefully in fetchFavorites', async () => {
         axios.get.mockResolvedValueOnce({ data: null });
 
@@ -360,7 +390,6 @@ describe('Favorites Component', () => {
         expect(nav).toHaveAttribute('data-to', '/');
     });
 
-
     test('handles remove from favorites error', async () => {
         console.error = jest.fn(); // Mock console.error
         axios.delete.mockRejectedValueOnce(new Error('Delete failed'));
@@ -375,11 +404,18 @@ describe('Favorites Component', () => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
+        // Hover over song 1 so the remove button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
         const removeButtons = screen.getAllByText('❌ Remove');
         fireEvent.click(removeButtons[0]);
 
         await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith('Error removing from favorites:', expect.any(Error));
+            expect(console.error).toHaveBeenCalledWith(
+                'Error removing from favorites:',
+                expect.any(Error)
+            );
         });
     });
 
@@ -404,6 +440,34 @@ describe('Favorites Component', () => {
             expect(screen.getAllByText(/Test Song/).length).toBe(2);
             expect(screen.queryByText('Invalid Song')).not.toBeInTheDocument();
             expect(screen.queryByText('Empty ID')).not.toBeInTheDocument();
+        });
+    });
+
+    test('hides action buttons on mouse leave', async () => {
+        render(
+            <BrowserRouter>
+                <Favorites user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // Wait for songs to load
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over the first song so the action buttons appear
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
+        // Confirm the Remove button is now visible
+        expect(screen.queryByText('❌ Remove')).toBeInTheDocument();
+
+        // Trigger mouse leave
+        fireEvent.mouseLeave(song1Li);
+
+        // The Remove button should no longer be visible
+        await waitFor(() => {
+            expect(screen.queryByText('❌ Remove')).not.toBeInTheDocument();
         });
     });
 
