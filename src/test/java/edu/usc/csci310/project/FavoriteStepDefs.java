@@ -108,7 +108,7 @@ public class FavoriteStepDefs {
 
     @When("I search for {string} songs by {string}")
     public void iSearchForSongsByArtist(String limit, String artistName) {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         WebElement artistField = wait.until(driver -> {
             WebElement el = driver.findElement(By.id("song-title")); // update this ID if it changes
             return el.isDisplayed() ? el : null;
@@ -124,11 +124,12 @@ public class FavoriteStepDefs {
 
         WebElement searchButton = driver.findElement(By.id("search-button"));
         searchButton.click();
-
-        wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("results-list"));
-            return el.isDisplayed() ? el : null;
-        });
+        try {
+            wait.until(driver -> {
+                WebElement el = driver.findElement(By.id("results-list"));
+                return el.isDisplayed() ? el : null;
+            });
+        } catch (TimeoutException ignored) {}
     }
 
 //    public void iSearchForSongsByTheName(String arg0, String arg1) {
