@@ -161,6 +161,7 @@ public class SignupStepDefs {
 
         Wait<WebDriver> wait2 = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(d -> driver.getPageSource().contains("Are you sure you want to cancel account creation?"));
+
     }
 
     @And("I confirm the cancellation")
