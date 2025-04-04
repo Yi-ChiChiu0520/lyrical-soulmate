@@ -1,34 +1,67 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import App from './App';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
+import { render, screen, waitFor } from "@testing-library/react";
+import App from "./App";
+import { MemoryRouter } from "react-router-dom";
 
-// Mock the Auth and Dashboard components
-jest.mock('./pages/Auth', () => () => <div>Auth Component</div>);
-jest.mock('./pages/Dashboard', () => () => <div>Dashboard Component</div>);
+// Mock components to simplify route testing
+jest.mock("./pages/Dashboard", () => () => <div>Mock Dashboard</div>);
+jest.mock("./pages/Favorites", () => () => <div>Mock Favorites</div>);
+jest.mock("./pages/Auth", () => () => <div>Let's Get Lyrical</div>);
+jest.mock("./pages/Navbar", () => () => <div>Navbar</div>);
 
-describe('App Component', () => {
-    test('renders Auth component for the root path', () => {
-        render(
-            <MemoryRouter initialEntries={['/']}>
-                <App />
-            </MemoryRouter>
-        );
-
-        // Check if the Auth component is rendered
-        expect(screen.getByText('Auth Component')).toBeInTheDocument();
+describe("App routing", () => {
+    beforeEach(() => {
+        localStorage.clear();
     });
 
-    test('renders Dashboard component for the /dashboard path', () => {
+    test("renders Dashboard when user is in localStorage", async () => {
+        localStorage.setItem("user", "testUser");
+
         render(
-            <MemoryRouter initialEntries={['/dashboard']}>
+            <MemoryRouter initialEntries={["/dashboard"]}>
                 <App />
             </MemoryRouter>
         );
 
-        // Check if the Dashboard component is rendered
-        expect(screen.getByText('Dashboard Component')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText("Mock Dashboard")).toBeInTheDocument();
+        });
+    });
+
+    test("renders Favorites when user is in localStorage", async () => {
+        localStorage.setItem("user", "testUser");
+
+        render(
+            <MemoryRouter initialEntries={["/favorites"]}>
+                <App />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("Mock Favorites")).toBeInTheDocument();
+        });
+    });
+
+    test("redirects to Auth when visiting /dashboard with no user", async () => {
+        render(
+            <MemoryRouter initialEntries={["/dashboard"]}>
+                <App />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/Let's Get Lyrical/i)).toBeInTheDocument();
+        });
+    });
+
+    test("redirects to Auth when visiting /favorites with no user", async () => {
+        render(
+            <MemoryRouter initialEntries={["/favorites"]}>
+                <App />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/Let's Get Lyrical/i)).toBeInTheDocument();
+        });
     });
 });

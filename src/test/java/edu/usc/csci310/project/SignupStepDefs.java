@@ -2,53 +2,44 @@ package edu.usc.csci310.project;
 
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
+
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
-import io.cucumber.java.bs.A;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SignupStepDefs {
-    private static WebDriver driver = new ChromeDriver();
 
+    private final WebDriver driver;
     private final Connection connection;
 
-    public SignupStepDefs(Connection connection) { this.connection = connection;}
-
-    @Before
-    public void resetUserDatabase() {
-        try (Statement stmt = connection.createStatement()) {
-
-            String deleteTableSQL = "DROP TABLE IF EXISTS users";
-            stmt.executeUpdate(deleteTableSQL);
-
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
-            stmt.executeUpdate(createTableSQL);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error clearing the database before scenario", e);
-        }
+    public SignupStepDefs(Connection connection) {
+        driver = DriverManager.getDriver();
+        this.connection = connection;
     }
 
     @AfterAll
-    public static void closeDriver() {
-        driver.quit();
+    public static void afterAll() {
+        DriverManager.closeDriver();
+    }
+
+    @Before
+    public void before() {
+        DriverManager.resetUserDatabase(connection);
     }
 
     @Given("I am on the signup page")
@@ -57,6 +48,9 @@ public class SignupStepDefs {
 
         WebElement signupButton = driver.findElement(By.id("switchSignup"));
         signupButton.click();
+
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> driver.getPageSource().contains("Sign Up"));
     }
 
     @Given("I enter the username {string}")
@@ -82,30 +76,33 @@ public class SignupStepDefs {
 
     @Given("a user with username {string} already exists")
     public void aUserWithUsernameAlreadyExists(String arg0) {
-        UserRepository userRepository = new UserRepository(connection);
-        AuthService authService = new AuthService(userRepository);
-        authService.registerUser(arg0, "Valid1Pass");
+        DriverManager.createUserWithUsername(connection, arg0);
     }
 
     @Then("I should be registered successfully")
     public void iShouldBeRegisteredSuccessfully() {
         // "User registered successfully" message should be in the page
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.getPageSource().contains("Account Created!"));
-        boolean successTextPresent = driver.getPageSource().contains("Account Created!");
+        wait.until(d -> driver.getPageSource().contains("Signup successful!"));
+        boolean successTextPresent = driver.getPageSource().contains("Signup successful!");
         assertTrue(successTextPresent);
     }
 
-    @And("I accept the terms")
-    public void iAcceptTheTerms() {
-        WebElement acceptButton = driver.findElement(By.xpath("//*[@id=\"root\"]/div/div/div[2]/button[1]"));
-        acceptButton.click();
+    @And("I confirm signup")
+    public void iConfirmSignup() throws InterruptedException {
+        Thread.sleep(1000);
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement confirmSignup = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("#confirmSignup")));
+        confirmSignup.click();
+        Thread.sleep(5000);
     }
 
-    @And("I do not accept the terms")
-    public void iDoNotAcceptTheTerms() {
-        WebElement declineButton = driver.findElement(By.xpath("//*[@id=\"root\"]/div/div/div[2]/button[2]"));
-        declineButton.click();
+    @And("I do not confirm signup")
+    public void iDoNotConfirmSignup() throws InterruptedException {
+        Thread.sleep(1000);
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement cancelSignup = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("#cancelSignup")));
+        cancelSignup.click();
     }
 
     @Then("I should not be registered")
@@ -123,18 +120,12 @@ public class SignupStepDefs {
         signupButton.click();
     }
 
-    @Given("I should see a signup error message {string}")
+    @Given("I see error {string}")
     public void iShouldSeeASignupErrorMessage(String arg0) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(d -> driver.getPageSource().contains(arg0));
         boolean errorTextPresent = driver.getPageSource().contains(arg0);
         assertTrue(errorTextPresent);
-    }
-
-    @When("I proceed to login")
-    public void proceedToLogin() {
-        WebElement loginButton = driver.findElement(By.xpath("//*[@id=\"root\"]/div/div/div[2]/button"));
-        loginButton.click();
     }
 
     @Then("I should be on the login page")
@@ -145,7 +136,7 @@ public class SignupStepDefs {
         assertTrue(loginPagePresent);
     }
 
-    @Then("The signup input {string} should show error message {string}")
+    @Then("Input {string} shows error {string}")
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) throws InterruptedException {
         String path;
         switch (input) {
@@ -157,10 +148,52 @@ public class SignupStepDefs {
                 assert (false);
             }
         }
+        assertNotNull(path);
+        assert(StepHelper.InputShowsError(path, expectedMessage));
+    }
+
+    @And("I click the cancel button")
+    public void iClickTheCancelButton() {
+        WebElement cancelButton = driver.findElement(By.id("cancelButton"));
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
-        WebElement inputField = driver.findElement(By.xpath(path));
-        String actualMessage = inputField.getAttribute("validationMessage");
-        assertEquals(expectedMessage, actualMessage);
+        wait.until(d -> cancelButton.isDisplayed());
+        cancelButton.click();
+
+        Wait<WebDriver> wait2 = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> driver.getPageSource().contains("Are you sure you want to cancel account creation?"));
+
+    }
+
+    @And("I confirm the cancellation")
+    public void iConfirmTheCancellation() throws InterruptedException {
+        Thread.sleep(1000);
+        WebElement confirmCancel = driver.findElement(By.id("confirmCancel"));
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until(d -> confirmCancel.isDisplayed());
+        confirmCancel.click();
+    }
+
+    @Then("I should be redirected to the login page")
+    public void iShouldBeRedirectedToTheLoginPage() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
+        WebElement loginButton = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("loginButton"));
+
+            return el.isDisplayed() ? el : null;
+        });
+        String url = driver.getCurrentUrl();
+        assertEquals("http://localhost:8080/", url);
+        assertTrue(loginButton.isDisplayed());
+
+    }
+
+    @And("Inputs should be empty")
+    public void inputsShouldBeEmpty() {
+        List<WebElement> inputs = driver.findElements(By.tagName("input"));
+        for (WebElement input : inputs) {
+
+            assertTrue(input.getText().isEmpty());
+        }
+
     }
 }

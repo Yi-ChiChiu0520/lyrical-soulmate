@@ -2,59 +2,40 @@ package edu.usc.csci310.project;
 
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.AfterAll;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.JavascriptExecutor;
-
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LoginStepDefs {
 
-    private static WebDriver driver = new ChromeDriver();
-
+    private final WebDriver driver;
     private final Connection connection;
 
-    public LoginStepDefs(Connection connection) { this.connection = connection;}
-
-    @Before
-    public void resetUserDatabase() {
-        try (Statement stmt = connection.createStatement()) {
-
-            String deleteTableSQL = "DROP TABLE IF EXISTS users";
-            stmt.executeUpdate(deleteTableSQL);
-
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +
-                    "password TEXT NOT NULL)";
-            stmt.executeUpdate(createTableSQL);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error clearing the database before scenario", e);
-        }
+    public LoginStepDefs(Connection connection) {
+        driver = DriverManager.getDriver();
+        this.connection = connection;
     }
 
     @AfterAll
-    public static void closeDriver() {
-        driver.quit();
+    public static void afterAll() {
+        DriverManager.closeDriver();
+    }
+
+    @Before
+    public void before() {
+        DriverManager.resetUserDatabase(connection);
     }
 
     @Given("I am on the login page")
@@ -62,8 +43,11 @@ public class LoginStepDefs {
         driver.get("http://localhost:8080");
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        WebElement loginButton = driver.findElement(By.id("loginButton"));
-        wait.until(d -> loginButton.isDisplayed());}
+        wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("loginButton"));
+            return el.isDisplayed() ? el : null;
+        });
+    }
 
     @And("a user exists with username {string} and password {string}")
     public void aUserExistsWithUsernameAndPassword(String username, String password) {
@@ -124,24 +108,72 @@ public class LoginStepDefs {
         assertEquals("http://localhost:8080/dashboard", currentUrl);
     }
 
-    @Then("The login input {string} should show error message {string}")
+    @Then("The input {string} shows error {string}")
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) {
         String path;
         switch (input) {
             case "password" -> path = "//*[@id=\"password\"]";
             case "username" -> path = "//*[@id=\"username\"]";
-            case "confirmPassword" -> path = "//*[@id=\"confirmPassword\"]";
-            default -> {
-                path = "";
-                assert (false);
-            }
+            default -> path = null;
         }
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        wait.until(d -> driver.findElement(By.xpath(path)).isDisplayed());
-        WebElement inputField = driver.findElement(By.xpath(path));
-        String actualMessage = inputField.getAttribute("validationMessage");
-        assertEquals(expectedMessage, actualMessage);
+
+        assertNotNull(path);
+        assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
+    @When("I am not authenticated")
+    public void iAmNotAuthenticated() {
+        driver.manage().deleteAllCookies();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.localStorage.clear();");
+    }
 
+    @Given("I navigate to the dashboard page")
+    public void iNavigateToTheDashboardPage() throws InterruptedException {
+        driver.get("http://localhost:8080/dashboard");
+        Thread.sleep(1000);
+    }
+
+    @And("I wait {int} seconds")
+    public void iWaitSeconds(int arg0) throws InterruptedException {
+        Thread.sleep(arg0 * 1000);
+    }
+
+    @And("I click the login button {int} times within a minute")
+    public void iClickTheLoginButtonTimesWithinAMinute(int arg1) throws InterruptedException {
+        for (int i = 0; i <= arg1; i++) {
+            driver.findElement(By.id("loginButton")).click();
+            Thread.sleep(1000);
+        }
+    }
+
+    @And("I click the login button {int} times within more than a minute")
+    public void iClickTheLoginButtonTimesWithinMoreThanAMinute(int arg1) throws InterruptedException {
+        for (int i = 0; i <= arg1; i++) {
+            driver.findElement(By.id("loginButton")).click();
+            Thread.sleep(21000);
+        }
+    }
+
+    @And("I clear the forms")
+    public void iClearTheForms() {
+        List<WebElement> inputs = driver.findElements(By.tagName("input"));
+        for (WebElement input : inputs) {
+            while(!input.getAttribute("value").equals("")){
+                input.sendKeys(Keys.BACK_SPACE);
+            }
+        }
+    }
+
+    @Given("I am authenticated")
+    public void iAmAuthenticated() {
+        DriverManager.signInAsTester(connection);
+    }
+
+    @And("My access to the app is restricted")
+    public void myAccessToTheAppIsRestricted() {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        String user = (String) js.executeScript("return window.localStorage.getItem('user');");
+        assertNull(user);
+    }
 }

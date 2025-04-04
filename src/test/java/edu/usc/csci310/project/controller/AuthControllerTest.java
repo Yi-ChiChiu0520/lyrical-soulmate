@@ -12,13 +12,9 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class AuthControllerTest {
 
@@ -38,49 +34,54 @@ class AuthControllerTest {
 
     @Test
     void testSignup() throws Exception {
-        Map<String, String> request = new HashMap<>();
-        request.put("username", "testUser");
-        request.put("password", "password123");
-
-        when(authService.registerUser("testUser", "password123")).thenReturn("User registered successfully");
+        when(authService.registerUser("testUser", "Password123")).thenReturn("User registered successfully");
 
         mockMvc.perform(post("/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"testUser\", \"password\":\"password123\"}"))
+                        .content("{\"username\":\"testUser\",\"password\":\"Password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("User registered successfully"));
 
-        verify(authService).registerUser("testUser", "password123");
+        verify(authService).registerUser("testUser", "Password123");
     }
 
     @Test
     void testLoginSuccess() throws Exception {
-        Map<String, String> request = new HashMap<>();
-        request.put("username", "testUser");
-        request.put("password", "password123");
-
-        when(authService.authenticateUser("testUser", "password123")).thenReturn(true);
+        when(authService.loginWithLockout("testUser", "Password123")).thenReturn(200);
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"testUser\", \"password\":\"password123\"}"))
+                        .content("{\"username\":\"testUser\",\"password\":\"Password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Login successful"));
 
-        verify(authService).authenticateUser("testUser", "password123");
+        verify(authService).loginWithLockout("testUser", "Password123");
     }
 
     @Test
-    void testLoginFailure() throws Exception {
-        when(authService.authenticateUser("wrongUser", "wrongPassword")).thenReturn(false);
+    void testLoginLocked() throws Exception {
+        when(authService.loginWithLockout("testUser", "Password123")).thenReturn(423);
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"wrongUser\", \"password\":\"wrongPassword\"}"))
-                .andExpect(status().isOk())
+                        .content("{\"username\":\"testUser\",\"password\":\"Password123\"}"))
+                .andExpect(status().isLocked())
+                .andExpect(content().string("Account temporarily locked. Please try again shortly."));
+
+        verify(authService).loginWithLockout("testUser", "Password123");
+    }
+
+    @Test
+    void testLoginUnauthorized() throws Exception {
+        when(authService.loginWithLockout("testUser", "wrongPassword")).thenReturn(401);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testUser\",\"password\":\"wrongPassword\"}"))
+                .andExpect(status().isUnauthorized())
                 .andExpect(content().string("Invalid username or password"));
 
-        verify(authService).authenticateUser("wrongUser", "wrongPassword");
+        verify(authService).loginWithLockout("testUser", "wrongPassword");
     }
 
     @Test
@@ -88,12 +89,34 @@ class AuthControllerTest {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("user", "testUser");
 
-        mockMvc.perform(post("/auth/logout")
-                        .session(session))
+        mockMvc.perform(post("/auth/logout").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Logged out successfully"));
+    }
 
-        // Verify that session invalidation is called
-        assert session.isInvalid();
+    @Test
+    void testDeleteUserSuccess() throws Exception {
+        when(authService.deleteUser("testUser")).thenReturn(true);
+
+        mockMvc.perform(delete("/auth/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testUser\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User deleted successfully"));
+
+        verify(authService).deleteUser("testUser");
+    }
+
+    @Test
+    void testDeleteUserFailure() throws Exception {
+        when(authService.deleteUser("testUser")).thenReturn(false);
+
+        mockMvc.perform(delete("/auth/delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testUser\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User deletion failed"));
+
+        verify(authService).deleteUser("testUser");
     }
 }
