@@ -1,6 +1,12 @@
 Feature: Login and Security Functionality
 
-  # NOTE Accessing login page while authenticated
+  Scenario: Logout correctly revokes user access and redirects to login
+    Given I am authenticated
+    And I navigate to the dashboard page
+    When I click the "Logout" button
+    Then I should be redirected to the login page
+    And My access to the app is restricted
+
   Scenario: Restricted access for non-authenticated users
     Given I am on the login page
     And I am not authenticated
@@ -13,33 +19,30 @@ Feature: Login and Security Functionality
     And a user exists with username "validUser" and password "Valid1Pass"
     When I enter "validUser" in the username field
     And I enter "wrong1Pass" in the password field
-    And I click the "Login" button 3 times with 1 seconds between
+    And I click the login button 3 times within a minute
     And I wait 30 seconds
     And I clear the forms
-    # ^ not needed (maybe)
     And I enter "validUser" in the username field
     And I enter "Valid1Pass" in the password field
     And I click the "Login" button
     Then I should be redirected to my dashboard
 
-  Scenario: After 3 consecutive failed logins, lockout is caused
+  Scenario: 3 failed login attempts within one minute causes lockout
     Given I am on the login page
     And I am not authenticated
     And a user exists with username "validUser1" and password "Valid1Pass"
     When I enter "validUser1" in the username field
     And I enter "wrong1Pass" in the password field
-    And I click the "Login" button 3 times with 1 seconds between
-    # ^ can be 3 times within a minute to be more clear
+    And I click the login button 3 times within a minute
     Then I see error "Account temporarily locked. Please try again shortly."
 
-    # 3 failed login attempts not within one minute
-  Scenario: 3 failed logins with 30 sec. between doesn't cause lockout
+  Scenario: 3 failed login attempts within more than one minute doesn't cause lockout
     Given I am on the login page
     And I am not authenticated
     And a user exists with username "validUser" and password "Valid1Pass"
     When I enter "validUser" in the username field
     And I enter "wrong1Pass" in the password field
-    And I click the "Login" button 3 times with 30 seconds between
+    And I click the login button 3 times within more than a minute
     And I clear the forms
     And I enter "validUser" in the username field
     And I enter "Valid1Pass" in the password field
