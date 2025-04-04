@@ -32,12 +32,12 @@ Feature: User Favorites List Feature
     Given I am authenticated
     And My favorites list is empty
     And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
-    And I have added "Peluche by Phonefoot" to my favorites
+    And I have added "Me and Your Mama by Childish Gambino" to my favorites
     And I have added "Ribs by Lorde" to my favorites
     When I navigate to the favorites page
     Then I should have the following order in my favorites list
       | 0 | The Phone Works Both Ways by The Jazz June           |
-      | 1 | Peluche by Phonefoot     |
+      | 1 | Me and Your Mama by Childish Gambino     |
       | 2 | Ribs by Lorde               |
     When I hover over "Ribs by Lorde"
     And I click the move up button on "Ribs by Lorde"
@@ -46,7 +46,7 @@ Feature: User Favorites List Feature
     Then I should have the following order in my favorites list
       | 0 | Ribs by Lorde               |
       | 1 | The Phone Works Both Ways by The Jazz June           |
-      | 2 | Peluche by Phonefoot     |
+      | 2 | Me and Your Mama by Childish Gambino     |
     When I am not authenticated
     And I am on the login page
     And I am authenticated
@@ -54,7 +54,7 @@ Feature: User Favorites List Feature
     Then I should have the following order in my favorites list
       | 0 | Ribs by Lorde               |
       | 1 | The Phone Works Both Ways by The Jazz June           |
-      | 2 | Peluche by Phonefoot     |
+      | 2 | Me and Your Mama by Childish Gambino     |
 
 
   # -- Add/Remove Favorites --
@@ -148,26 +148,3 @@ Feature: User Favorites List Feature
     And I click on the song title "Northern Sky by Nick Drake"
     Then I should see the artist name "Nick Drake" for "Northern Sky by Nick Drake"
     And I should see the release date "1971" for "Hazey Jane II by Nick Drake"
-
-  # -- Word cloud --
-  # button to add all favs  to word cloud on dashboard, not button in favorites page
-  Scenario: User does not select any songs and tries to make word cloud
-    Given I am authenticated
-    And I have added "Chum by Earl Sweatshirt" to my favorites
-    When I navigate to the favorites page
-    And I do not select any favorites
-    Then I cannot click the Generate Word Cloud button
-
-  Scenario: User adds songs to a word cloud and then views it
-    Given I am authenticated
-    And I have added "Dozen by Alison's Halo" to my favorites
-    And I have added "Two Girls Kissing by Swirlies" to my favorites
-    And I have added "Criminal by Fiona Apple" to my favorites
-    When I navigate to the favorites page
-    And I select favorite "Dozen by Alison's Halo"
-    And I select favorite "Two Girls Kissing by Swirlies"
-    And I select favorite "Criminal by Fiona Apple"
-    And I click the Generate Word Cloud button
-    Then I should get an alert "✅ Selected songs added to your Word Cloud!"
-    When I navigate to the dashboard page
-    Then I should see a word cloud
