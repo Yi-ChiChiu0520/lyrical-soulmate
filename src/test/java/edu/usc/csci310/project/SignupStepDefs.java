@@ -178,6 +178,7 @@ public class SignupStepDefs {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
         WebElement loginButton = wait.until(driver -> {
             WebElement el = driver.findElement(By.id("loginButton"));
+
             return el.isDisplayed() ? el : null;
         });
         String url = driver.getCurrentUrl();
