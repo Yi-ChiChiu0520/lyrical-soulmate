@@ -43,7 +43,7 @@ describe('Dashboard Component', () => {
                         url: 'https://test.com/song',
                         header_image_url: 'https://test.com/image.jpg',
                         release_date: '2023-01-01',
-                        primary_artist: { name: 'Test Artist' }
+                        primary_artist: { name: 'Test Song' } // Match query
                     }
                 },
                 {
@@ -53,12 +53,13 @@ describe('Dashboard Component', () => {
                         url: 'https://test.com/another',
                         header_image_url: 'https://test.com/another.jpg',
                         release_date_for_display: 'January 2023',
-                        primary_artist: { name: 'Another Artist' }
+                        primary_artist: { name: 'Test Song' } // Match query
                     }
                 }
             ]
         }
     };
+
 
     beforeEach(() => {
         Storage.prototype.removeItem = jest.fn();
