@@ -57,7 +57,7 @@ const Dashboard = ({ user }) => {
     const loadWordCloudFromBackend = async () => {
         try {
             const res = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
-            setWordCloudSongs(res.data || []);
+            setWordCloudSongs(res.data);
             setShowWordCloud(true);
         } catch (err) {
             console.error("❌ Failed to load word cloud songs:", err);
@@ -65,7 +65,7 @@ const Dashboard = ({ user }) => {
     };
 
     const fetchSongs = async () => {
-        if (!query.trim()) return alert("Please enter a song title!");
+        if (!query.trim()) return alert("Please enter an artist name!");
         if (!songLimit || isNaN(songLimit) || parseInt(songLimit) <= 0) {
             return alert("Please enter a valid number of songs to display.");
         }
@@ -82,8 +82,21 @@ const Dashboard = ({ user }) => {
                 const hits = response.data.response.hits;
                 if (hits.length === 0) break;
 
-                allResults = [...allResults, ...hits];
+                // Filter the hits so that only results with a matching artist name remain.
+                const filteredHits = hits.filter(hit =>
+                    hit.result.primary_artist.name.toLowerCase().includes(query.toLowerCase())
+                );
+
+                allResults = [...allResults, ...filteredHits];
                 page++;
+            }
+
+            // If no matching songs are found, set an error message.
+            if (allResults.length === 0) {
+                setSongs([]);
+                setErrorMessage("No matches found for your search query.");
+                setSuccessMessage("");
+                return;
             }
 
             setSongs(allResults.slice(0, parseInt(songLimit)));
@@ -92,6 +105,7 @@ const Dashboard = ({ user }) => {
             setErrorMessage("");
         } catch (error) {
             console.error("Error fetching songs:", error);
+            setErrorMessage("An error occurred while fetching songs. Please try again later.");
         }
     };
 
@@ -129,8 +143,8 @@ const Dashboard = ({ user }) => {
                     title: song.result.full_title,
                     url: song.result.url,
                     imageUrl: song.result.header_image_url,
-                    releaseDate: song.result.release_date || song.result.release_date_for_display || "Unknown",
-                    artistName: song.result.primary_artist?.name || "Unknown",
+                    releaseDate: song.result.release_date,
+                    artistName: song.result.primary_artist?.name,
                     lyrics
                 };
 
@@ -285,7 +299,7 @@ const Dashboard = ({ user }) => {
                                     <div style={{ display: "flex", flexDirection: "column" }}>
                                         <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>🎵 {song.result.full_title}</span>
                                         <span style={{ fontSize: "12px", color: "gray" }}>
-                                            📅 {song.result.release_date || song.result.release_date_for_display || "Unknown"}
+                                            📅 {song.result.release_date}
                                         </span>
                                     </div>
                                 </li>
@@ -298,7 +312,7 @@ const Dashboard = ({ user }) => {
             </div>
 
             {showWordCloud && (
-                <div style={{ marginTop: "40px" }}>
+                <div id="word-cloud" style={{ marginTop: "40px" }}>
                     <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading} />
                 </div>
             )}

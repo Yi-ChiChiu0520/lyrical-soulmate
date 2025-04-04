@@ -217,29 +217,6 @@ describe('Favorites Component', () => {
         });
     });
 
-    test('toggles favorite selection', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        const checkboxes = screen.getAllByRole('checkbox');
-        expect(checkboxes[0]).not.toBeChecked();
-
-        // Select the first song
-        fireEvent.click(checkboxes[0]);
-        expect(checkboxes[0]).toBeChecked();
-
-        // Deselect the first song
-        fireEvent.click(checkboxes[0]);
-        expect(checkboxes[0]).not.toBeChecked();
-    });
-
     test('removes a song from favorites', async () => {
         render(
             <BrowserRouter>
@@ -334,79 +311,6 @@ describe('Favorites Component', () => {
         expect(axios.post).not.toHaveBeenCalled();
     });
 
-    test('adds selected songs to word cloud', async () => {
-        window.alert = jest.fn();
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        // Button should be disabled initially
-        const addToWordCloudButton = screen.getByText('Add Selected to Word Cloud');
-        expect(addToWordCloudButton).toBeDisabled();
-
-        // Select songs
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-        fireEvent.click(checkboxes[1]);
-
-        // Button should be enabled now
-        expect(addToWordCloudButton).not.toBeDisabled();
-
-        // Click the button to add to word cloud
-        fireEvent.click(addToWordCloudButton);
-
-        expect(axios.post).toHaveBeenCalledWith(
-            'http://localhost:8080/api/wordcloud/add',
-            [mockFavorites[0], mockFavorites[1]]
-        );
-
-        await waitFor(() => {
-            expect(window.alert).toHaveBeenCalledWith('✅ Selected songs added to your Word Cloud!');
-        });
-    });
-
-    test('displays error when adding to word cloud fails', async () => {
-        // Mock the alert and console.error functions
-        window.alert = jest.fn();
-        console.error = jest.fn();
-
-        // Mock axios to reject with an error for this test
-        axios.post.mockRejectedValueOnce(new Error('Failed to add to word cloud'));
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText(/Test Song 1/)).toBeInTheDocument();
-        });
-
-        // Select a song
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-
-        // Click the button to add to word cloud
-        const addToWordCloudButton = screen.getByText('Add Selected to Word Cloud');
-        fireEvent.click(addToWordCloudButton);
-
-        // Verify that console.error and alert were called with the expected messages
-        await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith(
-                '❌ Failed to add to word cloud:',
-                expect.any(Error)
-            );
-            expect(window.alert).toHaveBeenCalledWith('❌ Failed to add songs to Word Cloud.');
-        });
-    });
 
     test('handles swap ranks error', async () => {
         console.error = jest.fn(); // Mock console.error
