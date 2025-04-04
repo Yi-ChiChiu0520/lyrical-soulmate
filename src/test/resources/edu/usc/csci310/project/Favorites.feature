@@ -67,14 +67,6 @@ Feature: User Favorites List Feature
     Then I should get an alert "Please select at least one song to add."
 
   # only by artist name for search
-  Scenario: User adds one song to favorites
-    Given I am authenticated
-    And I navigate to the dashboard page
-    When I search for "10" songs by "The Microphones"
-    And I select "the Glow pt. 2 by The Microphones"
-    And I click the "Add Selected to Favorites" button
-    Then I should see search success message "✅ Added: the Glow pt. 2 by The Microphones"
-    And I should see "the Glow pt. 2 by The Microphones" in my favorites list
 
   Scenario: Hovering over song shows buttons
     Given I am authenticated

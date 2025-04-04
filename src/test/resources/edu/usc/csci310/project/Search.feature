@@ -47,14 +47,14 @@ Feature: Song Search functionality
       | Release date   |
 
 
-  Scenario: Add song to favorites from search results
-    Given I am logged in to the application
-    And I have searched for artist "Gotye"
-    And search results are displayed with artist name and their songs
-    And I select the song "Somebody That I Used to Know"
-    When I click the "Add Selected to Favorites" button for a song
-    Then the song should be added to my favorites list
-    And I should see a confirmation message
+  Scenario: User adds one song to favorites
+    Given I am authenticated
+    And I navigate to the dashboard page
+    When I search for "10" songs by "The Microphones"
+    And I select "the Glow pt. 2 by The Microphones"
+    And I click the "Add Selected to Favorites" button
+    Then I should see search success message "✅ Added: the Glow pt. 2 by The Microphones"
+    And I should see "the Glow pt. 2 by The Microphones" in my favorites list
 
 
   Scenario: Limit number of search results displayed
