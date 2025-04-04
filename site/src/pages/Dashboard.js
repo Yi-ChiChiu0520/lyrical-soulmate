@@ -218,7 +218,7 @@ const Dashboard = ({ user }) => {
                     <input
                         id="song-title"
                         type="text"
-                        placeholder="Enter song title..."
+                        placeholder="Enter artist name..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}

@@ -7,7 +7,6 @@ Feature: User Favorites List Feature
     And I try to navigate to the favorites page
     Then I should be redirected to the login page
 
-# do with changed order
   Scenario: Favorites persist across sessions with correct order
     Given I am authenticated
     And My favorites list is empty
@@ -18,7 +17,7 @@ Feature: User Favorites List Feature
       | 0 | when you sleep by my bloody valentine |
       | 1 | Nurse! by bar italia                  |
       | 2 | Sofia by Clairo                       |
-    # log in and out
+    # SPRINT REVIEW 2: RENAME TO LOGOUT/LOG IN
     When I am not authenticated
     And I am on the login page
     And I am authenticated
@@ -28,6 +27,8 @@ Feature: User Favorites List Feature
       | 1 | Nurse! by bar italia                  |
       | 2 | Sofia by Clairo                       |
 
+  # SPRINT REVIEW 2: REMIND TO RELOOK AT NEXT SPRINT, NO POINTS THIS TIME
+  # DO TWO CASES FOR MOVE UP AND MOVE DOWN SEPARAtELY
   Scenario: Moved favorites maintain order after logout and login
     Given I am authenticated
     And My favorites list is empty
@@ -76,7 +77,7 @@ Feature: User Favorites List Feature
     And I hover over "The Phone Works Both Ways by The Jazz June"
     Then I should see the move and remove buttons on "The Phone Works Both Ways by The Jazz June"
 
-    # remove/move button only appears on hover, theres a confirmation message
+  # SPRINT REVIEW 2: There should be a confirmation modal for removing a song
   Scenario: User removes a favorite song
     Given I am authenticated
     And I have added "Show Me How by Men I Trust" to my favorites
@@ -85,6 +86,7 @@ Feature: User Favorites List Feature
     And I click the remove button on "Show Me How by Men I Trust"
     And I should not see "Show Me How by Men I Trust" in my favorites list
 
+  # SPRINT REVIEW 2: No points but leave this in here
   Scenario: User fails to add duplicate song
     Given I am authenticated
     And I have added "Toxic by Britney Spears" to my favorites
@@ -94,7 +96,7 @@ Feature: User Favorites List Feature
     And I click the "Add Selected to Favorites" button
     Then I should see search error message "⚠️ Already in favorites: Toxic by Britney Spears"
 
-    # move to search
+  # SPRINT REVIEW 2: No points but leave this in here
   Scenario: Bulk add songs to favorites
     Given I am authenticated
     And I have added "the Moon by The Microphones" to my favorites
@@ -132,6 +134,7 @@ Feature: User Favorites List Feature
     And I click the move down button on "Venus as a Boy by Björk"
     Then I should see "Easter Pink by fakemink" above "Venus as a Boy by Björk"
 
+  # SPRINT REVIEW 2: This case failed. Find out why.
   Scenario: User views additional song info in favorites
     Given I am authenticated
     And I have added "Northern Sky by Nick Drake" to my favorites

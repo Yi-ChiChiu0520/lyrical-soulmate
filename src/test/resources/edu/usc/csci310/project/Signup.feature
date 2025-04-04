@@ -1,4 +1,5 @@
 Feature: Signup Functionality
+  # SPRINT REVIEW 2: Got points but we need the opposite case, where the cancel modal is declined
   Scenario: Cancel signup and confirming clears forms and redirects to login
     Given I am on the signup page
     When I enter the username "testUser1"
@@ -51,6 +52,7 @@ Feature: Signup Functionality
     Then I should be registered successfully
     And I should be redirected to the login page
 
+  # SPRINT REVIEW 2: Not needed + no points
   Scenario: Valid signup but decline confirm redirects to login
     Given I am on the signup page
     When I enter the username "newUser1"
