@@ -36,7 +36,7 @@ describe("Auth Component", () => {
 
     it("renders login form by default", () => {
         renderComponent();
-        expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Login/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
         expect(screen.getByPlaceholderText("Password")).toBeInTheDocument();
     });
@@ -44,7 +44,7 @@ describe("Auth Component", () => {
     it("switches to signup mode", () => {
         renderComponent();
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
-        expect(screen.getByRole("heading", { name: /sign up/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Sign Up/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText("Confirm Password")).toBeInTheDocument();
     });
 
@@ -182,7 +182,7 @@ describe("Auth Component", () => {
         expect(await screen.findByText("Are you sure you want to register?")).toBeInTheDocument();
 
         // ✅ 5. Confirm final signup
-        fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+        fireEvent.click(screen.getByRole("button", { name: "Yes, Create Account" }));
 
         // ✅ 6. Wait for final message
         await waitFor(() => {
@@ -286,7 +286,7 @@ describe("Auth Component", () => {
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // Click the cancel button
-        fireEvent.click(screen.getByText("Cancel and go back to login"));
+        fireEvent.click(screen.getByText("Cancel sign up and return to login"));
 
         // Expect confirmation modal to show up
         expect(
@@ -311,7 +311,7 @@ describe("Auth Component", () => {
         });
 
         // Click the cancel button to open confirmation modal
-        fireEvent.click(screen.getByText("Cancel and go back to login"));
+        fireEvent.click(screen.getByText("Cancel sign up and return to login"));
 
         // Modal should appear
         expect(
@@ -319,7 +319,7 @@ describe("Auth Component", () => {
         ).toBeInTheDocument();
 
         // Click "Yes" to confirm cancellation
-        fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+        fireEvent.click(screen.getByRole("button", { name: "Yes, Cancel Signup" }));
 
         // After clicking "Yes", verify:
         // 1. Signup form is gone
@@ -339,7 +339,7 @@ describe("Auth Component", () => {
         fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // Click cancel to open confirmation modal
-        fireEvent.click(screen.getByText("Cancel and go back to login"));
+        fireEvent.click(screen.getByText("Cancel sign up and return to login"));
 
         // Confirm modal is visible
         expect(
