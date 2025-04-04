@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import LyricalIcon from '../images/LyricalIcon.png';
 
 
 const Auth = ({ setUser }) => {
@@ -114,7 +115,7 @@ const Auth = ({ setUser }) => {
         <div className="w-screen h-screen bg-[#e2cdea] text-center flex justify-center items-center">
             <div className="bg-[#2d203f] rounded-lg shadow-lg p-8 w-[400px]">
                 <div className="flex flex-col items-center mb-4">
-                    <img src="/LyricalIcon.png" alt="Logo" className="h-20 mb-2" />
+                    <img src={LyricalIcon} alt="Logo" className="h-20 mb-2" />
                     {isSignup ? (
                         <h2 className="text-white font-bold text-2xl text-center" aria-label="Sign Up">  Sign up to find your<br />lyrical soulmate
                         </h2>
