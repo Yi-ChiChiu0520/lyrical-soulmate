@@ -183,6 +183,7 @@ public class SignupStepDefs {
         String url = driver.getCurrentUrl();
         assertEquals("http://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());
+
     }
 
     @And("Inputs should be empty")
