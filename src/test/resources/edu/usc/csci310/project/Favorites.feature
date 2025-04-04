@@ -147,4 +147,4 @@ Feature: User Favorites List Feature
     # i click on song title
     And I click on the song title "Northern Sky by Nick Drake"
     Then I should see the artist name "Nick Drake" for "Northern Sky by Nick Drake"
-    And I should see the release date "1971" for "Hazey Jane II by Nick Drake"
+    And I should see the release date "1971" for "Northern Sky by Nick Drake"
