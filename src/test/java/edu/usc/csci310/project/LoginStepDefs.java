@@ -43,8 +43,10 @@ public class LoginStepDefs {
         driver.get("http://localhost:8080");
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-        WebElement loginButton = driver.findElement(By.id("loginButton"));
-        wait.until(d -> loginButton.isDisplayed());
+        wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("loginButton"));
+            return el.isDisplayed() ? el : null;
+        });
     }
 
     @And("a user exists with username {string} and password {string}")
