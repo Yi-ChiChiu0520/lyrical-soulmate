@@ -128,6 +128,15 @@ public class SignupStepDefs {
         assertTrue(errorTextPresent);
     }
 
+    @Then("I see a password requirement error")
+    public void i_see_password_requirement_error() {
+        String expectedError = "Password must contain at least one uppercase letter, one lowercase letter, and one number.";
+        WebElement errorElement = driver.findElement(By.id("password-error")); // adjust selector as needed
+        String actualError = errorElement.getText();
+        assertEquals(expectedError, actualError);
+    }
+
+
     @Then("I should be on the login page")
     public void iShouldBeOnTheLoginPage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
