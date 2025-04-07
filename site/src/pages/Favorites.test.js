@@ -437,7 +437,7 @@ describe('Favorites Component', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getAllByText(/Test Song/).length).toBe(2);
+            expect(screen.getAllByText(/Test Song/)).toHaveLength(2);
             expect(screen.queryByText('Invalid Song')).not.toBeInTheDocument();
             expect(screen.queryByText('Empty ID')).not.toBeInTheDocument();
         });
