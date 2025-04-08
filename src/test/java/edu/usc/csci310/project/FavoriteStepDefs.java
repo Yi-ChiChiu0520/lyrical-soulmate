@@ -11,11 +11,12 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 import java.sql.Connection;
-import java.sql.Driver;
 import java.time.Duration;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,25 +29,16 @@ public class FavoriteStepDefs {
         this.connection = connection;
     }
 
-    // assumes that we are already on a fully loaded favorites song page, and returns null if the element doesn't exist
     public WebElement findSongInFavoritesList(String songName) {
         String id = songName.replaceAll("[\\s\\u00A0]", "").replaceAll("[^a-zA-Z0-9_-]", "");
-
-        // try and find the song, but return null rather than failing
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         try {
-            // wait until the page is loaded
-            return wait.until(driver1 -> {
-                // return if we can find the element in the list
-                return driver1.findElement(By.id(id));
-            });
+            return wait.until(driver1 -> driver1.findElement(By.id(id)));
         } catch (TimeoutException e) {
-            // element not found
             return null;
         }
     }
 
-    // assumes that we are already on a fully loaded favorites song page, and returns null if the list is empty
     public List<WebElement> getFavoritesList() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         try {
@@ -60,22 +52,21 @@ public class FavoriteStepDefs {
     public void addSongToFavorites(String songName) {
         driver.get("http://localhost:8080/dashboard");
 
-        // get the artist name from input
-        String[] parts = songName.split(" by ", 2); // limit to 2 parts
-
-        String artistName = null;
-        if (parts.length == 2) {
-            artistName = parts[1];
-            System.out.println("Artist: " + artistName);
-        }
-        assertNotNull(artistName);
+        String[] parts = songName.split(" by ", 2);
+        String artistName = parts.length == 2 ? parts[1] : null;
+        assertNotNull(artistName, "Could not parse artist name from song title: " + songName);
 
         iSearchForSongsByArtist("10", artistName);
+
+        Wait<WebDriver> searchWait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        try {
+            searchWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
+        } catch (TimeoutException e) {
+            fail("Search results list did not appear after searching for artist '" + artistName + "'.", e);
+        }
+
         iSelect(songName);
-
-        WebElement addToFavoritesButton = driver.findElement(By.id("add-to-favorites"));
-        addToFavoritesButton.click();
-
+        driver.findElement(By.id("add-to-favorites")).click();
         iShouldSeeSuccessMessage("✅ Added: " + songName);
     }
 
@@ -97,12 +88,8 @@ public class FavoriteStepDefs {
     @Given("I navigate to the favorites page")
     public void iNavigateToTheFavoritesPage() {
         driver.get("http://localhost:8080/favorites");
-
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        boolean favsRendered = wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("favorites-header"));
-            return el.isDisplayed();
-        });
+        boolean favsRendered = wait.until(driver -> driver.findElement(By.id("favorites-header")).isDisplayed());
         assert favsRendered;
     }
 
@@ -110,7 +97,7 @@ public class FavoriteStepDefs {
     public void iSearchForSongsByArtist(String limit, String artistName) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         WebElement artistField = wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("song-title")); // update this ID if it changes
+            WebElement el = driver.findElement(By.id("song-title"));
             return el.isDisplayed() ? el : null;
         });
 
@@ -122,309 +109,247 @@ public class FavoriteStepDefs {
         numSongsField.clear();
         numSongsField.sendKeys(limit);
 
-        WebElement searchButton = driver.findElement(By.id("search-button"));
-        searchButton.click();
-        try {
-            wait.until(driver -> {
-                WebElement el = driver.findElement(By.id("results-list"));
-                return el.isDisplayed() ? el : null;
-            });
-        } catch (TimeoutException ignored) {}
+        driver.findElement(By.id("search-button")).click();
     }
 
-//    public void iSearchForSongsByTheName(String arg0, String arg1) {
-//        // wait until the page is loaded
-//        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-//        WebElement songTitleField = wait.until(driver -> {
-//            WebElement el = driver.findElement(By.id("song-title"));
-//            return el.isDisplayed() ? el : null;
-//        });
-//
-//        // send the title
-//        assertNotNull(songTitleField);
-//        songTitleField.sendKeys(arg1);
-//
-//        // and num songs
-//        WebElement numSongsField = driver.findElement(By.id("song-limit"));
-//        numSongsField.sendKeys(arg0);
-//
-//        // then search
-//        WebElement searchButton = driver.findElement(By.id("search-button"));
-//        searchButton.click();
-//
-//        // wait for results
-//        wait.until(driver -> {
-//            WebElement el = driver.findElement(By.id("results-list"));
-//            return el.isDisplayed() ? el : null;
-//        });
-//    }
-
     @When("I select {string}")
-    public void iSelect(String arg0) {
-        WebElement resultsList = driver.findElement(By.id("results-list"));
+    public void iSelect(String songName) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement resultsList = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
 
         WebElement checkbox = null;
-        for (WebElement el : resultsList.findElements(By.tagName("li"))) {
-            // find the song name
-            WebElement songName = el.findElement(By.id("song-name"));
-            if (songName.getText().contains(arg0)) {
-                checkbox = el.findElement(By.tagName("input"));
+        WebElement songNameElement = null;
+        List<WebElement> listItems = resultsList.findElements(By.tagName("li"));
+        assertFalse(listItems.isEmpty(), "Results list is empty.");
+
+        for (WebElement el : listItems) {
+            try {
+                songNameElement = el.findElement(By.id("song-name"));
+                if (songNameElement.getText().contains(songName)) {
+                    checkbox = el.findElement(By.tagName("input"));
+                    break;
+                }
+            } catch (NoSuchElementException e) {
+                System.err.println("Skipping a list item due to missing elements.");
             }
         }
-        assertNotNull(checkbox);
 
-        // get and click the checkbox
-        checkbox.click();
+        assertNotNull(checkbox, "Could not find checkbox for song: " + songName);
+        assertNotNull(songNameElement, "Could not find song name element for: " + songName);
+
+        if (!checkbox.isSelected()) {
+            checkbox.click();
+        }
+
+        assertTrue(checkbox.isSelected(), "Checkbox for song was not selected.");
     }
 
     @Then("I should see success message {string}")
-    public void iShouldSeeSuccessMessage(String arg0) {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        boolean errorTextPresent = wait.until(driver -> {
-            // check if the error message is present
-            WebElement el = driver.findElement(By.id("search-success"));
-            return el.getText().contains(arg0);
-        });
-
-        assert errorTextPresent;
+    public void iShouldSeeSuccessMessage(String expectedMessage) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        try {
+            boolean messagePresent = wait.until(driver -> {
+                WebElement el = driver.findElement(By.id("search-success"));
+                return el.isDisplayed() && el.getText().contains(expectedMessage);
+            });
+            assertTrue(messagePresent, "Success message did not contain: " + expectedMessage);
+        } catch (TimeoutException e) {
+            System.err.println("Timeout waiting for success message.");
+            fail("Success message not found or incorrect.", e);
+        }
     }
 
     @Then("I should see search error message {string}")
-    public void iShouldSeeSearchErrorMessage(String arg0) {
+    public void iShouldSeeSearchErrorMessage(String expectedMessage) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        boolean errorTextPresent = wait.until(driver -> {
-            // check if the error message is present
-            WebElement el = driver.findElement(By.id("search-error"));
-            return el.getText().contains(arg0);
-        });
-
-        assert errorTextPresent;
+        try {
+            boolean messagePresent = wait.until(driver -> {
+                WebElement el = driver.findElement(By.id("search-error"));
+                return el.isDisplayed() && el.getText().contains(expectedMessage);
+            });
+            assertTrue(messagePresent, "Error message did not contain: " + expectedMessage);
+        } catch (TimeoutException e) {
+            fail("Error message not found or incorrect.", e);
+        }
     }
 
     @And("I should see {string} in my favorites list")
-    public void iShouldSeeInMyFavoritesList(String arg0) throws InterruptedException {
+    public void iShouldSeeInMyFavoritesList(String songName) {
         iNavigateToTheFavoritesPage();
-
-        WebElement song = findSongInFavoritesList(arg0);
+        WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
     }
 
     @And("I should not see {string} in my favorites list")
-    public void iShouldNotSeeInMyFavoritesList(String arg0) {
+    public void iShouldNotSeeInMyFavoritesList(String songName) {
         iNavigateToTheFavoritesPage();
-
-        WebElement song = findSongInFavoritesList(arg0);
+        WebElement song = findSongInFavoritesList(songName);
         assertNull(song);
     }
 
     @And("I hover over {string}")
-    public void iHoverOver(String arg0) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
-
-        // hover over the song
-        Actions actions = new Actions(driver);
-        actions.moveToElement(song).perform();
+    public void iHoverOver(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
+        new Actions(driver).moveToElement(song).perform();
     }
 
     @Then("I should see the move and remove buttons on {string}")
-    public void iShouldSeeTheMoveAndRemoveButtonsOn(String arg0) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
-
-        // check that the buttons are visible
+    public void iShouldSeeTheMoveAndRemoveButtonsOn(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
         assertNotNull(song.findElement(By.id("move-up")));
         assertNotNull(song.findElement(By.id("move-down")));
         assertNotNull(song.findElement(By.id("remove-favorite")));
     }
 
     @And("I click the remove button on {string}")
-    public void iRemoveFromMyFavoritesList(String arg0) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
-
-        // find the remove button and click it
+    public void iRemoveFromMyFavoritesList(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
         song.findElement(By.id("remove-favorite")).click();
     }
 
     @And("I click the move up button on {string}")
-    public void iMoveUp(String arg0) {
-        WebElement song = findSongInFavoritesList(arg0);
+    public void iMoveUp(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
-
         song.findElement(By.id("move-up")).click();
     }
 
     @And("I click the move down button on {string}")
-    public void iMoveDown(String arg0) {
-        WebElement song = findSongInFavoritesList(arg0);
+    public void iMoveDown(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
-
         song.findElement(By.id("move-down")).click();
     }
 
     @Then("I should see {string} above {string}")
-    public void iShouldSeeAbove(String arg0, String arg1) throws InterruptedException {
+    public void iShouldSeeAbove(String songA, String songB) throws InterruptedException {
         Thread.sleep(500);
         List<WebElement> favorites = getFavoritesList();
 
-        int idxOne = -1;
-        int idxTwo = -1;
+        int idxA = -1, idxB = -1;
         for (int i = 0; i < favorites.size(); i++) {
-            // find the song name
-            WebElement songName = favorites.get(i).findElement(By.id("song-title"));
-            if (songName.getText().contains(arg0)) {
-                idxOne = i;
-            } else if (songName.getText().contains(arg1)) {
-                idxTwo = i;
-            }
+            String name = favorites.get(i).findElement(By.id("song-title")).getText();
+            if (name.contains(songA)) idxA = i;
+            if (name.contains(songB)) idxB = i;
         }
 
-        // check that both are found
-        assert idxOne != -1 && idxTwo != -1;
-        assert idxOne < idxTwo : "Expected " + arg0 + " to be above " + arg1 + ", but it was not.";
+        assertTrue(idxA != -1 && idxB != -1);
+        assertTrue(idxA < idxB, songA + " was not above " + songB);
     }
 
     @And("I click on the song title {string}")
-    public void iClickOnFavorite(String arg0) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
-
-        // find the remove button and click it
+    public void iClickOnFavorite(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
         song.findElement(By.id("song-title")).click();
     }
 
     @Then("I should see the artist name {string} for {string}")
-    public void iShouldSeeTheArtistName(String artistName, String songName) throws InterruptedException {
-        Thread.sleep(500);
+    public void iShouldSeeTheArtistName(String artist, String songName) {
         WebElement song = findSongInFavoritesList(songName);
-
-        assert song.findElement(By.id("artist-name")).getText().contains(artistName);
+        assertTrue(song.findElement(By.id("artist-name")).getText().contains(artist));
     }
 
     @Then("I should see the release date {string} for {string}")
-    public void iShouldSeeTheReleaseDate(String releaseDate, String songName) {
+    public void iShouldSeeTheReleaseDate(String date, String songName) {
         WebElement song = findSongInFavoritesList(songName);
-
-        assert song.findElement(By.id("release-date")).getText().contains(releaseDate);
+        assertTrue(song.findElement(By.id("release-date")).getText().contains(date));
     }
 
     @And("I select favorite {string}")
-    public void iSelectFavorite(String arg0) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
-
-        // find the the select button and click it
+    public void iSelectFavorite(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
         song.findElement(By.id("select-favorite")).click();
     }
 
     @When("I do not select any favorites")
-    public void iDoNotSelectAnyFavorites() { /* does nothing since nothing should be selected */ }
+    public void iDoNotSelectAnyFavorites() {}
 
     @Then("I cannot click the Generate Word Cloud button")
     public void iCannotClickTheGenerateWordCloudButton() {
-        WebElement wordCloudButton = driver.findElement(By.id("add-to-word-cloud"));
-        assert !wordCloudButton.isEnabled();
+        WebElement button = driver.findElement(By.id("add-to-word-cloud"));
+        assertFalse(button.isEnabled());
     }
 
     @Then("I click the Generate Word Cloud button")
     public void iClickTheGenerateWordCloudButton() {
-        WebElement wordCloudButton = driver.findElement(By.id("add-to-word-cloud"));
-        assert wordCloudButton.isEnabled();
-        wordCloudButton.click();
+        WebElement button = driver.findElement(By.id("add-to-word-cloud"));
+        assertTrue(button.isEnabled());
+        button.click();
     }
 
     @Then("I should get an alert {string}")
-    public void iShouldGetAnAlert(String alertDescription) {
+    public void iShouldGetAnAlert(String message) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         String alertText = wait.until(driver -> driver.switchTo().alert().getText());
-        driver.switchTo().alert().accept(); // close the alert
-
-        assertEquals(alertDescription, alertText);
+        driver.switchTo().alert().accept();
+        assertEquals(message, alertText);
     }
 
     @Then("I should see a word cloud")
     public void iShouldSeeAWordCloud() {
-        // wait until the page is loaded (assuming we are on the dashboard)
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement wordCloud = wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("word-cloud"));
-            return el.isDisplayed() ? el : null;
+        WebElement el = wait.until(driver -> {
+            WebElement wc = driver.findElement(By.id("word-cloud"));
+            return wc.isDisplayed() ? wc : null;
         });
-
-        assertNotNull(wordCloud);
+        assertNotNull(el);
     }
 
     @When("I refresh the favorites page")
     public void iRefreshThePage() {
         driver.navigate().refresh();
-        // wait until the page is loaded
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement el = wait.until(driver -> {
-            WebElement element = driver.findElement(By.id("favorites-header"));
-            return element.isDisplayed() ? element : null;
-        });
+        WebElement el = new WebDriverWait(driver, Duration.ofSeconds(10)).until(
+                d -> {
+                    WebElement header = d.findElement(By.id("favorites-header"));
+                    return header.isDisplayed() ? header : null;
+                }
+        );
         assertNotNull(el);
     }
 
     @And("the order of songs in my favorites list should be:")
-    public void theOrderOfSongsInMyFavoritesListShouldBe() {
-    }
+    public void theOrderOfSongsInMyFavoritesListShouldBe() {}
 
-    @Then("^I should have the following order in my favorites list$")
+    @Then("I should have the following order in my favorites list")
     public void iShouldHaveTheFollowingOrderInMyFavoritesList(DataTable table) {
-        // parse data table
         List<List<String>> rows = table.asLists(String.class);
-
-        // navigate to the favorites page
         iNavigateToTheFavoritesPage();
-
-        // get favorite songs
         List<WebElement> favorites = getFavoritesList();
         assertNotNull(favorites);
 
-        // check that the order is correct
         for (int i = 0; i < rows.size(); i++) {
-            WebElement songName = favorites.get(i).findElement(By.id("song-title"));
-            assert songName.getText().contains(rows.get(i).get(1)) : "Expected " + rows.get(i).get(1) + " to be at index " + i + ", but it was not.";
+            String expected = rows.get(i).get(1);
+            String actual = favorites.get(i).findElement(By.id("song-title")).getText();
+            assertTrue(actual.contains(expected), "Expected " + expected + " at index " + i + ", but got " + actual);
         }
     }
-    
 
     @And("{string} is at index {} in my favorites list")
-    public void isAtIndexInMyFavoritesList(String arg0, int arg1) {
-        // I should already be on the favorites page
-        WebElement song = findSongInFavoritesList(arg0);
-        assertNotNull(song); // just in case
+    public void isAtIndexInMyFavoritesList(String songName, int index) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
 
-        // get the index of the song
         List<WebElement> favorites = getFavoritesList();
-        int idx = -1;
+        int foundIndex = -1;
         for (int i = 0; i < favorites.size(); i++) {
-            // find the song name
-            WebElement songName = favorites.get(i).findElement(By.id("song-title"));
-            if (songName.getText().contains(arg0)) {
-                idx = i;
+            if (favorites.get(i).findElement(By.id("song-title")).getText().contains(songName)) {
+                foundIndex = i;
+                break;
             }
         }
 
-        // check that both are found
-        assert idx != -1;
-        assertEquals(arg1, idx, "Expected " + arg0 + " to be at index " + arg1 + ", but it was not.");
+        assertEquals(index, foundIndex, "Expected " + songName + " at index " + index);
     }
 
     @Given("My favorites list is empty")
     public void myFavoritesListIsEmpty() {
-        // reset user
         DriverManager.resetUserFavorites(connection, "testUser");
-
         iNavigateToTheFavoritesPage();
-        List<WebElement> favorites = getFavoritesList();
-        assertNull(favorites, "Expected favorites list to be empty, but it was not.");
+        assertNull(getFavoritesList(), "Expected favorites list to be empty.");
     }
 }

@@ -13,7 +13,6 @@ const Auth = ({ setUser }) => {
     const [passwordError, setPasswordError] = useState("");
     const [message, setMessage] = useState("");
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [showCancelSignupConfirm, setShowCancelSignupConfirm] = useState(false);
 
     const navigate = useNavigate();
@@ -95,7 +94,6 @@ const Auth = ({ setUser }) => {
             await axios.delete(`http://localhost:8080/auth/delete`, {
                 data: { username }
             });
-            setShowCancelConfirm(false);
             setShowConfirmation(false);
             setMessage("Account creation cancelled. Your account has been deleted.");
             setIsSignup(false); // Switch to login page
@@ -104,7 +102,6 @@ const Auth = ({ setUser }) => {
             setConfirmPassword(""); // Clear the confirm password fieldf
         } catch (err) {
             setError("Failed to delete account. Please contact support.");
-            setShowCancelConfirm(false);
             setShowConfirmation(false);
 
         }
@@ -181,7 +178,7 @@ const Auth = ({ setUser }) => {
                     </button>
                 </form>
                 <button className="text-purple-300 mt-8" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
-                    {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
+                    {isSignup ? "Already have an account? Login" : "Don&apos;t have an account? Sign up"}
                 </button>
 
                 {isSignup && (
