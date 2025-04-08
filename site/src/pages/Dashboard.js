@@ -13,7 +13,6 @@ const Dashboard = ({ user }) => {
     const [wordCloudSongs, setWordCloudSongs] = useState([]);
 
     const [songLimit, setSongLimit] = useState("");
-    const [limitError, setLimitError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [showWordCloud, setShowWordCloud] = useState(false);
