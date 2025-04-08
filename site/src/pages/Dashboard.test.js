@@ -101,7 +101,7 @@ describe("Dashboard Component", () => {
                                 full_title: "Song Matching",
                                 url: "http://song1",
                                 header_image_url: "http://image1",
-                                release_date: "2020-01-01",
+                                release_date_for_display: "2020-01-01",
                                 primary_artist: { name: "Test Artist" },
                             },
                         },
@@ -111,7 +111,7 @@ describe("Dashboard Component", () => {
                                 full_title: "Song Not Matching",
                                 url: "http://song2",
                                 header_image_url: "http://image2",
-                                release_date: "2020-01-02",
+                                release_date_for_display: "2020-01-02",
                                 primary_artist: { name: "Other Artist" },
                             },
                         },
@@ -151,7 +151,7 @@ describe("Dashboard Component", () => {
                                     full_title: "Song Matching",
                                     url: "http://song1",
                                     header_image_url: "http://image1",
-                                    release_date: "2020-01-01",
+                                    release_date_for_display: "2020-01-01",
                                     primary_artist: { name: "Test Artist" },
                                 },
                             },
@@ -242,7 +242,7 @@ describe("Dashboard Component", () => {
                     full_title: "Good Song",
                     url: "http://song1",
                     header_image_url: "http://img1",
-                    release_date: "2020-01-01",
+                    release_date_for_display: "2020-01-01",
                     primary_artist: { name: "Artist A" }
                 }
             },
@@ -252,7 +252,7 @@ describe("Dashboard Component", () => {
                     full_title: "Duplicate Song",
                     url: "http://song2",
                     header_image_url: "http://img2",
-                    release_date: "2020-01-02",
+                    release_date_for_display: "2020-01-02",
                     primary_artist: { name: "Artist B" }
                 }
             }
@@ -392,7 +392,7 @@ describe("Dashboard Component", () => {
                                         full_title: "Test Song",
                                         url: "https://example.com/song",
                                         header_image_url: "https://example.com/image.jpg",
-                                        release_date: "2023-01-01",
+                                        release_date_for_display: "2023-01-01",
                                         primary_artist: { name: "Test Artist" }
                                     }
                                 }
@@ -452,7 +452,7 @@ describe("Dashboard Component", () => {
                 full_title: "Broken Song",
                 url: "http://example.com/broken",
                 header_image_url: "http://example.com/img.jpg",
-                release_date: "2023-01-01",
+                release_date_for_display: "2023-01-01",
                 primary_artist: { name: "Broken Artist" }
             }
         };
@@ -525,7 +525,7 @@ describe("Dashboard Component", () => {
                     full_title: "Unselected Song",
                     url: "http://unselected.com",
                     header_image_url: "http://unselected.com/img.jpg",
-                    release_date: "2022-01-01",
+                    release_date_for_display: "2022-01-01",
                     primary_artist: { name: "Artist Name" }
                 }
             }
@@ -581,7 +581,7 @@ describe("Dashboard Component", () => {
                                     full_title: "NoOp Song",
                                     url: "https://noop.com",
                                     header_image_url: "https://noop.com/img.jpg",
-                                    release_date: "2023-01-01",
+                                    release_date_for_display: "2023-01-01",
                                     primary_artist: { name: "Empty Artist" },
                                 },
                             },
@@ -634,7 +634,7 @@ describe("Dashboard Component", () => {
                 full_title: "Fail Song",
                 url: "https://fail.com",
                 header_image_url: "https://fail.com/image.jpg",
-                release_date: "2022-01-01",
+                release_date_for_display: "2022-01-01",
                 primary_artist: { name: "Fail Artist" },
             },
         };
@@ -686,7 +686,7 @@ describe("Dashboard Component", () => {
                 full_title: "Success Song",
                 url: "https://song.com",
                 header_image_url: "https://song.com/image.jpg",
-                release_date: "2023-01-01",
+                release_date_for_display: "2023-01-01",
                 primary_artist: { name: "Happy Artist" },
             },
         };
@@ -739,7 +739,7 @@ describe("Dashboard Component", () => {
                     full_title: "Unselected Song",
                     url: "http://url1",
                     header_image_url: "http://img1",
-                    release_date: "2021-01-01",
+                    release_date_for_display: "2021-01-01",
                     primary_artist: { name: "Unselected Artist" },
                 },
             },
@@ -749,7 +749,7 @@ describe("Dashboard Component", () => {
                     full_title: "Selected Song",
                     url: "http://url2",
                     header_image_url: "http://img2",
-                    release_date: "2021-01-02",
+                    release_date_for_display: "2021-01-02",
                     primary_artist: { name: "Selected Artist" },
                 },
             }

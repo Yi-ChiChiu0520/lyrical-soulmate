@@ -95,7 +95,7 @@ const Favorites = ({ user }) => {
                     {favorites.map((song, index) => (
                         <li
                             key={song.songId}
-                            id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')}
+                            id={song.title.replace(/\s/g, '').replace(/[\s\u00A0]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')} // unique ID created by the song name by removing all spaces/illegal characters
                             style={{ marginBottom: "20px", cursor: "pointer" }}
                             onMouseEnter={() => setHoveredSongId(song.songId)}
                             onMouseLeave={() => setHoveredSongId(null)}

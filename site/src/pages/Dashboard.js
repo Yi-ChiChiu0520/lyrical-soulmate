@@ -142,7 +142,7 @@ const Dashboard = ({ user }) => {
                     title: song.result.full_title,
                     url: song.result.url,
                     imageUrl: song.result.header_image_url,
-                    releaseDate: song.result.release_date,
+                    releaseDate: song.result.release_date_for_display,
                     artistName: song.result.primary_artist?.name,
                     lyrics
                 };
@@ -185,7 +185,7 @@ const Dashboard = ({ user }) => {
                 title: song.result.full_title,
                 url: song.result.url,
                 imageUrl: song.result.header_image_url,
-                releaseDate: song.result.release_date,
+                releaseDate: song.result.release_date_for_display,
                 artistName: song.result.primary_artist?.name,
                 lyrics
             });
@@ -299,7 +299,7 @@ const Dashboard = ({ user }) => {
                                     <div style={{ display: "flex", flexDirection: "column" }}>
                                         <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>🎵 {song.result.full_title}</span>
                                         <span style={{ fontSize: "12px", color: "gray" }}>
-                                            📅 {song.result.release_date}
+                                            📅 {song.result.release_date_for_display}
                                         </span>
                                     </div>
                                 </li>

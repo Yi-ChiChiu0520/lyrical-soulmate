@@ -101,7 +101,7 @@ const Auth = ({ setUser }) => {
             setIsSignup(false); // Switch to login page
             setUsername(""); // Clear the username field
             setPassword(""); // Clear the password field
-            setConfirmPassword(""); // Clear the confirm password field
+            setConfirmPassword(""); // Clear the confirm password fieldf
         } catch (err) {
             setError("Failed to delete account. Please contact support.");
             setShowCancelConfirm(false);
