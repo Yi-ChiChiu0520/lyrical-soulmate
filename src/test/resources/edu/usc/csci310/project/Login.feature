@@ -36,7 +36,7 @@ Feature: Login and Security Functionality
     And I click the login button 3 times within a minute
     Then I see error "Account temporarily locked. Please try again shortly."
 
-  Scenario: 3 failed login attempts within more than one minute doesn't cause lockout
+  Scenario: No lockout if 3 failed logins span over 1 min
     Given I am on the login page
     And I am not authenticated
     And a user exists with username "validUser" and password "Valid1Pass"
