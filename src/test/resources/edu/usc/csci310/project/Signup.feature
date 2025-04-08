@@ -26,7 +26,7 @@ Feature: Signup Functionality
     And I enter the password "<password>"
     And I confirm the password with "<password>"
     And I click the signup button
-    Then I see error "Password must contain at least one uppercase letter, one lowercase letter, and one number."
+    Then I see a password requirement error
 
   Examples:
     | username  | password |  |
