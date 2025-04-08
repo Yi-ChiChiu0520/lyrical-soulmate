@@ -76,7 +76,7 @@ public class FavoriteStepDefs {
         WebElement addToFavoritesButton = driver.findElement(By.id("add-to-favorites"));
         addToFavoritesButton.click();
 
-        iShouldSeeSearchSuccessMessage("✅ Added: " + songName);
+        iShouldSeeSuccessMessage("✅ Added: " + songName);
     }
 
     @AfterAll
@@ -177,8 +177,8 @@ public class FavoriteStepDefs {
         checkbox.click();
     }
 
-    @Then("I should see search success message {string}")
-    public void iShouldSeeSearchSuccessMessage(String arg0) {
+    @Then("I should see success message {string}")
+    public void iShouldSeeSuccessMessage(String arg0) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         boolean errorTextPresent = wait.until(driver -> {
             // check if the error message is present

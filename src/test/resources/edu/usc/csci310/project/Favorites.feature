@@ -107,7 +107,7 @@ Feature: User Favorites List Feature
     And I select "the Moon by The Microphones"
     # these songs were chosen purely out of convenience
     And I click the "Add Selected to Favorites" button
-    Then I should see search success message "✅ Added: I Want Wind To Blow by The Microphones, I Felt Your Shape by The Microphones"
+    Then I should see success message "✅ Added: I Want Wind To Blow by The Microphones, I Felt Your Shape by The Microphones"
     And I should see search error message "⚠️ Already in favorites: the Moon by The Microphones"
     And I should see "I Want Wind To Blow by The Microphones" in my favorites list
     And I should see "I Felt Your Shape by The Microphones" in my favorites list
