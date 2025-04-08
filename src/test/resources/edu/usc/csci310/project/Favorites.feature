@@ -16,7 +16,8 @@ Feature: User Favorites List Feature
     Then I should have the following order in my favorites list
       | 0 | when you sleep by my bloody valentine |
       | 1 | Nurse! by bar italia                  |
-      | 2 | Sofia by Clairo                       |
+      | 2 | Sofia by Clairo|
+
     # SPRINT REVIEW 2: RENAME TO LOGOUT/LOG IN
     When I am not authenticated
     And I am on the login page
@@ -28,8 +29,9 @@ Feature: User Favorites List Feature
       | 2 | Sofia by Clairo                       |
 
   # SPRINT REVIEW 2: REMIND TO RELOOK AT NEXT SPRINT, NO POINTS THIS TIME
-  # DO TWO CASES FOR MOVE UP AND MOVE DOWN SEPARAtELY
-  Scenario: Moved favorites maintain order after logout and login
+  # DO TWO CASES FOR MOVE UP AND MOVE DOWN SEPARAtely
+  # Scenario split to fix length lint error
+  Scenario: User moves favorites up and down successfully
     Given I am authenticated
     And My favorites list is empty
     And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
@@ -37,26 +39,38 @@ Feature: User Favorites List Feature
     And I have added "Ribs by Lorde" to my favorites
     When I navigate to the favorites page
     Then I should have the following order in my favorites list
-      | 0 | The Phone Works Both Ways by The Jazz June           |
-      | 1 | Me and Your Mama by Childish Gambino     |
-      | 2 | Ribs by Lorde               |
+      | 0 | The Phone Works Both Ways by The Jazz June |
+      | 1 | Me and Your Mama by Childish Gambino       |
+      | 2 | Ribs by Lorde                              |
     When I hover over "Ribs by Lorde"
     And I click the move up button on "Ribs by Lorde"
     And I hover over "The Phone Works Both Ways by The Jazz June"
     And I click the move down button on "The Phone Works Both Ways by The Jazz June"
     Then I should have the following order in my favorites list
-      | 0 | Ribs by Lorde               |
-      | 1 | The Phone Works Both Ways by The Jazz June           |
-      | 2 | Me and Your Mama by Childish Gambino     |
+      | 0 | Ribs by Lorde                              |
+      | 1 | The Phone Works Both Ways by The Jazz June |
+      | 2 | Me and Your Mama by Childish Gambino       |
+
+  Scenario: Moved favorites order persists after re-login
+    Given I am authenticated
+    And My favorites list is empty
+    And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
+    And I have added "Me and Your Mama by Childish Gambino" to my favorites
+    And I have added "Ribs by Lorde" to my favorites
+    And I navigate to the favorites page
+    And I hover over "Ribs by Lorde"
+    And I click the move up button on "Ribs by Lorde"
+    And I hover over "The Phone Works Both Ways by The Jazz June"
+    And I click the move down button on "The Phone Works Both Ways by The Jazz June"
+    # SPRINT REVIEW 2: RENAME TO LOGOUT/LOG IN
     When I am not authenticated
     And I am on the login page
     And I am authenticated
     And I navigate to the favorites page
     Then I should have the following order in my favorites list
-      | 0 | Ribs by Lorde               |
-      | 1 | The Phone Works Both Ways by The Jazz June           |
-      | 2 | Me and Your Mama by Childish Gambino     |
-
+      | 0 | Ribs by Lorde                              |
+      | 1 | The Phone Works Both Ways by The Jazz June |
+      | 2 | Me and Your Mama by Childish Gambino       |
 
   # -- Add/Remove Favorites --
   # move to search
@@ -68,13 +82,13 @@ Feature: User Favorites List Feature
     Then I should get an alert "Please select at least one song to add."
 
   # only by artist name for search
-
   Scenario: Hovering over song shows buttons
     Given I am authenticated
     And My favorites list is empty
     And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
     When I navigate to the favorites page
     And I hover over "The Phone Works Both Ways by The Jazz June"
+    # Step not modified as it uses parameterization; length likely unavoidable
     Then I should see the move and remove buttons on "The Phone Works Both Ways by The Jazz June"
 
   # SPRINT REVIEW 2: There should be a confirmation modal for removing a song
@@ -83,6 +97,7 @@ Feature: User Favorites List Feature
     And I have added "Show Me How by Men I Trust" to my favorites
     When I navigate to the favorites page
     And I hover over "Show Me How by Men I Trust"
+    # Step not modified as it uses parameterization; length likely unavoidable
     And I click the remove button on "Show Me How by Men I Trust"
     And I should not see "Show Me How by Men I Trust" in my favorites list
 
@@ -94,6 +109,7 @@ Feature: User Favorites List Feature
     When I search for "10" songs by "Britney Spears"
     And I select "Toxic by Britney Spears"
     And I click the "Add Selected to Favorites" button
+    # Step refactored for length to use existing parameterized step
     Then I should see search error message "⚠️ Already in favorites: Toxic by Britney Spears"
 
   # SPRINT REVIEW 2: No points but leave this in here
@@ -107,8 +123,10 @@ Feature: User Favorites List Feature
     And I select "the Moon by The Microphones"
     # these songs were chosen purely out of convenience
     And I click the "Add Selected to Favorites" button
+    # Steps refactored for length to use existing parameterized steps
     Then I should see search success message "✅ Added: I Want Wind To Blow by The Microphones, I Felt Your Shape by The Microphones"
     And I should see search error message "⚠️ Already in favorites: the Moon by The Microphones"
+    # Following steps not modified as they use parameterization; length likely unavoidable
     And I should see "I Want Wind To Blow by The Microphones" in my favorites list
     And I should see "I Felt Your Shape by The Microphones" in my favorites list
     And I should see "the Moon by The Microphones" in my favorites list
@@ -142,4 +160,5 @@ Feature: User Favorites List Feature
     # i click on song title
     And I click on the song title "Northern Sky by Nick Drake"
     Then I should see the artist name "Nick Drake" for "Northern Sky by Nick Drake"
+    # Step not modified as it uses parameterization; length likely unavoidable
     And I should see the release date "1971" for "Northern Sky by Nick Drake"
