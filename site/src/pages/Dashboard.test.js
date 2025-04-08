@@ -83,7 +83,7 @@ describe("Dashboard Component", () => {
                 <Dashboard user={mockUser} />
             </BrowserRouter>
         );
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), { target: { value: "Test Artist" } });
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), { target: { value: "Test Artist" } });
         fireEvent.click(screen.getByText("Search"));
         expect(window.alert).toHaveBeenCalledWith("Please enter a valid number of songs to display.");
     });
@@ -128,7 +128,7 @@ describe("Dashboard Component", () => {
         );
 
 
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), { target: { value: "Test Artist" } });
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), { target: { value: "Test Artist" } });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), { target: { value: "1" } });
         fireEvent.click(screen.getByText("Search"));
 
@@ -173,7 +173,7 @@ describe("Dashboard Component", () => {
         );
 
 
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Test Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -284,7 +284,7 @@ describe("Dashboard Component", () => {
 
 
         // Use matching artist name to trigger song filtering
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Artist" }
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -335,7 +335,7 @@ describe("Dashboard Component", () => {
         );
 
 
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "No Match Artist" }
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -365,7 +365,7 @@ describe("Dashboard Component", () => {
         );
 
 
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Test Artist" }
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -415,7 +415,7 @@ describe("Dashboard Component", () => {
         );
 
 
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Test Artist" }
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -488,7 +488,7 @@ describe("Dashboard Component", () => {
 
 
         // Perform a search
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Broken Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -542,7 +542,7 @@ describe("Dashboard Component", () => {
         );
 
         // Trigger the search
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Artist Name" }
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -598,7 +598,7 @@ describe("Dashboard Component", () => {
         );
 
         // Fill in search inputs
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Empty Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -656,7 +656,7 @@ describe("Dashboard Component", () => {
         expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add.");
 
         // ⬇️ Match artist exactly
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Fail Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -706,7 +706,7 @@ describe("Dashboard Component", () => {
         );
 
         // Fill search inputs
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Happy Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
@@ -770,7 +770,7 @@ describe("Dashboard Component", () => {
         );
 
         // Search with query matching both artists
-        fireEvent.change(screen.getByPlaceholderText("Enter song title..."), {
+        fireEvent.change(screen.getByPlaceholderText("Enter artist name..."), {
             target: { value: "Artist" },
         });
         fireEvent.change(screen.getByPlaceholderText("Number of songs to display"), {
