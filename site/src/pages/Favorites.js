@@ -88,7 +88,7 @@ const Favorites = ({ user }) => {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }} onClick={resetInactivityTimer}>
-            <h2 id="favorites-header">💖 {user}'s Favorite Songs</h2>
+            <h2 id="favorites-header">💖 {user}&apos;s Favorite Songs</h2>
 
             {favorites.length > 0 ? (
                 <ul id="favorites-list" style={{ listStyleType: "none", padding: 0 }}>
