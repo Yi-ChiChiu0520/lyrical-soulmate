@@ -22,20 +22,23 @@ public class DatabaseInitializer {
     public void initializeDatabase() {
         try (Statement stmt = connection.createStatement()) {
             System.out.println("✅ Initializing database...");
+            stmt.executeUpdate("DROP TABLE IF EXISTS users");
 
             // Create Users Table
             String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +
+                    "username TEXT UNIQUE NOT NULL, " +            // hashed username
+                    "raw_username TEXT UNIQUE NOT NULL, " +        // NEW: display name
                     "password TEXT NOT NULL, " +
                     "failed_login_attempts INTEGER DEFAULT 0, " +
                     "account_locked BOOLEAN DEFAULT FALSE, " +
                     "lock_time TIMESTAMP DEFAULT NULL)";
+
             stmt.executeUpdate(createUsersTableSQL);
             System.out.println("✅ Users table created or already exists.");
 
             // Drop and Create Favorites Table
-            stmt.executeUpdate("DROP TABLE IF EXISTS favorites");
+            //stmt.executeUpdate("DROP TABLE IF EXISTS favorites");
 
             String createFavoritesTableSQL = "CREATE TABLE IF NOT EXISTS favorites (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -52,7 +55,7 @@ public class DatabaseInitializer {
             stmt.executeUpdate(createFavoritesTableSQL);
             System.out.println("✅ Favorites table created or already exists.");
 
-            stmt.executeUpdate("DROP TABLE IF EXISTS wordcloud");
+            //stmt.executeUpdate("DROP TABLE IF EXISTS wordcloud");
 
             // 🔥 Create Word Cloud Table
             String createWordCloudTableSQL = "CREATE TABLE IF NOT EXISTS wordcloud (" +

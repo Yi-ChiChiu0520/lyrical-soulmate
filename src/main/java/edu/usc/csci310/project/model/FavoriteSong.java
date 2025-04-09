@@ -1,6 +1,7 @@
 package edu.usc.csci310.project.model;
 
 public class FavoriteSong {
+    private Long id;
     private String username;
     private String songId;
     private String title;
@@ -25,6 +26,15 @@ public class FavoriteSong {
         this.rank = rank;
     }
 
+    public FavoriteSong() {
+
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
     // ✅ Getter and Setter for lyrics
     public String getLyrics() {
         return lyrics;

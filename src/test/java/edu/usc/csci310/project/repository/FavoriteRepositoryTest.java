@@ -405,5 +405,64 @@ class FavoriteRepositoryTest {
         // Assert
         assertEquals(6, result); // Should return
     }
+    @Test
+    void testFindByUsernameReturnsSongs() throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement("""
+        INSERT INTO favorites (username, song_id, title, url, image_url, release_date, artist_name, lyrics, rank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """)) {
+            stmt.setString(1, "hashedUser1");
+            stmt.setString(2, "song123");
+            stmt.setString(3, "Test Song");
+            stmt.setString(4, "url");
+            stmt.setString(5, "img");
+            stmt.setString(6, "2023");
+            stmt.setString(7, "Artist");
+            stmt.setString(8, "Lyrics");
+            stmt.setInt(9, 1);
+            stmt.executeUpdate();
+        }
+
+        List<FavoriteSong> results = repository.findByUsername("hashedUser1");
+        assertEquals(1, results.size());
+        assertEquals("Test Song", results.get(0).getTitle());
+        assertEquals("Artist", results.get(0).getArtistName());
+    }
+
+    @Test
+    void testFindByUsernameSQLExceptionHandled() throws SQLException {
+        Connection mockConn = mock(Connection.class);
+        when(mockConn.prepareStatement(anyString())).thenThrow(new SQLException("Boom"));
+
+        FavoriteRepository repo = new FavoriteRepository(mockConn);
+        List<FavoriteSong> result = repo.findByUsername("user");
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testFindUsernamesBySongIdReturnsUsers() throws SQLException {
+        repository.addFavorite("user1", "sharedSong", "Title", "url", "img", "2023", "Artist", "lyrics");
+        repository.addFavorite("user2", "sharedSong", "Title", "url", "img", "2023", "Artist", "lyrics");
+
+        List<String> users = repository.findUsernamesBySongId("sharedSong");
+
+        assertEquals(2, users.size());
+        assertTrue(users.contains("user1"));
+        assertTrue(users.contains("user2"));
+    }
+
+    @Test
+    void testFindUsernamesBySongIdSQLExceptionHandled() throws SQLException {
+        Connection mockConn = mock(Connection.class);
+        when(mockConn.prepareStatement(anyString())).thenThrow(new SQLException("Fail"));
+
+        FavoriteRepository repo = new FavoriteRepository(mockConn);
+        List<String> result = repo.findUsernamesBySongId("song123");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
 }
 
