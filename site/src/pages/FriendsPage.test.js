@@ -104,7 +104,7 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: ["alice"] })
             .mockResolvedValueOnce({
                 data: [
-                    { id: "99", title: "Mystery Song", artist: "X", releaseDate: "2022-01-01" },
+                    { id: "99", title: "Mystery Song", artistName: "X", releaseDate: "2022-01-01" },
                 ],
             });
 
