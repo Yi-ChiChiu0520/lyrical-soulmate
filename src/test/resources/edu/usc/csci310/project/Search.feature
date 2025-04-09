@@ -46,10 +46,10 @@ Feature: Song Search functionality
     Given I am authenticated
     And I navigate to the dashboard page
     When I search for "10" songs by "The Microphones"
-    And I select "the Glow pt. 2 by The Microphones"
+    And I select "I Felt Your Shape by The Microphones"
     And I click the "Add Selected to Favorites" button
-    Then I should see success message "✅ Added: the Glow pt. 2 by The Microphones"
-    And I should see "the Glow pt. 2 by The Microphones" in my favorites list
+    Then I should see success message "✅ Added: I Felt Your Shape by The Microphones"
+    And I should see "I Felt Your Shape by The Microphones" in my favorites list
 
   # SPRINT 2 REVIEW: Repeated
   Scenario: Limit number of search results displayed
