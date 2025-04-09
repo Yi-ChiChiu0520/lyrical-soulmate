@@ -119,7 +119,7 @@ const FriendsPage = ({ user }) => {
                         </div>
                         {expandedSongs[songId] && (
                             <div className="mt-2 text-sm text-gray-300">
-                                <p>Artist: {data.artist}</p>
+                                <p>Artist: {data.artistName}</p>
                                 <p>Release Date: {data.releaseDate}</p>
                             </div>
                         )}
@@ -160,16 +160,16 @@ export const mergeSongs = (user, songs, existingSongMap) => {
     songs.forEach(song => {
         const songKey = song.songId || song.id;
 
-        // Always initialize the song entry if it doesn't exist
         if (!updatedMap[songKey]) {
             updatedMap[songKey] = {
-                ...song,
                 songId: songKey,
+                title: song.title,
+                artistName: song.artistName || "Unknown",
+                releaseDate: song.releaseDate,
                 users: [],
             };
         }
 
-        // Add user only if not already present
         if (!updatedMap[songKey].users.includes(user)) {
             updatedMap[songKey].users.push(user);
         }
@@ -177,5 +177,6 @@ export const mergeSongs = (user, songs, existingSongMap) => {
 
     return updatedMap;
 };
+
 
 export default FriendsPage;
