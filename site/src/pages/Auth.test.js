@@ -43,14 +43,14 @@ describe("Auth Component", () => {
 
     it("switches to signup mode", () => {
         renderComponent();
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         expect(screen.getByRole("heading", { name: /Sign Up/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText("Confirm Password")).toBeInTheDocument();
     });
 
     it("shows password mismatch error during signup", () => {
         renderComponent();
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         fireEvent.change(screen.getByPlaceholderText("Password"), {
             target: { value: "Abc123" }
         });
@@ -62,7 +62,7 @@ describe("Auth Component", () => {
 
     it("shows error if password doesn't meet complexity during signup", async () => {
         renderComponent();
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "newuser" }
         });
@@ -83,7 +83,7 @@ describe("Auth Component", () => {
     it("successful signup shows confirmation modal", async () => {
         axios.post.mockResolvedValue({ data: "User registered successfully" });
         renderComponent();
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "newuser" }
         });
@@ -164,7 +164,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // ✅ 2. Switch to signup mode and fill out form
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "newuser" }
         });
@@ -205,7 +205,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // ✅ Switch to signup
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // ✅ Fill signup form
         fireEvent.change(screen.getByPlaceholderText("Username"), {
@@ -249,7 +249,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // Switch to signup mode
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "newuser" },
@@ -283,7 +283,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // Switch to signup mode
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // Click the cancel button
         fireEvent.click(screen.getByText("Cancel sign up and return to login"));
@@ -297,7 +297,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // Switch to signup mode
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // Fill out form
         fireEvent.change(screen.getByPlaceholderText("Username"), {
@@ -336,7 +336,7 @@ describe("Auth Component", () => {
         renderComponent();
 
         // Switch to signup
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         // Click cancel to open confirmation modal
         fireEvent.click(screen.getByText("Cancel sign up and return to login"));
@@ -360,7 +360,7 @@ describe("Auth Component", () => {
     test("shows password validation error during signup", async () => {
         renderComponent();
 
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "testuser" }
@@ -386,7 +386,7 @@ describe("Auth Component", () => {
 
         renderComponent();
 
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "existingUser" }
@@ -469,7 +469,7 @@ describe("Auth Component", () => {
 
         renderComponent();
 
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "erroruser" }
@@ -492,7 +492,7 @@ describe("Auth Component", () => {
 
         renderComponent();
 
-        fireEvent.click(screen.getByText("Don&apos;t have an account? Sign up"));
+        fireEvent.click(screen.getByText("Don't have an account? Sign up"));
 
         fireEvent.change(screen.getByPlaceholderText("Username"), {
             target: { value: "testuser" }

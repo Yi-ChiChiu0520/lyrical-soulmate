@@ -6,19 +6,20 @@ const Navbar = ({ setUser }) => {
 
     const handleLogout = () => {
         localStorage.removeItem("user");
-        setUser(null); // 🔁 Clear user state in App
+        setUser(null);
         navigate("/");
     };
 
     return (
-        <nav style={{ display: "flex", justifyContent: "space-between", padding: "10px 20px", backgroundColor: "#333", color: "#fff" }}>
-            <div>
-                <Link to="/dashboard" style={{ color: "white", marginRight: "20px", textDecoration: "none" }}>Dashboard</Link>
-                <Link to="/favorites" style={{ color: "white", textDecoration: "none" }}>Favorites</Link>
+        <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
+            <div className="space-x-6 text-lg">
+                <Link to="/dashboard" className="hover:text-purple-400">Dashboard</Link>
+                <Link to="/favorites" className="hover:text-purple-400">Favorites</Link>
+                <Link to="/friends" className="hover:text-purple-400">Friends</Link>
             </div>
             <button
                 onClick={handleLogout}
-                style={{ background: "red", color: "white", padding: "5px 10px", border: "none", cursor: "pointer" }}
+                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white"
             >
                 Logout
             </button>

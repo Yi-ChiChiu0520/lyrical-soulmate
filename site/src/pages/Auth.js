@@ -178,7 +178,7 @@ const Auth = ({ setUser }) => {
                     </button>
                 </form>
                 <button className="text-purple-300 mt-8" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
-                    {isSignup ? "Already have an account? Login" : "Don&apos;t have an account? Sign up"}
+                    {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
                 </button>
 
                 {isSignup && (

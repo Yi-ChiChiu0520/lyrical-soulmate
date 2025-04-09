@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -300,4 +301,170 @@ class UserRepositoryTest {
         // Verify the error was logged (if you want to verify logging)
         // You might need to verify System.err output if you want to be thorough
     }
+    @Test
+    void testFindByRawUsernamePrefix() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.getString("raw_username"))
+                .thenReturn("alice", "alex");
+
+        List<String> result = userRepository.findByRawUsernamePrefix("al");
+        assertEquals(List.of("alice", "alex"), result);
+    }
+
+    @Test
+    void testFindByRawUsernamePrefixSQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Search failed"));
+        List<String> result = userRepository.findByRawUsernamePrefix("al");
+        assertTrue(result.isEmpty()); // returns empty list on error
+    }
+
+    @Test
+    void testGetHashedUsernameFromRawFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getString("username")).thenReturn("hashed_user");
+
+        Optional<String> result = userRepository.getHashedUsernameFromRaw("raw_user");
+        assertTrue(result.isPresent());
+        assertEquals("hashed_user", result.get());
+    }
+
+    @Test
+    void testGetHashedUsernameFromRawNotFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        Optional<String> result = userRepository.getHashedUsernameFromRaw("raw_user");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetHashedUsernameFromRawSQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Failure"));
+
+        Optional<String> result = userRepository.getHashedUsernameFromRaw("raw_user");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetRawUsernameFromHashedFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getString("raw_username")).thenReturn("raw_user");
+
+        Optional<String> result = userRepository.getRawUsernameFromHashed("hashed_user");
+        assertTrue(result.isPresent());
+        assertEquals("raw_user", result.get());
+    }
+
+    @Test
+    void testGetRawUsernameFromHashedNotFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        Optional<String> result = userRepository.getRawUsernameFromHashed("hashed_user");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetRawUsernameFromHashedSQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Failure"));
+
+        Optional<String> result = userRepository.getRawUsernameFromHashed("hashed_user");
+        assertTrue(result.isEmpty());
+    }
+    @Test
+    void testGetHashedUsernameFromRaw_NotFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false); // key line
+
+        Optional<String> result = userRepository.getHashedUsernameFromRaw("nonexistent");
+        assertTrue(result.isEmpty());
+    }
+    @Test
+    void testGetRawUsernameFromHashed_NotFound() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false); // key line
+
+        Optional<String> result = userRepository.getRawUsernameFromHashed("nonexistentHashedUser");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testCloseResultSetThrowsException_getHashedUsernameFromRaw() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        doThrow(new SQLException("Failed to close ResultSet")).when(rs).close();
+
+        UserRepository repo = new UserRepository(mockConnection);
+        Optional<String> result = repo.getHashedUsernameFromRaw("alice");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testClosePreparedStatementThrowsException_getHashedUsernameFromRaw() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        doThrow(new SQLException("Failed to close PreparedStatement")).when(stmt).close();
+
+        UserRepository repo = new UserRepository(mockConnection);
+        Optional<String> result = repo.getHashedUsernameFromRaw("bob");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testCloseResultSetThrowsException_getRawUsernameFromHashed() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        doThrow(new SQLException("Failed to close ResultSet")).when(rs).close();
+
+        UserRepository repo = new UserRepository(mockConnection);
+        Optional<String> result = repo.getRawUsernameFromHashed("hashedAlice");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testClosePreparedStatementThrowsException_getRawUsernameFromHashed() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+
+        doThrow(new SQLException("Failed to close PreparedStatement")).when(stmt).close();
+
+        UserRepository repo = new UserRepository(mockConnection);
+        Optional<String> result = repo.getRawUsernameFromHashed("hashedBob");
+
+        assertTrue(result.isEmpty());
+    }
+
+
 }

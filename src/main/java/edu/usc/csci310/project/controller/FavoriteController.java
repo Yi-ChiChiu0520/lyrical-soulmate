@@ -46,9 +46,7 @@ public class FavoriteController {
     @GetMapping("/{username}")
     public ResponseEntity<List<FavoriteSong>> getFavorites(@PathVariable String username) {
         List<FavoriteSong> favorites = favoriteService.getFavorites(username);
-//        for (FavoriteSong song : favorites) {
-//            System.out.println("🎵 " + song.getTitle() + " — Lyrics: " + song.getLyrics());
-//        }
+
         return favorites.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(favorites);
     }
 
