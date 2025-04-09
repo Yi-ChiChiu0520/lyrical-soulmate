@@ -137,6 +137,325 @@ describe("Dashboard Component", () => {
         expect(screen.queryByText(/Song Not Matching/i)).toBeNull();
     });
 
+    test("adds all favorites to word cloud successfully", async () => {
+        // First GET call on mount for the word cloud data (empty initially)
+        axios.get.mockResolvedValueOnce({ data: [] });
+
+        // Favorites GET: when the addFavoritesToWordCloud function is called,
+        // it will fetch favorites for the current user.
+        const favoritesMock = [
+            {
+                songId: "1",
+                title: "Fav Song 1",
+                url: "http://fav1.com",
+                imageUrl: "http://fav1image.com",
+                releaseDate: "2025-01-01",
+                artistName: "Artist1"
+            },
+            {
+                songId: "2",
+                title: "Fav Song 2",
+                url: "http://fav2.com",
+                imageUrl: "http://fav2image.com",
+                releaseDate: "2025-01-02",
+                artistName: "Artist2"
+            },
+        ];
+        axios.get.mockResolvedValueOnce({ data: favoritesMock }); // favorites fetch
+
+        // For each favorite, mock a successful lyrics fetch.
+        axios.get.mockImplementation((url, config) => {
+            if (url === "http://localhost:8080/api/genius/lyrics" && config && config.params) {
+                if (config.params.songId === "1") {
+                    return Promise.resolve({ data: { lyrics: "Lyrics for Fav Song 1" } });
+                }
+                if (config.params.songId === "2") {
+                    return Promise.resolve({ data: { lyrics: "Lyrics for Fav Song 2" } });
+                }
+            }
+            // Updated word cloud GET after post
+            if (url === `http://localhost:8080/api/wordcloud/${mockUser}`) {
+                return Promise.resolve({
+                    data: [
+                        {
+                            username: mockUser,
+                            songId: "1",
+                            title: "Fav Song 1",
+                            url: "http://fav1.com",
+                            imageUrl: "http://fav1image.com",
+                            releaseDate: "2025-01-01",
+                            artistName: "Artist1",
+                            lyrics: "Lyrics for Fav Song 1"
+                        },
+                        {
+                            username: mockUser,
+                            songId: "2",
+                            title: "Fav Song 2",
+                            url: "http://fav2.com",
+                            imageUrl: "http://fav2image.com",
+                            releaseDate: "2025-01-02",
+                            artistName: "Artist2",
+                            lyrics: "Lyrics for Fav Song 2"
+                        }
+                    ]
+                });
+            }
+        });
+
+        axios.post.mockResolvedValue({ status: 200 });
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // Click the "Add all favorites to Word Cloud" button.
+        fireEvent.click(screen.getByText("Add All Favorites to Word Cloud"));
+
+        // Wait and check that the favorites GET was called.
+        await waitFor(() => {
+            expect(axios.get).toHaveBeenCalledWith(`http://localhost:8080/api/favorites/${mockUser}`);
+        });
+
+        // Check that axios.post was called with the properly mapped favorites.
+        await waitFor(() => {
+            expect(axios.post).toHaveBeenCalledWith(
+                "http://localhost:8080/api/wordcloud/add",
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        songId: "1",
+                        title: "Fav Song 1",
+                        lyrics: "Lyrics for Fav Song 1",
+                        username: mockUser
+                    }),
+                    expect.objectContaining({
+                        songId: "2",
+                        title: "Fav Song 2",
+                        lyrics: "Lyrics for Fav Song 2",
+                        username: mockUser
+                    }),
+                ])
+            );
+        });
+
+        // Finally, check that the WordCloudPanel displays the updated word cloud data.
+        await waitFor(() => {
+            expect(screen.getByTestId("cloud-songs")).toHaveTextContent(
+                JSON.stringify([
+                    {
+                        username: mockUser,
+                        songId: "1",
+                        title: "Fav Song 1",
+                        url: "http://fav1.com",
+                        imageUrl: "http://fav1image.com",
+                        releaseDate: "2025-01-01",
+                        artistName: "Artist1",
+                        lyrics: "Lyrics for Fav Song 1"
+                    },
+                    {
+                        username: mockUser,
+                        songId: "2",
+                        title: "Fav Song 2",
+                        url: "http://fav2.com",
+                        imageUrl: "http://fav2image.com",
+                        releaseDate: "2025-01-02",
+                        artistName: "Artist2",
+                        lyrics: "Lyrics for Fav Song 2"
+                    }
+                ])
+            );
+        });
+    });
+
+    test("logs console error when addFavoritesToWordCloud fails", async () => {
+        const favoritesMock = [
+            {
+                songId: "1",
+                title: "Fav Song 1",
+                url: "http://fav1.com",
+                imageUrl: "http://fav1image.com",
+                releaseDate: "2025-01-01",
+                artistName: "Artist1"
+            }
+        ];
+
+        // First GET call on mount for initial word cloud load.
+        axios.get.mockResolvedValueOnce({ data: [] });
+        // GET call to fetch favorites for the current user.
+        axios.get.mockResolvedValueOnce({ data: favoritesMock });
+        // GET call to fetch lyrics.
+        axios.get.mockResolvedValueOnce({ data: { lyrics: "Lyrics for Fav Song 1" } });
+        // Simulate failure on the POST call to add favorites to the word cloud.
+        axios.post.mockRejectedValueOnce(new Error("Add favorites failed"));
+
+        // Spy on console.error so we can verify the error is logged.
+        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // The button should initially show "Add All Favorites to Word Cloud".
+        const button = screen.getByRole("button", { name: /Add All Favorites to Word Cloud/i });
+        expect(button).toBeInTheDocument();
+
+        // Click the "Add All Favorites to Word Cloud" button.
+        fireEvent.click(button);
+
+        // Wait for the error to be logged.
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                "❌ Failed to save to word cloud:",
+                expect.any(Error)
+            );
+        });
+
+        // After completion, the button text should revert back.
+        expect(button).toBeInTheDocument();
+
+        consoleErrorSpy.mockRestore();
+    });
+
+
+    test("adds favorites to word cloud defaults lyrics to 'Unknown' when lyrics fetch fails", async () => {
+        // First GET for initial word cloud load.
+        axios.get.mockResolvedValueOnce({ data: [] });
+
+        // Favorites GET returning one favorite.
+        const favoritesMock = [
+            {
+                songId: "1",
+                title: "Fav Song 1",
+                url: "http://fav1.com",
+                imageUrl: "http://fav1image.com",
+                releaseDate: "2025-01-01",
+                artistName: "Artist1"
+            }
+        ];
+        axios.get.mockResolvedValueOnce({ data: favoritesMock });
+
+        // Simulate failure for lyrics fetch.
+        axios.get.mockImplementation((url) => {
+            if (url === "http://localhost:8080/api/genius/lyrics") {
+                return Promise.reject(new Error("Lyrics fetch error"));
+            }
+            if (url === `http://localhost:8080/api/wordcloud/${mockUser}`) {
+                return Promise.resolve({
+                    data: [
+                        {
+                            username: mockUser,
+                            songId: "1",
+                            title: "Fav Song 1",
+                            url: "http://fav1.com",
+                            imageUrl: "http://fav1image.com",
+                            releaseDate: "2025-01-01",
+                            artistName: "Artist1",
+                            lyrics: "Unknown"
+                        }
+                    ]
+                });
+            }
+        });
+
+        axios.post.mockResolvedValue({ status: 200 });
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // Click the "Add all favorites to Word Cloud" button.
+        fireEvent.click(screen.getByText("Add All Favorites to Word Cloud"));
+
+        // Wait and check that axios.post was called with the favorite using default lyrics "Unknown".
+        await waitFor(() => {
+            expect(axios.post).toHaveBeenCalledWith(
+                "http://localhost:8080/api/wordcloud/add",
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        songId: "1",
+                        title: "Fav Song 1",
+                        lyrics: "Unknown",
+                        username: mockUser
+                    })
+                ])
+            );
+        });
+    });
+
+    test("logs console error when addFavoritesToWordCloud fails", async () => {
+        const favoritesMock = [
+            {
+                songId: "1",
+                title: "Fav Song 1",
+                url: "http://fav1.com",
+                imageUrl: "http://fav1image.com",
+                releaseDate: "2025-01-01",
+                artistName: "Artist1"
+            }
+        ];
+
+        // First GET for word cloud on mount (empty)
+        axios.get.mockResolvedValueOnce({ data: [] });
+        // GET favorites call (when addFavoritesToWordCloud is triggered)
+        axios.get.mockResolvedValueOnce({ data: favoritesMock });
+        // GET lyrics for the favorite song
+        axios.get.mockResolvedValueOnce({ data: { lyrics: "Lyrics for Fav Song 1" } });
+
+        // Simulate failure on the POST call to add favorites to word cloud
+        axios.post.mockRejectedValueOnce(new Error("Add favorites failed"));
+
+        // Spy on console.error so we can verify it gets called.
+        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // Click the "Add all favorites to Word Cloud" button.
+        fireEvent.click(screen.getByText("Add All Favorites to Word Cloud"));
+
+        // Wait for the error to be logged in the console.
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                "❌ Failed to save to word cloud:",
+                expect.any(Error)
+            );
+        });
+
+        consoleErrorSpy.mockRestore();
+    });
+
+    test("displays error when no favorites are found", async () => {
+        // First GET: initial word cloud load
+        axios.get.mockResolvedValueOnce({ data: [] });
+        // GET favorites: returns empty list
+        axios.get.mockResolvedValueOnce({ data: [] });
+
+        render(
+            <BrowserRouter>
+                <Dashboard user={mockUser} />
+            </BrowserRouter>
+        );
+
+        // Click the "Add All Favorites to Word Cloud" button
+        fireEvent.click(screen.getByText("Add All Favorites to Word Cloud"));
+
+        // Expect error message to show
+        await waitFor(() => {
+            expect(screen.getByText("No favorites found.")).toBeInTheDocument();
+        });
+
+        // Ensure the button resets back to original state
+        const button = screen.getByRole("button", { name: /Add All Favorites to Word Cloud/i });
+        expect(button).toBeInTheDocument();
+    });
 
     test("adds selected songs to word cloud", async () => {
         axios.get
@@ -208,7 +527,6 @@ describe("Dashboard Component", () => {
         });
     });
 
-
     test("logs out when user is inactive for more than 60 seconds", async () => {
         jest.useFakeTimers();
         axios.get.mockResolvedValueOnce({ data: [] });
@@ -234,6 +552,7 @@ describe("Dashboard Component", () => {
 
         jest.useRealTimers();
     });
+
     test("bulkAddToFavorites adds successful and failed songs", async () => {
         const mockSongs = [
             {
@@ -316,7 +635,6 @@ describe("Dashboard Component", () => {
         });
     });
 
-
     test("displays error if no songs match the artist name", async () => {
         // First GET: wordcloud, Second GET: search returns no hits
         axios.get
@@ -348,6 +666,7 @@ describe("Dashboard Component", () => {
             expect(screen.getByText("No matches found for your search query.")).toBeInTheDocument();
         });
     });
+
     test("displays generic error if song fetching fails", async () => {
         const error = new Error("Network issue");
         axios.get
@@ -379,6 +698,7 @@ describe("Dashboard Component", () => {
             expect(screen.getByText("An error occurred while fetching songs. Please try again later.")).toBeInTheDocument();
         });
     });
+
     test("toggles song selection when checkbox is clicked", async () => {
         axios.get.mockImplementation((url) => {
             if (url.includes("/api/genius/search")) {
@@ -445,6 +765,7 @@ describe("Dashboard Component", () => {
         fireEvent.click(checkbox);
         expect(checkbox).not.toBeChecked();
     });
+
     test("addSelectedToWordCloud handles lyrics fetch failure and word cloud save failure", async () => {
         const mockSong = {
             result: {
@@ -517,6 +838,7 @@ describe("Dashboard Component", () => {
             );
         });
     });
+
     test("bulkAddToFavorites skips songs not selected (else path)", async () => {
         const mockSongs = [
             {
