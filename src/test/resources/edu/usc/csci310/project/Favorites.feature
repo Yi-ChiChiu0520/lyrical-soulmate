@@ -103,15 +103,15 @@ Feature: User Favorites List Feature
     And I have added "the Moon by The Microphones" to my favorites
     And I navigate to the dashboard page
     When I search for "20" songs by "The Microphones"
-    And I select "I Want Wind To Blow by The Microphones"
-    And I select "I Felt Your Shape by The Microphones"
+    And I select "the Glow pt. 2 by The Microphones"
     And I select "the Moon by The Microphones"
+    And I select "Headless Horseman by The Microphones"
     And I click the "Add Selected to Favorites" button
-    Then I should see success message "✅ Added: I Want Wind To Blow by The Microphones, I Felt Your Shape by The Microphones"
+    Then I should see success message "✅ Added: the Glow pt. 2 by The Microphones, Headless Horseman by The Microphones"
     And I should see search error message "⚠️ Already in favorites: the Moon by The Microphones"
-    And I should see "I Want Wind To Blow by The Microphones" in my favorites list
-    And I should see "I Felt Your Shape by The Microphones" in my favorites list
     And I should see "the Moon by The Microphones" in my favorites list
+    And I should see "the Glow pt. 2 by The Microphones" in my favorites list
+    And I should see "Headless Horseman by The Microphones" in my favorites list
 
   Scenario: User moves song up
     Given I am authenticated

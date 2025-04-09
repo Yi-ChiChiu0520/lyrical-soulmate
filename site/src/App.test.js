@@ -64,4 +64,18 @@ describe("App routing", () => {
             expect(screen.getByText(/Let's Get Lyrical/i)).toBeInTheDocument();
         });
     });
+    test("renders Navbar when user is in localStorage and path is not '/'", async () => {
+        localStorage.setItem("user", "testUser");
+
+        render(
+            <MemoryRouter initialEntries={["/dashboard"]}>
+                <App />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("Navbar")).toBeInTheDocument();
+        });
+    });
+
 });
