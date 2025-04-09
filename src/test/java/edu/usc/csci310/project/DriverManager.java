@@ -33,6 +33,7 @@ public class DriverManager {
             String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT UNIQUE NOT NULL, " +
+                    "raw_username TEXT UNIQUE NOT NULL, " +
                     "password TEXT NOT NULL, " +
                     "failed_login_attempts INTEGER DEFAULT 0, " +
                     "account_locked BOOLEAN DEFAULT FALSE, " +
@@ -43,6 +44,7 @@ public class DriverManager {
             throw new RuntimeException("Error clearing the database before scenario", e);
         }
     }
+
 
     public static void createUserWithUsername(Connection connection, String username) {
         UserRepository userRepository = new UserRepository(connection);
