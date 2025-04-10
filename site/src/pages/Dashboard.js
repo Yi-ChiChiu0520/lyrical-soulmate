@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import WordCloudPanel from "./WordCloudPanel";
 
 const Dashboard = ({ user }) => {
@@ -16,7 +15,9 @@ const Dashboard = ({ user }) => {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [showWordCloud, setShowWordCloud] = useState(false);
+
     const [isAddingFavorites, setIsAddingFavorites] = useState(false);
+    const [isAddingFavoritesToCloud, setIsAddingFavoritesToCloud] = useState(false);
 
     const [lastActivity, setLastActivity] = useState(Date.now());
     const resetInactivityTimer = () => setLastActivity(Date.now());
@@ -81,7 +82,6 @@ const Dashboard = ({ user }) => {
                 const hits = response.data.response.hits;
                 if (hits.length === 0) break;
 
-                // Filter the hits so that only results with a matching artist name remain.
                 const filteredHits = hits.filter(hit =>
                     hit.result.primary_artist.name.toLowerCase().includes(query.toLowerCase())
                 );
@@ -90,7 +90,6 @@ const Dashboard = ({ user }) => {
                 page++;
             }
 
-            // If no matching songs are found, set an error message.
             if (allResults.length === 0) {
                 setSongs([]);
                 setErrorMessage("No matches found for your search query.");
@@ -150,9 +149,7 @@ const Dashboard = ({ user }) => {
                 try {
                     const res = await axios.post("http://localhost:8080/api/favorites/add", favoriteSong);
                     if (res.status === 200) added.push(song.result.full_title);
-                    else {
-                        failed.push(song.result.full_title);
-                    }
+                    else failed.push(song.result.full_title);
                 } catch {
                     failed.push(song.result.full_title);
                 }
@@ -163,8 +160,65 @@ const Dashboard = ({ user }) => {
         setErrorMessage(failed.length > 0 ? `⚠️ Already in favorites: ${failed.join(", ")}` : "");
         setIsAddingFavorites(false);
     };
+
+    const addFavoritesToWordCloud = async () => {
+        setCloudLoading(true);
+        setIsAddingFavoritesToCloud(true);
+
+        const response = await axios.get(`http://localhost:8080/api/favorites/${user}`);
+        const favorites = response.data;
+
+        if (!favorites || favorites.length === 0) {
+            setSuccessMessage("");
+            setErrorMessage("No favorites found.");
+            setIsAddingFavoritesToCloud(false);
+            setCloudLoading(false);
+            return;
+        }
+
+        setSuccessMessage("");
+        setErrorMessage("");
+
+        const mapped = [];
+        for (const song of favorites) {
+            let lyrics = "Unknown";
+
+            try {
+                const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                    params: { songId: song.songId }
+                });
+                lyrics = lyricsRes.data.lyrics;
+            } catch (err) {
+                console.warn(`Failed to get lyrics for ${song.title}`);
+            }
+
+            mapped.push({
+                username: user,
+                songId: song.songId,
+                title: song.title,
+                url: song.url,
+                imageUrl: song.imageUrl,
+                releaseDate: song.releaseDate,
+                artistName: song.artistName,
+                lyrics
+            });
+        }
+
+        try {
+            await axios.post("http://localhost:8080/api/wordcloud/add", mapped);
+            const updated = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
+            setWordCloudSongs(updated.data);
+            setShowWordCloud(true);
+        } catch (err) {
+            console.error("❌ Failed to save to word cloud:", err);
+        } finally {
+            setCloudLoading(false);
+            setIsAddingFavoritesToCloud(false);
+        }
+    };
+
     const addSelectedToWordCloud = async () => {
-        setCloudLoading(true); // start loading
+        setCloudLoading(true);
         const selected = songs.filter(song => selectedSongs.includes(song.result.id));
         const mapped = [];
 
@@ -194,14 +248,13 @@ const Dashboard = ({ user }) => {
 
         try {
             await axios.post("http://localhost:8080/api/wordcloud/add", mapped);
-
             const updated = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
             setWordCloudSongs(updated.data);
             setShowWordCloud(true);
         } catch (err) {
             console.error("❌ Failed to save to word cloud:", err);
         } finally {
-            setCloudLoading(false); // stop loading
+            setCloudLoading(false);
         }
     };
 
@@ -233,11 +286,7 @@ const Dashboard = ({ user }) => {
                         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
                     />
 
-                    <button
-                        id="search-button"
-                        onClick={fetchSongs}
-                        style={{ width: "100%", padding: "8px" }}
-                    >
+                    <button id="search-button" onClick={fetchSongs} style={{ width: "100%", padding: "8px" }}>
                         Search
                     </button>
 
@@ -272,6 +321,20 @@ const Dashboard = ({ user }) => {
                         Add Selected to Word Cloud
                     </button>
 
+                    <button
+                        id="add-all-favorites"
+                        onClick={addFavoritesToWordCloud}
+                        style={{
+                            width: "100%",
+                            padding: "8px",
+                            marginTop: "10px",
+                            backgroundColor: "#8c5ad0",
+                            color: "white"
+                        }}
+                    >
+                        {isAddingFavoritesToCloud ? "Adding..." : "Add All Favorites to Word Cloud"}
+                    </button>
+
                     {successMessage && <p id="search-success" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
                     {errorMessage && <p id="search-error" style={{ color: "red" }}>{errorMessage}</p>}
 
@@ -298,7 +361,9 @@ const Dashboard = ({ user }) => {
                                         }}
                                     />
                                     <div style={{ display: "flex", flexDirection: "column" }}>
-                                        <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>🎵 {song.result.full_title}</span>
+                                        <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>
+                                            🎵 {song.result.full_title}
+                                        </span>
                                         <span style={{ fontSize: "12px", color: "gray" }}>
                                             📅 {song.result.release_date_for_display}
                                         </span>
