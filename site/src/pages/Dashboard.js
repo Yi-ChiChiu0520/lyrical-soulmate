@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import WordCloudPanel from "./WordCloudPanel";
 
 const Dashboard = ({ user }) => {
@@ -83,7 +82,6 @@ const Dashboard = ({ user }) => {
                 const hits = response.data.response.hits;
                 if (hits.length === 0) break;
 
-                // Filter the hits so that only results with a matching artist name remain.
                 const filteredHits = hits.filter(hit =>
                     hit.result.primary_artist.name.toLowerCase().includes(query.toLowerCase())
                 );
@@ -92,7 +90,6 @@ const Dashboard = ({ user }) => {
                 page++;
             }
 
-            // If no matching songs are found, set an error message.
             if (allResults.length === 0) {
                 setSongs([]);
                 setErrorMessage("No matches found for your search query.");
@@ -152,9 +149,7 @@ const Dashboard = ({ user }) => {
                 try {
                     const res = await axios.post("http://localhost:8080/api/favorites/add", favoriteSong);
                     if (res.status === 200) added.push(song.result.full_title);
-                    else {
-                        failed.push(song.result.full_title);
-                    }
+                    else failed.push(song.result.full_title);
                 } catch {
                     failed.push(song.result.full_title);
                 }
@@ -167,15 +162,12 @@ const Dashboard = ({ user }) => {
     };
 
     const addFavoritesToWordCloud = async () => {
-        // set the loading messages
         setCloudLoading(true);
         setIsAddingFavoritesToCloud(true);
 
-        // get all favorites for the current user
         const response = await axios.get(`http://localhost:8080/api/favorites/${user}`);
         const favorites = response.data;
 
-        // check that there actually are favorites
         if (!favorites || favorites.length === 0) {
             setSuccessMessage("");
             setErrorMessage("No favorites found.");
@@ -183,10 +175,10 @@ const Dashboard = ({ user }) => {
             setCloudLoading(false);
             return;
         }
+
         setSuccessMessage("");
         setErrorMessage("");
 
-        // add each song
         const mapped = [];
         for (const song of favorites) {
             let lyrics = "Unknown";
@@ -214,20 +206,19 @@ const Dashboard = ({ user }) => {
 
         try {
             await axios.post("http://localhost:8080/api/wordcloud/add", mapped);
-
             const updated = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
             setWordCloudSongs(updated.data);
             setShowWordCloud(true);
         } catch (err) {
             console.error("❌ Failed to save to word cloud:", err);
         } finally {
-            setCloudLoading(false); // stop loading
+            setCloudLoading(false);
             setIsAddingFavoritesToCloud(false);
         }
-    }
+    };
 
     const addSelectedToWordCloud = async () => {
-        setCloudLoading(true); // start loading
+        setCloudLoading(true);
         const selected = songs.filter(song => selectedSongs.includes(song.result.id));
         const mapped = [];
 
@@ -257,7 +248,6 @@ const Dashboard = ({ user }) => {
 
         try {
             await axios.post("http://localhost:8080/api/wordcloud/add", mapped);
-
             const updated = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
             setWordCloudSongs(updated.data);
             setShowWordCloud(true);
@@ -275,7 +265,7 @@ const Dashboard = ({ user }) => {
             <h2>Welcome, {user}!</h2>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
-                <div style={{flex: "2", maxWidth: "500px", textAlign: "left"}}>
+                <div style={{ flex: "2", maxWidth: "500px", textAlign: "left" }}>
                     <h3>🔍 Search for a Song</h3>
 
                     <input
@@ -284,7 +274,7 @@ const Dashboard = ({ user }) => {
                         placeholder="Enter artist name..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        style={{width: "100%", padding: "8px", marginBottom: "10px"}}
+                        style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
                     />
 
                     <input
@@ -293,14 +283,10 @@ const Dashboard = ({ user }) => {
                         placeholder="Number of songs to display"
                         value={songLimit}
                         onChange={(e) => setSongLimit(e.target.value)}
-                        style={{width: "100%", padding: "8px", marginBottom: "10px"}}
+                        style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
                     />
 
-                    <button
-                        id="search-button"
-                        onClick={fetchSongs}
-                        style={{width: "100%", padding: "8px"}}
-                    >
+                    <button id="search-button" onClick={fetchSongs} style={{ width: "100%", padding: "8px" }}>
                         Search
                     </button>
 
@@ -349,22 +335,20 @@ const Dashboard = ({ user }) => {
                         {isAddingFavoritesToCloud ? "Adding..." : "Add All Favorites to Word Cloud"}
                     </button>
 
-                    {successMessage &&
-                        <p id="search-success" style={{color: "green", marginTop: "10px"}}>{successMessage}</p>}
-                    {errorMessage && <p id="search-error" style={{color: "red"}}>{errorMessage}</p>}
+                    {successMessage && <p id="search-success" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
+                    {errorMessage && <p id="search-error" style={{ color: "red" }}>{errorMessage}</p>}
 
-                    <h3 style={{marginTop: "20px"}}>🎶 Search Results</h3>
+                    <h3 style={{ marginTop: "20px" }}>🎶 Search Results</h3>
 
                     {songs.length > 0 ? (
-                        <ul id="results-list" style={{listStyleType: "none", padding: 0}}>
+                        <ul id="results-list" style={{ listStyleType: "none", padding: 0 }}>
                             {songs.map((song) => (
-                                <li key={song.result.id}
-                                    style={{marginBottom: "10px", display: "flex", alignItems: "center"}}>
+                                <li key={song.result.id} style={{ marginBottom: "10px", display: "flex", alignItems: "center" }}>
                                     <input
                                         type="checkbox"
                                         checked={selectedSongs.includes(song.result.id)}
                                         onChange={() => toggleSelectSong(song.result.id)}
-                                        style={{marginRight: "10px"}}
+                                        style={{ marginRight: "10px" }}
                                     />
                                     <img
                                         src={song.result.header_image_url}
@@ -376,12 +360,11 @@ const Dashboard = ({ user }) => {
                                             borderRadius: "5px"
                                         }}
                                     />
-                                    <div style={{display: "flex", flexDirection: "column"}}>
-                                        <span id="song-name" style={{
-                                            fontWeight: "bold",
-                                            cursor: "pointer"
-                                        }}>🎵 {song.result.full_title}</span>
-                                        <span style={{fontSize: "12px", color: "gray"}}>
+                                    <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>
+                                            🎵 {song.result.full_title}
+                                        </span>
+                                        <span style={{ fontSize: "12px", color: "gray" }}>
                                             📅 {song.result.release_date_for_display}
                                         </span>
                                     </div>
@@ -389,14 +372,14 @@ const Dashboard = ({ user }) => {
                             ))}
                         </ul>
                     ) : (
-                        <p style={{fontStyle: "italic", color: "gray"}}>No songs found.</p>
+                        <p style={{ fontStyle: "italic", color: "gray" }}>No songs found.</p>
                     )}
                 </div>
             </div>
 
             {showWordCloud && (
-                <div id="word-cloud" style={{marginTop: "40px"}}>
-                    <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading}/>
+                <div id="word-cloud" style={{ marginTop: "40px" }}>
+                    <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading} />
                 </div>
             )}
         </div>

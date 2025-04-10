@@ -16,6 +16,7 @@ const Navbar = ({ setUser }) => {
                 <Link to="/dashboard" className="hover:text-purple-400">Dashboard</Link>
                 <Link to="/favorites" className="hover:text-purple-400">Favorites</Link>
                 <Link to="/friends" className="hover:text-purple-400">Friends</Link>
+                <Link to="/match" className="hover:text-purple-400">Lyrical Match</Link>
             </div>
             <button
                 onClick={handleLogout}

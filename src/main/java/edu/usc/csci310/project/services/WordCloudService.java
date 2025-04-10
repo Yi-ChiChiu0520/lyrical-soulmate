@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class WordCloudService {
@@ -32,4 +33,6 @@ public class WordCloudService {
     public boolean clearUserWordCloud(String username) {
         return wordCloudRepository.clearUserWordCloud(username);
     }
+
+
 }

@@ -463,6 +463,44 @@ class FavoriteRepositoryTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
+    @Test
+    void testGetAllUsersWithFavoritesSQLExceptionHandled() throws SQLException {
+        Connection mockConn = mock(Connection.class);
+        when(mockConn.prepareStatement(anyString())).thenThrow(new SQLException("Fail"));
+
+        FavoriteRepository repo = new FavoriteRepository(mockConn);
+        List<String> usernames = repo.getAllUsersWithFavorites();
+
+        assertNotNull(usernames);
+        assertTrue(usernames.isEmpty());
+    }
+    @Test
+    void testGetAllUsersWithFavoritesSuccess() throws SQLException {
+        // Insert user into the in-memory favorites table
+        try (PreparedStatement stmt = connection.prepareStatement("""
+        INSERT INTO favorites (username, song_id, title, url, image_url, release_date, artist_name, lyrics, rank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """)) {
+            stmt.setString(1, "user1");
+            stmt.setString(2, "song123");
+            stmt.setString(3, "Song");
+            stmt.setString(4, "url");
+            stmt.setString(5, "img");
+            stmt.setString(6, "2023");
+            stmt.setString(7, "Artist");
+            stmt.setString(8, "Lyrics");
+            stmt.setInt(9, 1);
+            stmt.executeUpdate();
+        }
+
+        // Call method
+        List<String> usernames = repository.getAllUsersWithFavorites();
+
+        // Validate
+        assertEquals(1, usernames.size());
+        assertEquals("user1", usernames.get(0));
+    }
+
 
 }
 
