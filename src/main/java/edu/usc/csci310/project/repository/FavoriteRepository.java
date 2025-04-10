@@ -236,4 +236,20 @@ public class FavoriteRepository {
         }
     }
 
+    public List<String> getAllUsersWithFavorites() {
+        List<String> usernames = new ArrayList<>();
+        String sql = "SELECT DISTINCT username FROM favorites";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                usernames.add(rs.getString("username"));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to get usernames with favorites: " + e.getMessage());
+        }
+
+        return usernames;
+    }
+
 }

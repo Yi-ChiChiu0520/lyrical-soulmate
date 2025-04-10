@@ -22,7 +22,7 @@ public class DatabaseInitializer {
     public void initializeDatabase() {
         try (Statement stmt = connection.createStatement()) {
             System.out.println("✅ Initializing database...");
-            stmt.executeUpdate("DROP TABLE IF EXISTS users");
+            //stmt.executeUpdate("DROP TABLE IF EXISTS users");
 
             // Create Users Table
             String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +

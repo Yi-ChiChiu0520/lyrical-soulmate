@@ -162,7 +162,8 @@ const Dashboard = ({ user }) => {
         setSuccessMessage(added.length > 0 ? `✅ Added: ${added.join(", ")}` : "");
         setErrorMessage(failed.length > 0 ? `⚠️ Already in favorites: ${failed.join(", ")}` : "");
         setIsAddingFavorites(false);
-    };const addSelectedToWordCloud = async () => {
+    };
+    const addSelectedToWordCloud = async () => {
         setCloudLoading(true); // start loading
         const selected = songs.filter(song => selectedSongs.includes(song.result.id));
         const mapped = [];

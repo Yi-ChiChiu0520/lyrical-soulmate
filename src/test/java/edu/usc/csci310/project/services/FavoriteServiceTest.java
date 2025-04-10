@@ -72,4 +72,20 @@ class FavoriteServiceTest {
         assertTrue(result);
         verify(favoriteRepository).swapRanks("user1", 1, 2);
     }
+
+    @Test
+    void testGetAllUsersWithFavorites() {
+        List<String> mockUsers = Arrays.asList("user1", "user2");
+
+        when(favoriteRepository.getAllUsersWithFavorites()).thenReturn(mockUsers);
+
+        List<String> result = favoriteService.getAllUsersWithFavorites();
+
+        assertEquals(2, result.size());
+        assertEquals("user1", result.get(0));
+        assertEquals("user2", result.get(1));
+
+        verify(favoriteRepository).getAllUsersWithFavorites();
+    }
+
 }

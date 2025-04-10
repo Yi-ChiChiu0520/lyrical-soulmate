@@ -6,9 +6,10 @@ import Dashboard from "./pages/Dashboard";
 import Favorites from "./pages/Favorites";
 import Navbar from "./pages/Navbar";
 import FriendsPage from "./pages/FriendsPage";
+import LyricalMatchPage from "./pages/LyricalMatchPage";
 
 const App = () => {
-    const location = useLocation(); // ✅ now inside the component
+    const location = useLocation();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -28,6 +29,7 @@ const App = () => {
                 <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/favorites" element={user ? <Favorites user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/friends" element={user ? <FriendsPage user={user} /> : <Navigate to="/" replace />} />
+                <Route path="/match" element={user ? <LyricalMatchPage user={user} /> : <Navigate to="/" replace />} /> {/* 👈 NEW ROUTE */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>
