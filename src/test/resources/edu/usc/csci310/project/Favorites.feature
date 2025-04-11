@@ -6,6 +6,26 @@ Feature: User Favorites List Feature
     And I try to navigate to the favorites page
     Then I should be redirected to the login page
 
+  Scenario: User removes a favorite song
+    Given I am authenticated
+    And I have added "Show Me How by Men I Trust" to my favorites
+    When I navigate to the favorites page
+    And I hover over "Show Me How by Men I Trust"
+    And I click the remove button on "Show Me How by Men I Trust"
+    And I see the remove confirmation modal
+    And I confirm removal
+    Then I should not see "Show Me How by Men I Trust" in my favorites list
+
+  Scenario: User does not confirm song removal
+    Given I am authenticated
+    And I have added "Winona by Drop Nineteens" to my favorites
+    When I navigate to the favorites page
+    And I hover over "Winona by Drop Nineteens"
+    And I click the remove button on "Winona by Drop Nineteens"
+    And I see the remove confirmation modal
+    And I do not confirm removal
+    Then I should see "Winona by Drop Nineteens" in my favorites list
+
   Scenario: Favorites persist across sessions with correct order
     Given I am authenticated
     And My favorites list is empty
@@ -80,14 +100,6 @@ Feature: User Favorites List Feature
     When I navigate to the favorites page
     And I hover over "The Phone Works Both Ways by The Jazz June"
     Then I should see the move and remove buttons on "The Phone Works Both Ways by The Jazz June"
-
-  Scenario: User removes a favorite song
-    Given I am authenticated
-    And I have added "Show Me How by Men I Trust" to my favorites
-    When I navigate to the favorites page
-    And I hover over "Show Me How by Men I Trust"
-    And I click the remove button on "Show Me How by Men I Trust"
-    And I should not see "Show Me How by Men I Trust" in my favorites list
 
   Scenario: User fails to add duplicate song
     Given I am authenticated

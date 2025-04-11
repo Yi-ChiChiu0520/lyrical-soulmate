@@ -207,7 +207,14 @@ public class FavoriteStepDefs {
     public void iRemoveFromMyFavoritesList(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
-        song.findElement(By.id("remove-favorite")).click();
+
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement button = wait.until(driver -> {
+            WebElement b = song.findElement(By.id("remove-favorite"));
+            return b.isDisplayed() ? b : null;
+        });
+
+        button.click();
     }
 
     @And("I click the move up button on {string}")
@@ -351,5 +358,22 @@ public class FavoriteStepDefs {
         DriverManager.resetUserFavorites(connection, "testUser");
         iNavigateToTheFavoritesPage();
         assertNull(getFavoritesList(), "Expected favorites list to be empty.");
+    }
+
+    @And("I confirm removal")
+    public void iConfirmRemoval() {
+        StepHelper.clickButtonWithId("accept-remove");
+    }
+
+    @And("I do not confirm removal")
+    public void iDoNotConfirmRemoval() {
+        StepHelper.clickButtonWithId("decline-remove");
+    }
+
+    @And("I see the remove confirmation modal")
+    public void iSeeTheRemoveConfirmationModal() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement modal = wait.until(driver -> driver.findElement(By.id("confirm-remove-modal")));
+        assert modal.isDisplayed();
     }
 }

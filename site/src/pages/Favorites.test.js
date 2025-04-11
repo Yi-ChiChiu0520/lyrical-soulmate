@@ -236,10 +236,13 @@ describe('Favorites Component', () => {
         const removeButtons = screen.getAllByText('❌ Remove');
         fireEvent.click(removeButtons[0]);
 
+        const confirmRemove = screen.getAllByText('Yes, remove song');
+        fireEvent.click(confirmRemove[0]);
+
         expect(axios.delete).toHaveBeenCalledWith(
             `http://localhost:8080/api/favorites/remove/${mockUser}/1`
         );
-        expect(axios.get).toHaveBeenCalledTimes(2); // Initial load and after deletion
+        expect(axios.get).toHaveBeenCalledTimes(3); // Initial load and after deletion
     });
 
     test('moves a favorite up', async () => {
@@ -411,12 +414,41 @@ describe('Favorites Component', () => {
         const removeButtons = screen.getAllByText('❌ Remove');
         fireEvent.click(removeButtons[0]);
 
+        const confirmRemove = screen.getAllByText('Yes, remove song');
+        fireEvent.click(confirmRemove[0]);
+
         await waitFor(() => {
             expect(console.error).toHaveBeenCalledWith(
                 'Error removing from favorites:',
                 expect.any(Error)
             );
         });
+    });
+
+    test('handles remove cancellation', async () => {
+        render(
+            <BrowserRouter>
+                <Favorites user={mockUser} />
+            </BrowserRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song 1's <li> so the Remove button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
+        // Now the remove button is in the DOM
+        const removeButtons = screen.getAllByText('❌ Remove');
+        fireEvent.click(removeButtons[0]);
+
+        const declineRemove = screen.getAllByText('No');
+        fireEvent.click(declineRemove[0]);
+
+
+        expect(screen.getByText('Test Song 1')).toBeInTheDocument();
     });
 
     test('filters out invalid songs from API response', async () => {
