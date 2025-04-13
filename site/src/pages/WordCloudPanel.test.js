@@ -112,14 +112,15 @@ describe('WordCloudPanel Component', () => {
         });
 
         // Switch to table view
-        fireEvent.click(screen.getByText(/switch to tabular/i));
+        fireEvent.click(screen.getByRole('button', { name: /table/i }));
+
 
         // Check for table headers
         expect(screen.getByText('Word')).toBeInTheDocument();
         expect(screen.getByText('Count')).toBeInTheDocument();
 
         // Switch back to cloud view
-        fireEvent.click(screen.getByText(/switch to word cloud/i));
+        fireEvent.click(screen.getByRole('button', { name: /Word Cloud/i }));
 
         // Should be back to cloud view with no table headers
         expect(screen.queryByText('Word')).not.toBeInTheDocument();
@@ -215,7 +216,7 @@ describe('WordCloudPanel Component', () => {
         });
 
         // Find and click the Remove button for the first song
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('Remove');
         fireEvent.click(removeButtons[0]);
 
         // Verify the API call was made
@@ -325,7 +326,7 @@ describe('WordCloudPanel Component', () => {
         });
 
         // Try to remove it
-        fireEvent.click(screen.getByText('❌ Remove'));
+        fireEvent.click(screen.getByText('Remove'));
 
         // Check that the error was logged
         await waitFor(() => {
@@ -389,7 +390,7 @@ describe('WordCloudPanel Component', () => {
         });
 
         // Switch to tabular view
-        fireEvent.click(screen.getByText(/switch to tabular/i));
+        fireEvent.click(screen.getByRole("button", {name: /Table/i}));
 
         // Wait for table rows to appear
         const tableRow = screen.getByText('happiness').closest('tr');

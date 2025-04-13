@@ -233,7 +233,7 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Now the remove button is in the DOM
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('❌');
         fireEvent.click(removeButtons[0]);
 
         const confirmRemove = screen.getAllByText('Yes, remove song');
@@ -411,7 +411,7 @@ describe('Favorites Component', () => {
         const song1Li = screen.getByText('Test Song 1').closest('li');
         fireEvent.mouseEnter(song1Li);
 
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('❌');
         fireEvent.click(removeButtons[0]);
 
         const confirmRemove = screen.getAllByText('Yes, remove song');
@@ -441,7 +441,7 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Now the remove button is in the DOM
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('❌');
         fireEvent.click(removeButtons[0]);
 
         const declineRemove = screen.getAllByText('No');
@@ -492,14 +492,14 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Confirm the Remove button is now visible
-        expect(screen.queryByText('❌ Remove')).toBeInTheDocument();
+        expect(screen.queryByText('❌')).toBeInTheDocument();
 
         // Trigger mouse leave
         fireEvent.mouseLeave(song1Li);
 
         // The Remove button should no longer be visible
         await waitFor(() => {
-            expect(screen.queryByText('❌ Remove')).not.toBeInTheDocument();
+            expect(screen.queryByText('❌')).not.toBeInTheDocument();
         });
     });
 

@@ -261,128 +261,140 @@ const Dashboard = ({ user }) => {
     if (!user) return <Navigate to="/" replace />;
 
     return (
-        <div style={{ textAlign: "center", marginTop: "50px" }} onClick={resetInactivityTimer}>
-            <h2>Welcome, {user}!</h2>
+        <div onClick={resetInactivityTimer} className="@container flex-1 px-4 py-12 bg-[#d0c2dc]">
+            <div className="max-w-4xl mx-auto space-y-8">
+                <h2 className="text-3xl font-bold text-center text-[#3d3547] mb-8">Welcome, {user}!</h2>
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
-                <div style={{ flex: "2", maxWidth: "500px", textAlign: "left" }}>
-                    <h3>🔍 Search for a Song</h3>
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="relative flex-grow">
+                            <label htmlFor="songSearch" className="block text-sm font-medium text-gray-700 mb-1">
+                                Search songs
+                            </label>
 
-                    <input
-                        id="song-title"
-                        type="text"
-                        placeholder="Enter artist name..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
-                    />
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                                <input
+                                    id="song-title"
+                                    type="search"
+                                    placeholder="Enter artist name..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none
+                                focus:ring-2 focus:ring-purple-300 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-end">
+                            <label htmlFor="resultCount" className="block text-xs font-medium text-gray-700 mb-1">
+                                Number of results
+                            </label>
+                            <div className="relative flex items-center">
+                                <input
+                                    id="song-limit"
+                                    type="number"
+                                    min="1"
+                                    placeholder="#"
+                                    value={songLimit}
+                                    onChange={(e) => setSongLimit(e.target.value)}
+                                    className="w-32 py-3 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
 
-                    <input
-                        id="song-limit"
-                        type="number"
-                        placeholder="Number of songs to display"
-                        value={songLimit}
-                        onChange={(e) => setSongLimit(e.target.value)}
-                        style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
-                    />
+                        <div className="flex flex-col justify-end">
+                            <label className="block text-sm font-medium text-transparent mb-1">&nbsp;</label>
+                            <button
+                                id="search-button"
+                                onClick={fetchSongs}
+                                className="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-md transition duration-300 ease-in-out flex items-center justify-center shadow-sm"
+                            >
+                                Search
+                            </button>
+                        </div>
+                    </div>
 
-                    <button id="search-button" onClick={fetchSongs} style={{ width: "100%", padding: "8px" }}>
-                        Search
-                    </button>
 
-                    <button
-                        id="add-to-favorites"
-                        onClick={bulkAddToFavorites}
-                        disabled={isAddingFavorites}
-                        style={{
-                            width: "100%",
-                            padding: "8px",
-                            marginTop: "10px",
-                            backgroundColor: "#4CAF50",
-                            color: "white",
-                            opacity: isAddingFavorites ? 0.6 : 1,
-                            cursor: isAddingFavorites ? "not-allowed" : "pointer"
-                        }}
-                    >
-                        {isAddingFavorites ? "Adding..." : "Add Selected to Favorites"}
-                    </button>
+                </div>
 
-                    <button
-                        id="add-to-wordcloud"
-                        onClick={addSelectedToWordCloud}
-                        style={{
-                            width: "100%",
-                            padding: "8px",
-                            marginTop: "10px",
-                            backgroundColor: "#f57c00",
-                            color: "white"
-                        }}
-                    >
-                        Add Selected to Word Cloud
-                    </button>
-
-                    <button
-                        id="add-all-favorites"
-                        onClick={addFavoritesToWordCloud}
-                        style={{
-                            width: "100%",
-                            padding: "8px",
-                            marginTop: "10px",
-                            backgroundColor: "#8c5ad0",
-                            color: "white"
-                        }}
-                    >
-                        {isAddingFavoritesToCloud ? "Adding..." : "Add All Favorites to Word Cloud"}
-                    </button>
-
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+                    <div className="flex flex-col sm:flex-row justify-center gap-2 my-6">
+                        <button
+                            id="add-to-favorites"
+                            onClick={bulkAddToFavorites}
+                            disabled={isAddingFavorites}
+                            className="bg-[#4caf50] hover:bg-green-700 text-gray-100 font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out border border-gray-300"
+                            style={{
+                                opacity: isAddingFavorites ? 0.6 : 1,
+                                cursor: isAddingFavorites ? "not-allowed" : "pointer"
+                            }}
+                        >
+                            {isAddingFavorites ? "Adding..." : "Add Selected to Favorites"}
+                        </button>
+                        <button
+                            id="add-to-wordcloud"
+                            onClick={addSelectedToWordCloud}
+                            className="bg-[#f57c00] hover:bg-orange-700 text-gray-100 font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out border border-gray-300"
+                        >
+                            Add Selected to Word Cloud
+                        </button>
+                        <button
+                            id="add-all-favorites"
+                            onClick={addFavoritesToWordCloud}
+                            className="bg-[#8c5ad0] hover:bg-purple-700 text-gray-100 font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out border border-gray-300"
+                        >
+                            {isAddingFavoritesToCloud ? "Adding..." : "Add All Favorites to Word Cloud"}
+                        </button>
+                    </div>
                     {successMessage && <p id="search-success" style={{ color: "green", marginTop: "10px" }}>{successMessage}</p>}
                     {errorMessage && <p id="search-error" style={{ color: "red" }}>{errorMessage}</p>}
-
-                    <h3 style={{ marginTop: "20px" }}>🎶 Search Results</h3>
-
                     {songs.length > 0 ? (
-                        <ul id="results-list" style={{ listStyleType: "none", padding: 0 }}>
-                            {songs.map((song) => (
-                                <li key={song.result.id} style={{ marginBottom: "10px", display: "flex", alignItems: "center" }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedSongs.includes(song.result.id)}
-                                        onChange={() => toggleSelectSong(song.result.id)}
-                                        style={{ marginRight: "10px" }}
-                                    />
-                                    <img
-                                        src={song.result.header_image_url}
-                                        alt="Song Cover"
-                                        style={{
-                                            width: "50px",
-                                            height: "50px",
-                                            marginRight: "10px",
-                                            borderRadius: "5px"
-                                        }}
-                                    />
-                                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        <div>
+                            <p className="text-center text-gray-500">{`Showing up to ${songLimit} results for "${query}"`}</p>
+                            <ul id="results-list" style={{ listStyleType: "none", padding: 0 }}>
+                                {songs.map((song) => (
+                                    <li key={song.result.id} style={{ marginBottom: "10px", display: "flex", alignItems: "center" }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSongs.includes(song.result.id)}
+                                            onChange={() => toggleSelectSong(song.result.id)}
+                                            style={{ marginRight: "10px" }}
+                                        />
+                                        <img
+                                            src={song.result.header_image_url}
+                                            alt="Song Cover"
+                                            style={{
+                                                width: "50px",
+                                                height: "50px",
+                                                marginRight: "10px",
+                                                borderRadius: "5px"
+                                            }}
+                                        />
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
                                         <span id="song-name" style={{ fontWeight: "bold", cursor: "pointer" }}>
                                             🎵 {song.result.full_title}
                                         </span>
-                                        <span style={{ fontSize: "12px", color: "gray" }}>
+                                            <span style={{ fontSize: "12px", color: "gray" }}>
                                             📅 {song.result.release_date_for_display}
                                         </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     ) : (
-                        <p style={{ fontStyle: "italic", color: "gray" }}>No songs found.</p>
+                        <p className="text-center text-gray-500">No songs found.</p>
                     )}
                 </div>
+                {showWordCloud && (
+                    <div id="word-cloud" className="bg-white p-6 rounded-lg shadow-md" >
+                        <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading} />
+                    </div>
+                )}
             </div>
-
-            {showWordCloud && (
-                <div id="word-cloud" style={{ marginTop: "40px" }}>
-                    <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading} />
-                </div>
-            )}
         </div>
+
     );
 };
 
