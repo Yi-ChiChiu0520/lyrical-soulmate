@@ -7,6 +7,7 @@ import Favorites from "./pages/Favorites";
 import Navbar from "./pages/Navbar";
 import FriendsPage from "./pages/FriendsPage";
 import LyricalMatchPage from "./pages/LyricalMatchPage";
+import Footer from "./pages/Footer.js";
 
 const App = () => {
     const location = useLocation();
@@ -23,6 +24,7 @@ const App = () => {
 
     return (
         <>
+            <div className="min-h-screen flex flex-col">
             {user && location.pathname !== "/" && <Navbar setUser={setUser} />}
             <Routes>
                 <Route path="/" element={<Auth setUser={setUser} />} />
@@ -32,6 +34,9 @@ const App = () => {
                 <Route path="/match" element={user ? <LyricalMatchPage user={user} /> : <Navigate to="/" replace />} /> {/* 👈 NEW ROUTE */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+
+            {user && location.pathname !== "/" && <Footer />}
+            </div>
         </>
     );
 };

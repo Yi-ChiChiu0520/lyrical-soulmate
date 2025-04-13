@@ -74,10 +74,6 @@ const Auth = ({ setUser }) => {
         }
     };
 
-
-
-
-
     const confirmFinalSignup = () => {
         setShowConfirmation(false);
         setMessage("Signup successful! Please log in.");
@@ -85,8 +81,6 @@ const Auth = ({ setUser }) => {
             setIsSignup(false);
         }, 1500);
     };
-
-
 
     const confirmCancel = async () => {
         try {
@@ -128,9 +122,9 @@ const Auth = ({ setUser }) => {
                     className="flex flex-col items-center"
                     onSubmit={handleAuth}>
                     <div className="w-full mb-4 text-left">
-                        <label className="text-white py-2">Username</label>
+                        <label className="text-white block my-2">Username</label>
                         <input
-                            className="w-full p-2 rounded-md border border-gray-300"
+                            className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                             id="username"
                             type="text"
                             placeholder="Username"
@@ -140,9 +134,9 @@ const Auth = ({ setUser }) => {
                         />
                     </div>
                     <div className="w-full mb-4 text-left">
-                        <label className="text-white block mb-1">Password</label>
+                        <label className="text-white block my-2">Password</label>
                         <input
-                            className="w-full p-2 rounded-md border border-gray-300"
+                            className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                             id="password"
                             type="password"
                             placeholder="Password"
@@ -153,9 +147,9 @@ const Auth = ({ setUser }) => {
                     </div>
                     {isSignup && (
                         <div className="w-full mb-4 text-left">
-                            <label className="text-white block mb-1">Confirm Password</label>
+                            <label className="text-white block my-2">Confirm Password</label>
                             <input
-                                className="w-full p-2 rounded-md border border-gray-300"
+                                className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                                 id="confirmPassword"
                                 type="password"
                                 placeholder="Confirm Password"

@@ -151,9 +151,9 @@ public class SignupStepDefs {
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) throws InterruptedException {
         String path;
         switch (input) {
-            case "password" -> path = "/html/body/div/div/div/form/div[1]/input";
+            case "password" -> path = "//*[@id=\"password\"]";
             case "username" -> path = "//*[@id=\"username\"]";
-            case "confirmPassword" -> path = "/html/body/div/div/div/form/div[3]/input";
+            case "confirmPassword" -> path = "//*[@id=\"confirmPassword\"]";
             default -> {
                 path = "";
                 assert (false);
