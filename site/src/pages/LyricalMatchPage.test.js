@@ -33,6 +33,13 @@ describe('LyricalMatchPage', () => {
     beforeEach(() => {
         jest.useFakeTimers();
         jest.clearAllTimers();
+
+        Object.defineProperty(window, "location", {
+            value: { reload: jest.fn() },
+            writable: true,
+        });
+
+        localStorage.setItem("user", "testuser"); // ensure it's set
     });
 
     afterEach(() => {
@@ -279,6 +286,59 @@ describe('LyricalMatchPage', () => {
         // This means the mutual enemy overlay SHOULD NOT appear.
         expect(screen.queryByText("😈 You're each other's lyrical enemy...")).not.toBeInTheDocument();
     });
+
+    test("logs out after 60 seconds of inactivity", async () => {
+        axios.get
+            .mockResolvedValueOnce({ data: mockFavorites }) // favorites
+            .mockResolvedValueOnce({ data: mockAllWordmaps }); // all-wordmaps
+
+        render(<LyricalMatchPage user="testuser" />);
+
+        expect(screen.getByText(/Find Your Lyrical Soulmate/i)).toBeInTheDocument();
+
+        // Fast-forward time to exceed 60s timeout
+        act(() => {
+            jest.advanceTimersByTime(61000);
+        });
+
+        await waitFor(() => {
+            expect(window.location.reload).toHaveBeenCalled();
+        });
+
+        expect(localStorage.getItem("user")).toBeNull(); // Confirm user is cleared
+    });
+    test("does not logout if user is active before timeout", async () => {
+        axios.get
+            .mockResolvedValueOnce({ data: mockFavorites })
+            .mockResolvedValueOnce({ data: mockAllWordmaps });
+
+        render(<LyricalMatchPage user="testuser" />);
+
+        // Simulate mouse move before timeout
+        act(() => {
+            window.dispatchEvent(new Event("mousemove"));
+            jest.advanceTimersByTime(59000);
+        });
+
+        // Wait a moment — no logout should happen
+        await waitFor(() => {
+            expect(window.location.reload).not.toHaveBeenCalled();
+        });
+    });
+    test("does nothing when user is not provided", async () => {
+        const axiosSpy = jest.spyOn(axios, "get");
+
+        render(<LyricalMatchPage user={null} />);
+
+        expect(screen.getByText(/Find Your Lyrical Soulmate/i)).toBeInTheDocument();
+
+        // Wait a tick to allow any potential axios calls
+        await waitFor(() => {
+            // Assert axios was not called with "null" as user
+            expect(axiosSpy).not.toHaveBeenCalledWith(expect.stringContaining("/null"));
+        });
+
+        });
 
 
 });

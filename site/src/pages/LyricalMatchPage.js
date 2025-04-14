@@ -13,8 +13,11 @@ const LyricalMatchPage = ({ user }) => {
     const [enemy, setEnemy] = useState(null);
     const [celebration, setCelebration] = useState(false);
     const [sinister, setSinister] = useState(false);
+    const [lastActivity, setLastActivity] = useState(Date.now());
+    const resetInactivityTimer = () => setLastActivity(Date.now());
 
     useEffect(() => {
+        if (!user) return;
         const fetchMatches = async () => {
             try {
                 // Step 1: Get current user's favorite songs and generate word map
@@ -117,6 +120,30 @@ const LyricalMatchPage = ({ user }) => {
         fetchMatches();
     }, [user]);
 
+    useEffect(() => {
+        if (!user) return;
+
+        const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+        events.forEach(event => window.addEventListener(event, resetInactivityTimer));
+
+        const timeoutCheck = setInterval(() => {
+            if (Date.now() - lastActivity > 60000) {
+                handleLogout();
+                clearInterval(timeoutCheck);
+            }
+        }, 1000);
+
+        return () => {
+            events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
+            clearInterval(timeoutCheck);
+        };
+    }, [user, lastActivity]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("user");
+        window.location.reload();
+    };
+
     // Generates a word frequency map from song lyrics
     const generateWordMap = (songs) => {
         const map = {};
@@ -151,9 +178,8 @@ const LyricalMatchPage = ({ user }) => {
             </ul>
         </div>
     );
-
     return (
-        <div className="p-6 bg-gray-100 min-h-screen">
+        <div onClick={resetInactivityTimer} className="p-6 bg-gray-100 min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-center">🔍 Find Your Lyrical Soulmate & Enemy</h1>
 
             {/* 🎉 Celebration overlay */}
