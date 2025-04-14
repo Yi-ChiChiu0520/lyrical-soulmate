@@ -24,6 +24,16 @@ const mockFavorites = {
 describe("FriendsPage", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.useFakeTimers();
+        Object.defineProperty(window, "location", {
+            value: { reload: jest.fn() },
+            writable: true,
+        });
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
     });
 
     test("renders input and headings", () => {
@@ -46,6 +56,19 @@ describe("FriendsPage", () => {
                 expect(screen.getByText(name)).toBeInTheDocument();
             });
         });
+    });
+    test("logs out after 60 seconds of inactivity", async () => {
+        render(<FriendsPage user={mockUser} />);
+
+        // Fast-forward time by 61 seconds
+        jest.advanceTimersByTime(61000);
+
+        await waitFor(() => {
+            expect(window.location.reload).toHaveBeenCalled();
+        });
+
+        // Optional: check localStorage clearing logic
+        expect(localStorage.getItem("user")).toBeNull();
     });
 
     test("selects and unselects suggestions", async () => {
@@ -330,6 +353,24 @@ describe("FriendsPage", () => {
         map = mergeSongs("alice", [song], map);
 
         expect(map["777"].users).toEqual(["alice"]); // no duplicate
+    });
+    test("does nothing when user is not provided", async () => {
+        const axiosSpy = jest.spyOn(axios, "get");
+
+        render(<FriendsPage user={null} />);
+
+        // Basic UI should still render
+        expect(screen.getByText("Find Friends")).toBeInTheDocument();
+        expect(screen.getByText("Favorite Songs by Everyone")).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Search by username")).toBeInTheDocument();
+
+        // Axios should not be called
+        expect(axiosSpy).not.toHaveBeenCalled();
+
+        // "Add Selected" button should be there but disabled
+        const addButton = screen.getByText("Add Selected");
+        expect(addButton).toBeInTheDocument();
+        expect(addButton).toBeDisabled();
     });
 
 });
