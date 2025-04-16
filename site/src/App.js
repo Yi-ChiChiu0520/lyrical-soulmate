@@ -5,7 +5,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Favorites from "./pages/Favorites";
 import Navbar from "./pages/Navbar";
-import FriendsPage from "./pages/FriendsPage";
+import ComparePage from "./pages/ComparePage";
 import LyricalMatchPage from "./pages/LyricalMatchPage";
 import Footer from "./pages/Footer.js";
 
@@ -30,7 +30,7 @@ const App = () => {
                 <Route path="/" element={<Auth setUser={setUser} />} />
                 <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/favorites" element={user ? <Favorites user={user} /> : <Navigate to="/" replace />} />
-                <Route path="/friends" element={user ? <FriendsPage user={user} /> : <Navigate to="/" replace />} />
+                <Route path="/compare" element={user ? <ComparePage user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/match" element={user ? <LyricalMatchPage user={user} /> : <Navigate to="/" replace />} /> {/* 👈 NEW ROUTE */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

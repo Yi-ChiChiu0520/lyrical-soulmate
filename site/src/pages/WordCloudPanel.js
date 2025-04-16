@@ -6,7 +6,7 @@ const stopWords = new Set([
     "as", "was", "are", "but", "be", "at", "by", "this", "have", "or", "an", "not", "we"
 ]);
 
-const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loadingProp }) => {
+const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingProp }) => {
     const [wordCloudSongs, setWordCloudSongs] = useState([]);
     const [wordMap, setWordMap] = useState([]);
     const [viewMode, setViewMode] = useState("cloud");
@@ -28,21 +28,10 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
         if (Array.isArray(incomingSongs) && incomingSongs.length > 0) {
             generateWordCloud(incomingSongs);
         } else {
-            fetchWordCloudSongs();
+            setWordMap([]);
+            setWordCloudSongs([]);
         }
     }, [incomingSongs]);
-
-    const fetchWordCloudSongs = async () => {
-        try {
-            const res = await axios.get(`http://localhost:8080/api/wordcloud/${user}`);
-            // Ensure we treat res.data as an array.
-            const songs = Array.isArray(res.data) ? res.data : [];
-            setWordCloudSongs(songs);
-            generateWordCloud(songs);
-        } catch (err) {
-            console.error("Failed to fetch word cloud songs:", err);
-        }
-    };
 
     const generateWordCloud = async (songs) => {
         setLoading(true);
@@ -54,7 +43,7 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
                 const res = await axios.get("http://localhost:8080/api/genius/lyrics", {
                     params: { songId: song.songId }
                 });
-                const lyrics = (res.data.lyrics || "")
+                const lyrics = (res.data.lyrics)
                     .toLowerCase()
                     .replace(/[^a-zA-Z\s]/g, "");
                 const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
@@ -68,12 +57,30 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
             }
         }
 
-        const sortedEntries = Object.entries(wordFreq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 100);
+        const entries = Object.entries(wordFreq).slice(0, 100);
 
-        // Shuffle for a scattered appearance.
-        const shuffled = sortedEntries.sort(() => 0.5 - Math.random());
+        // Apply softmax-like scaling for font sizes
+        const counts = entries.map(([_, count]) => count);
+        const max = Math.max(...counts);
+        const min = Math.min(...counts);
+        const range = max - min || 1;
+
+        // Define size limits
+        const minFontSize = 12;
+        const maxFontSize = 48;
+
+        // Scale frequencies to font sizes smoothly
+        const scaled = entries.map(([word, count]) => {
+            const norm = (count - min) / range;
+            const smooth = 1 / (1 + Math.exp(-5 * (norm - 0.5)));
+            const size = minFontSize + smooth * (maxFontSize - minFontSize);
+            return { word, count, size };
+        });
+
+        // Shuffle for visual randomness
+        const shuffled = scaled.sort(() => 0.5 - Math.random());
+
+        setWordMap(shuffled);
 
         setWordMap(shuffled);
         setWordCloudSongs(updatedSongs);
@@ -108,22 +115,18 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
         }
     };
 
-    const handleRemoveFromWordCloud = async (songId) => {
-        try {
-            await axios.delete(`http://localhost:8080/api/wordcloud/remove/${user}/${songId}`);
-            const updated = wordCloudSongs.filter(song => song.songId !== songId);
-            setWordCloudSongs(updated);
-            generateWordCloud(updated);
-        } catch (err) {
-            console.error("Failed to remove song from word cloud:", err);
-        }
+    const handleRemoveFromWordCloud = (songId) => {
+        const updated = wordCloudSongs.filter(song => song.songId !== songId);
+        setWordCloudSongs(updated);
+        generateWordCloud(updated);
     };
+
 
     return (
         <div>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                <h2 className="text-xl font-semibold">Word Cloud</h2>
+                    <h2 className="text-xl font-semibold">Word Cloud</h2>
                     <span className="ml-2 bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
                   {wordCloudSongs.length} songs
                 </span>
@@ -185,19 +188,21 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
                 </p>
             ) : viewMode === "cloud" ? (
                 <div style={{ marginTop: "20px", display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-                    {wordMap.map(([word, count]) => (
+                    {wordMap.map(({ word, size }) => (
                         <span
                             key={word}
                             onClick={() => handleWordClick(word)}
                             style={{
-                                fontSize: `${Math.min(12 + count * 2, 48)}px`,
+                                fontSize: `${size}px`,
                                 margin: "8px",
                                 cursor: "pointer"
                             }}
                         >
-                  {word}
-                </span>
+                        {word}
+                        </span>
                     ))}
+
+
                 </div>
             ) : (
                 <table style={{ margin: "auto", marginTop: "20px", borderCollapse: "collapse" }}>
@@ -209,13 +214,14 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs = [], loading: loa
                     </thead>
                     <tbody>
                     {wordMap
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([word, count]) => (
+                        .sort((a, b) => b.count - a.count)
+                        .map(({ word, count }) => (
                             <tr key={word} onClick={() => handleWordClick(word)} style={{ cursor: "pointer" }}>
                                 <td>{word}</td>
                                 <td>{count}</td>
                             </tr>
                         ))}
+
                     </tbody>
                 </table>
             )}
