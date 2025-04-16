@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const FriendsPage = ({ user }) => {
+const ComparePage = ({ user }) => {
     const [searchInput, setSearchInput] = useState("");
     const [suggestions, setSuggestions] = useState([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState([]);
@@ -207,4 +207,4 @@ export const mergeSongs = (user, songs, existingSongMap) => {
 };
 
 
-export default FriendsPage;
+export default ComparePage;

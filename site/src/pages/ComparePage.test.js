@@ -1,9 +1,9 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import axios from "axios";
-import FriendsPage from "./FriendsPage";
+import ComparePage from "./ComparePage";
 jest.mock("axios");
-import { mergeSongs } from "./FriendsPage";
+import { mergeSongs } from "./ComparePage";
 const mockUser = { username: "testuser" };
 
 const mockSuggestions = ["alice", "bob", "carol"];
@@ -37,7 +37,7 @@ describe("FriendsPage", () => {
     });
 
     test("renders input and headings", () => {
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         expect(screen.getByPlaceholderText("Search by username")).toBeInTheDocument();
         expect(screen.getByText("Find Friends")).toBeInTheDocument();
         expect(screen.getByText("Favorite Songs by Everyone")).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe("FriendsPage", () => {
     test("displays suggestions from API", async () => {
         axios.get.mockResolvedValueOnce({ data: mockSuggestions });
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "a" },
         });
@@ -58,7 +58,7 @@ describe("FriendsPage", () => {
         });
     });
     test("logs out after 60 seconds of inactivity", async () => {
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
 
         // Fast-forward time by 61 seconds
         jest.advanceTimersByTime(61000);
@@ -74,7 +74,7 @@ describe("FriendsPage", () => {
     test("selects and unselects suggestions", async () => {
         axios.get.mockResolvedValueOnce({ data: mockSuggestions });
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "a" },
         });
@@ -99,7 +99,7 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: mockFavorites["alice"] }) // alice favorites
             .mockResolvedValueOnce({ data: mockFavorites["bob"] }); // bob favorites
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "a" },
         });
@@ -131,7 +131,7 @@ describe("FriendsPage", () => {
                 ],
             });
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "a" },
         });
@@ -153,7 +153,7 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: ["carol"] })
             .mockResolvedValueOnce({ data: mockFavorites["carol"] });
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "c" },
         });
@@ -176,7 +176,7 @@ describe("FriendsPage", () => {
     test("handles API error gracefully", async () => {
         axios.get.mockRejectedValueOnce(new Error("Failed"));
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "err" },
         });
@@ -188,7 +188,7 @@ describe("FriendsPage", () => {
     test("clicking a suggestion sets search input", async () => {
         axios.get.mockResolvedValueOnce({ data: mockSuggestions });
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         const input = screen.getByPlaceholderText("Search by username");
 
         fireEvent.change(input, { target: { value: "a" } });
@@ -210,7 +210,7 @@ describe("FriendsPage", () => {
 
         const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "b" },
         });
@@ -231,7 +231,7 @@ describe("FriendsPage", () => {
     test("clicking suggestion span sets search input", async () => {
         axios.get.mockResolvedValueOnce({ data: ["alice", "bob"] });
 
-        render(<FriendsPage user={{ username: "me" }} />);
+        render(<ComparePage user={{ username: "me" }} />);
         const input = screen.getByPlaceholderText("Search by username");
 
         // Trigger search input
@@ -263,7 +263,7 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: mockSuggestions }) // for search
             .mockResolvedValueOnce({ data: mockCarolFavorites }); // for favorites
 
-        render(<FriendsPage user={mockUser} />);
+        render(<ComparePage user={mockUser} />);
 
         // Step 2: Trigger suggestion dropdown
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
@@ -312,7 +312,7 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: [sharedSong] })    // alice's favorites
             .mockResolvedValueOnce({ data: [sharedSong] });   // bob's favorites
 
-        render(<FriendsPage user={{ username: "me" }} />);
+        render(<ComparePage user={{ username: "me" }} />);
 
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "a" },
@@ -357,7 +357,7 @@ describe("FriendsPage", () => {
     test("does nothing when user is not provided", async () => {
         const axiosSpy = jest.spyOn(axios, "get");
 
-        render(<FriendsPage user={null} />);
+        render(<ComparePage user={null} />);
 
         // Basic UI should still render
         expect(screen.getByText("Find Friends")).toBeInTheDocument();

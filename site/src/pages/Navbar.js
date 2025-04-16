@@ -23,7 +23,7 @@ const Navbar = ({ setUser }) => {
                 <div className="flex space-x-6 text-lg">
                     <Link to="/dashboard" className="hover:text-purple-300">Dashboard</Link>
                     <Link to="/favorites" className="hover:text-purple-300">Favorites</Link>
-                    <Link to="/friends" className="hover:text-purple-300">Friends</Link>
+                    <Link to="/compare" className="hover:text-purple-300">Compare</Link>
                     <Link to="/match" className="hover:text-purple-300">Lyrical Match</Link>
                 </div>
             </nav>
