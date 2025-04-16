@@ -113,7 +113,7 @@ describe("FriendsPage", () => {
         fireEvent.click(within(aliceRow).getByRole("checkbox"));
         fireEvent.click(within(bobRow).getByRole("checkbox"));
 
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         await waitFor(() => {
             expect(screen.getByText("Song A")).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe("FriendsPage", () => {
         await waitFor(() => screen.getByText("alice"));
         const aliceRow = screen.getByText("alice").closest("li");
         fireEvent.click(within(aliceRow).getByRole("checkbox"));
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         await waitFor(() => screen.getByText("Mystery Song"));
 
@@ -161,7 +161,7 @@ describe("FriendsPage", () => {
         await waitFor(() => screen.getByText("carol"));
         const carolRow = screen.getByText("carol").closest("li");
         fireEvent.click(within(carolRow).getByRole("checkbox"));
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         await waitFor(() => screen.getByText("Hover Tune"));
 
@@ -186,9 +186,11 @@ describe("FriendsPage", () => {
         });
     });
     test("clicking a suggestion sets search input", async () => {
-        axios.get.mockResolvedValueOnce({ data: mockSuggestions });
+        axios.get
+            .mockResolvedValueOnce({ data: mockSuggestions }) // For initial 'a' search
+            .mockResolvedValueOnce({ data: [] }); // For subsequent 'alice' search
 
-        render(<ComparePage user={mockUser} />);
+        render(<ComparePage user={{ username: "me" }} />);
         const input = screen.getByPlaceholderText("Search by username");
 
         fireEvent.change(input, { target: { value: "a" } });
@@ -197,10 +199,13 @@ describe("FriendsPage", () => {
             expect(screen.getByText("alice")).toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText("alice"));
+        // Find the list item containing "alice"
+        const aliceListItem = screen.getByText("alice").closest("li");
+        // Click the span within that list item
+        fireEvent.click(within(aliceListItem).getByText("alice"));
 
-        // Verify searchInput gets updated to "alice"
-        expect(input.value).toBe("alice");
+        // Verify searchInput gets updated to "alice" after waiting
+        await waitFor(() => expect(input).toHaveValue("alice"), { timeout: 3000 });
     });
     test("logs error when fetching favorites fails", async () => {
         // Mock the search suggestions response
@@ -220,7 +225,7 @@ describe("FriendsPage", () => {
         const bobRow = screen.getByText("bob").closest("li");
         fireEvent.click(within(bobRow).getByRole("checkbox"));
 
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         await waitFor(() => {
             expect(consoleErrorSpy).toHaveBeenCalledWith("Error loading favorites for bob");
@@ -229,7 +234,9 @@ describe("FriendsPage", () => {
         consoleErrorSpy.mockRestore();
     });
     test("clicking suggestion span sets search input", async () => {
-        axios.get.mockResolvedValueOnce({ data: ["alice", "bob"] });
+        axios.get
+            .mockResolvedValueOnce({ data: ["alice", "bob"] }) // For initial 'a' search
+            .mockResolvedValueOnce({ data: [] }); // For subsequent 'alice' search
 
         render(<ComparePage user={{ username: "me" }} />);
         const input = screen.getByPlaceholderText("Search by username");
@@ -240,11 +247,13 @@ describe("FriendsPage", () => {
         // Wait for suggestions to appear
         await waitFor(() => expect(screen.getByText("alice")).toBeInTheDocument());
 
-        // Click the suggestion span (not checkbox)
-        fireEvent.click(screen.getByText("alice"));
+        // Find the list item containing "alice"
+        const aliceListItem = screen.getByText("alice").closest("li");
+        // Click the suggestion span (not checkbox) within that list item
+        fireEvent.click(within(aliceListItem).getByText("alice"));
 
         // The input should now update to "alice"
-        expect(input.value).toBe("alice");
+        await waitFor(() => expect(input).toHaveValue("alice"), { timeout: 3000 });
     });
     test("hovering friend count shows usernames", async () => {
         const mockUser = { username: "testuser" };
@@ -258,7 +267,7 @@ describe("FriendsPage", () => {
             },
         ];
 
-        // Step 1: Mock both suggestions and carol’s favorites
+        // Step 1: Mock both suggestions and carol's favorites
         axios.get
             .mockResolvedValueOnce({ data: mockSuggestions }) // for search
             .mockResolvedValueOnce({ data: mockCarolFavorites }); // for favorites
@@ -277,7 +286,7 @@ describe("FriendsPage", () => {
         fireEvent.click(within(carolRow).getByRole("checkbox"));
 
         // Step 4: Click Add Selected to fetch and render carol's songs
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         // Step 5: Wait for song to appear
         await waitFor(() => {
@@ -328,7 +337,7 @@ describe("FriendsPage", () => {
         fireEvent.click(within(aliceRow).getByRole("checkbox"));
         fireEvent.click(within(bobRow).getByRole("checkbox"));
 
-        fireEvent.click(screen.getByText("Add Selected"));
+        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
 
         // Song should be shown once
         await waitFor(() => {
@@ -368,7 +377,7 @@ describe("FriendsPage", () => {
         expect(axiosSpy).not.toHaveBeenCalled();
 
         // "Add Selected" button should be there but disabled
-        const addButton = screen.getByText("Add Selected");
+        const addButton = screen.getByRole('button', { name: /compare selected/i });
         expect(addButton).toBeInTheDocument();
         expect(addButton).toBeDisabled();
     });
