@@ -13,13 +13,16 @@ const LyricalMatchPage = ({ user }) => {
     const [celebration, setCelebration] = useState(false);
     const [sinister, setSinister] = useState(false);
     const [lastActivity, setLastActivity] = useState(Date.now());
-    const resetInactivityTimer = () => setLastActivity(Date.now());
-
     const [showSoulmate, setShowSoulmate] = useState(false);
     const [showEnemy, setShowEnemy] = useState(false);
+    const [isMutualSoulmate, setIsMutualSoulmate] = useState(false);
+    const [isMutualEnemy, setIsMutualEnemy] = useState(false);
+
+    const resetInactivityTimer = () => setLastActivity(Date.now());
 
     useEffect(() => {
         if (!user) return;
+
         const fetchMatches = async () => {
             try {
                 const userRes = await axios.get(`http://localhost:8080/api/favorites/${user}`);
@@ -46,51 +49,43 @@ const LyricalMatchPage = ({ user }) => {
 
                 const theirMap = generateWordMap(mostSimilar.favorites);
                 const similarityBack = computeSimilarity(theirMap, userMap);
-                let isMutualSoulmate = true;
+                let mutualSoulmate = true;
 
                 for (const other of scored) {
                     if (
                         other.username !== mostSimilar.username &&
                         computeSimilarity(theirMap, other.wordMap) > similarityBack
                     ) {
-                        isMutualSoulmate = false;
+                        mutualSoulmate = false;
                         break;
                     }
                 }
 
                 const enemyMap = generateWordMap(leastSimilar.favorites);
                 const similarityBackFromEnemy = computeSimilarity(enemyMap, userMap);
-                let isMutualEnemy = true;
+                let mutualEnemy = true;
 
                 for (const other of scored) {
                     if (
                         other.username !== leastSimilar.username &&
                         computeSimilarity(enemyMap, other.wordMap) < similarityBackFromEnemy
                     ) {
-                        isMutualEnemy = false;
+                        mutualEnemy = false;
                         break;
                     }
                 }
 
-                if (isMutualSoulmate && isMutualEnemy) {
-                    setCelebration(true);
-                    setTimeout(() => {
-                        setCelebration(false);
-                        setSinister(true);
-                        setTimeout(() => setSinister(false), 4000);
-                    }, 4000);
-                }
+                setIsMutualSoulmate(mutualSoulmate);
+                setIsMutualEnemy(mutualEnemy);
 
-                if (isMutualSoulmate && !isMutualEnemy) {
+                if (mutualSoulmate) {
                     setCelebration(true);
                     setTimeout(() => setCelebration(false), 4000);
                 }
-
-                if (isMutualEnemy && !isMutualSoulmate) {
+                if (mutualEnemy) {
                     setSinister(true);
                     setTimeout(() => setSinister(false), 4000);
                 }
-
             } catch (err) {
                 console.error("❌ Failed to fetch lyrical match data:", err);
             }
@@ -126,7 +121,7 @@ const LyricalMatchPage = ({ user }) => {
     const generateWordMap = (songs) => {
         const map = {};
         for (const song of songs) {
-            const lyrics = (song.lyrics).toLowerCase().replace(/[^a-zA-Z\s]/g, "");
+            const lyrics = song.lyrics.toLowerCase().replace(/[^a-zA-Z\s]/g, "");
             const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
             for (const word of words) {
                 map[word] = (map[word] || 0) + 1;
@@ -145,9 +140,7 @@ const LyricalMatchPage = ({ user }) => {
 
     const UserComparison = ({ title, user }) => (
         <div className="my-6 p-4 border rounded shadow bg-white">
-            <h2 className="text-xl font-bold mb-2">
-                {`${title}: ${user?.username}`}
-            </h2>
+            <h2 className="text-xl font-bold mb-2">{`${title}: ${user?.username}`}</h2>
             <h3 className="text-md mb-2">Their Favorite Songs:</h3>
             <ul className="list-disc pl-6">
                 {user?.favorites?.map(song => (
@@ -162,8 +155,9 @@ const LyricalMatchPage = ({ user }) => {
             <h1 className="text-3xl font-bold mb-6 text-center">🔍 Find Your Lyrical Soulmate & Enemy</h1>
 
             <AnimatePresence>
-                {celebration && showSoulmate && (
+                {celebration && showSoulmate && isMutualSoulmate && (
                     <motion.div
+                        data-testid="celebration-overlay"
                         className="fixed top-0 left-0 w-full h-full bg-purple-500/60 z-50 flex items-center justify-center text-white text-4xl font-bold"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -173,7 +167,7 @@ const LyricalMatchPage = ({ user }) => {
                     </motion.div>
                 )}
 
-                {sinister && showEnemy && (
+                {sinister && showEnemy && isMutualEnemy && (
                     <motion.div
                         data-testid="sinister-overlay"
                         className="fixed top-0 left-0 w-full h-full bg-red-900/70 z-50 flex items-center justify-center text-white text-4xl font-bold"
@@ -191,8 +185,10 @@ const LyricalMatchPage = ({ user }) => {
                     onClick={() => {
                         setShowSoulmate(true);
                         setShowEnemy(false);
-                        setCelebration(true);
-                        setTimeout(() => setCelebration(false), 4000);
+                        if (isMutualSoulmate) {
+                            setCelebration(true);
+                            setTimeout(() => setCelebration(false), 4000);
+                        }
                     }}
                     className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                 >
@@ -202,8 +198,10 @@ const LyricalMatchPage = ({ user }) => {
                     onClick={() => {
                         setShowEnemy(true);
                         setShowSoulmate(false);
-                        setSinister(true);
-                        setTimeout(() => setSinister(false), 4000);
+                        if (isMutualEnemy) {
+                            setSinister(true);
+                            setTimeout(() => setSinister(false), 4000);
+                        }
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                 >
