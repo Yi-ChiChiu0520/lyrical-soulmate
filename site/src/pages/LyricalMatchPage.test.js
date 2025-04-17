@@ -187,75 +187,67 @@ describe('LyricalMatchPage', () => {
             expect(screen.queryByText(/🖤 Your Lyrical Enemy/)).not.toBeInTheDocument();
         });
     });
-    test("most similar user prefers someone else — not a mutual soulmate", async () => {
+    test('most similar user prefers someone else — not a mutual soulmate', async () => {
         const testUserFavorites = [
-            { lyrics: "bright hope love", title: "Shine", artistName: "Ray", songId: "10" }
+            { lyrics: "hope peace love", title: "Dreamer", artistName: "Sky", songId: "1" }
         ];
 
-        const mockOtherUsers = {
+        const mockOthers = {
             bob: {
                 favorites: [
-                    { lyrics: "bright hope love unity", title: "Connected", artistName: "One", songId: "30" }
+                    { lyrics: "hope peace love unity", title: "Harmony", artistName: "Bright", songId: "2" }
                 ],
-                wordMap: { bright: 1, hope: 1, love: 1, unity: 1 }
+                wordMap: { hope: 1, peace: 1, love: 1, unity: 1 }
             },
             alice: {
                 favorites: [
-                    { lyrics: "bright hope love unity trust", title: "Trusted Tune", artistName: "Moon", songId: "40" }
+                    { lyrics: "hope peace love unity trust", title: "Trusted Tune", artistName: "Moon", songId: "3" }
                 ],
-                wordMap: { bright: 1, hope: 1, love: 1, unity: 1, trust: 1 }
+                wordMap: { hope: 1, peace: 1, love: 1, unity: 1, trust: 1 }
             }
         };
 
-        /**
-         * Similarity:
-         * testUser ↔ bob = 3 shared / 5 union = 0.6
-         * bob ↔ alice = 4 shared / 5 union = 0.8 → higher than bob ↔ testUser
-         * ⇒ not mutual soulmate
-         */
+        // console log spy (optional, if you added one)
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
         axios.get.mockImplementation((url) => {
             if (url.includes("/favorites/testuser")) {
                 return Promise.resolve({ data: testUserFavorites });
             }
-            if (url.includes("/favorites/all-wordmaps")) {
-                return Promise.resolve({ data: mockOtherUsers });
-            }
-            return Promise.reject(new Error("Unknown URL"));
+            return Promise.resolve({ data: mockOthers });
         });
 
         render(<LyricalMatchPage user="testuser" />);
-
-        // Show soulmate manually to force overlay logic
         fireEvent.click(await screen.findByText("Show Soulmate"));
 
-        // Should display bob as soulmate
+        // Should show bob as the best match
         expect(await screen.findByText(/🎵 Your Lyrical Soulmate: bob/)).toBeInTheDocument();
 
-        // Confirm celebration overlay does NOT appear due to isMutualSoulmate = false
+        // But overlay should NOT appear because bob prefers alice more
         await waitFor(() => {
-            const overlay = screen.queryByText(/You're each other's lyrical soulmate/);
-            expect(overlay).not.toBeVisible();
+            expect(screen.queryByText(/🎉 You're each other's lyrical soulmate!/)).not.toBeInTheDocument();
         });
 
+        spy.mockRestore();
     });
-    test("least similar user (bob) is not a mutual enemy because charlie is even less similar to bob", async () => {
+
+    test("least similar user is not a mutual enemy because someone else is even less similar to them", async () => {
         const testUserFavorites = [
-            { lyrics: "peace love unity", title: "Calm Song", artistName: "Zen", songId: "1" }
+            { lyrics: "peace love unity", title: "Hope", artistName: "Zen", songId: "1" }
         ];
 
-        const mockAllUsers = {
+        const mockOthers = {
             bob: {
                 favorites: [
-                    { lyrics: "rage mode unity", title: "Rage Song", artistName: "Fury", songId: "2" }
+                    { lyrics: "rage mode unity ", title: "Fight", artistName: "Chaos", songId: "2" }
                 ],
-                wordMap: { war: 1, hate: 1, rage: 1 }
+                wordMap: { war: 1, fear: 1, conflict: 1 }
             },
             charlie: {
                 favorites: [
-                    { lyrics: "peace love unity random", title: "Worse Song", artistName: "Chaos", songId: "3" }
+                    { lyrics: "peace love unity random", title: "Lost", artistName: "Unknown", songId: "3" }
                 ],
-                wordMap: { violence: 1, destruction: 1 }
+                wordMap: { random: 1, nonsense: 1, void: 1 }
             }
         };
 
@@ -263,27 +255,55 @@ describe('LyricalMatchPage', () => {
             if (url.includes("/favorites/testuser")) {
                 return Promise.resolve({ data: testUserFavorites });
             }
+            return Promise.resolve({ data: mockOthers });
+        });
+
+        render(<LyricalMatchPage user="testuser" />);
+        fireEvent.click(await screen.findByText("Show Enemy"));
+
+        // charlie should be the lyrical enemy
+        expect(await screen.findByText(/🖤 Your Lyrical Enemy: charlie/)).toBeInTheDocument();
+
+        // Since charlie is not mutually least similar → overlay should NOT show
+        await waitFor(() => {
+            const overlay = screen.queryByTestId("sinister-overlay");
+            expect(overlay).not.toBeInTheDocument();
+        });
+    });
+    test("shows celebration overlay when mutual soulmate is true", async () => {
+        const userFavorites = [
+            { songId: "1", title: "Love Song", artistName: "Sky", lyrics: "hope peace love" }
+        ];
+
+        const mutualUser = {
+            favorites: [{ songId: "2", title: "Harmony", artistName: "Bright", lyrics: "hope peace love" }],
+            wordMap: { hope: 1, peace: 1, love: 1 }
+        };
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes("/favorites/testuser")) {
+                return Promise.resolve({ data: userFavorites });
+            }
             if (url.includes("/favorites/all-wordmaps")) {
-                return Promise.resolve({ data: mockAllUsers });
+                return Promise.resolve({ data: { bob: mutualUser } });
             }
             return Promise.reject(new Error("Unexpected URL"));
         });
 
-        render(<LyricalMatchPage user="testuser" />);
+        await act(async () => {
+            render(<LyricalMatchPage user="testuser" />);
+        });
 
+        fireEvent.click(await screen.findByText("Show Soulmate"));
 
-        fireEvent.click(await screen.findByText("Show Enemy"));
+        expect(await screen.findByText(/🎉 You're each other's lyrical soulmate!/)).toBeInTheDocument();
 
-        // Validate bob is shown as enemy (based on lowest similarity to test user)
-        expect(await screen.findByText(/🖤 Your Lyrical Enemy: charlie/)).toBeInTheDocument();
+        act(() => {
+            jest.advanceTimersByTime(4000);
+        });
 
-
-        // Validate the sinister overlay should NOT appear due to non-mutual enemy
         await waitFor(() => {
-            const overlay = screen.queryByText(/You're each other's lyrical enemy/);
-            expect(overlay).not.toBeVisible();
+            expect(screen.getByText(/🎉 You're each other's lyrical soulmate!/)).toHaveStyle("opacity: 0");
         });
     });
-
-
 });
