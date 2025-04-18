@@ -527,5 +527,136 @@ public class WordcloudStepDefs {
         return -1;
     }
 
+    @And("I click the add to favorites button on {string}")
+    public void clickAddToFavoritesOn(String songName) throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Find the song container by song name text
+        WebElement songBlock = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(text(), \"" + songName + "\")]/ancestor::div[contains(@class, 'flex')]")
+        ));
+
+        assertNotNull(songBlock, "❌ Could not find song block for: " + songName);
+
+        // Hover to trigger button visibility
+        new Actions(driver).moveToElement(songBlock).perform();
+        Thread.sleep(1000); // Wait for React to render the hover-based button
+
+        // Now locate the 'Add to Favorites' button within this block
+        WebElement favoriteButton = songBlock.findElement(
+                By.xpath(".//button[normalize-space(text())='Add to Favorites']")
+        );
+
+        wait.until(ExpectedConditions.elementToBeClickable(favoriteButton));
+        favoriteButton.click();
+        System.out.println("✅ Clicked 'Add to Favorites' on: " + songName);
+    }
+
+    @And("I add {string} to favorites from Word Cloud")
+    public void addToFavoritesFromWordCloud(String songName) throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        // Locate the outer flex container that wraps the song content
+        WebElement songBlock = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(normalize-space(), \"" + songName + "\")]/ancestor::div[contains(@class, 'flex')]")
+        ));
+
+        // Now hover over the **outer block**, not just the span
+        Actions actions = new Actions(driver);
+        actions.moveToElement(songBlock).pause(Duration.ofMillis(1000)).perform();
+
+        // Explicit wait for the "Add to Favorites" button to appear within this block
+        WebElement favoriteButton = wait.until(ExpectedConditions.visibilityOf(
+                songBlock.findElement(By.xpath(".//button[normalize-space()='Add to Favorites']"))
+        ));
+
+        wait.until(ExpectedConditions.elementToBeClickable(favoriteButton));
+        favoriteButton.click();
+
+        System.out.println("✅ Successfully hovered and clicked 'Add to Favorites' for: " + songName);
+    }
+
+    public WebElement findSongInWordCloud(String songName) {
+        // Locate card from span text → up to its outer container
+        return new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 ->
+                driver1.findElement(By.xpath("//span[contains(normalize-space(), \"" + songName + "\")]/ancestor::div[contains(@class, 'flex')]"))
+        );
+    }
+
+    @And("I hover over {string} in Word Cloud")
+    public void hoverOverInWordCloud(String songName) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Normalize spacing since there may be &nbsp;
+        String normalized = songName.replace("\u00A0", " ").trim();
+
+        WebElement songDiv = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(normalize-space(), \"" + normalized + "\")]/ancestor::div[contains(@class, 'group')]")
+        ));
+
+        assertNotNull(songDiv, "Failed to locate the song container div for hover: " + songName);
+
+        new Actions(driver)
+                .moveToElement(songDiv)
+                .pause(Duration.ofMillis(500)) // Allow react to show the button
+                .perform();
+
+        System.out.println("✅ Hovered over song in Word Cloud: " + songName);
+    }
+
+    @And("I hover over {string} in Word Cloud and click Add to Favorites")
+    public void hoverAndClickAddToFavorites(String songName) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Get the outer song container
+        WebElement songDiv = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(normalize-space(), \"" + songName + "\")]/ancestor::div[contains(@class, 'group')]")
+        ));
+
+        new Actions(driver)
+                .moveToElement(songDiv)
+                .pause(Duration.ofMillis(500))
+                .perform();
+
+        // Wait for the button inside that div to appear and click
+        WebElement button = wait.until(ExpectedConditions.elementToBeClickable(
+                songDiv.findElement(By.tagName("button"))
+        ));
+
+        button.click();
+        System.out.println("✅ Hovered and clicked 'Add to Favorites' for: " + songName);
+    }
+
+    @And("I click on the word {string} in word cloud in tabular")
+    public void clickOnWordInTabular(String word) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Wait for the table to be visible (in tabular view)
+        WebElement table = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//table")));
+
+        // Find the table row where the first <td> contains the word (case insensitive match)
+        WebElement row = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//table//tr[td[1][normalize-space(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')) = '" + word.toLowerCase() + "']]")
+        ));
+
+        // Click the row to trigger the word selection (song list)
+        row.click();
+        System.out.println("✅ Clicked on word \"" + word + "\" in tabular word cloud view");
+    }
+
+    @Then("I should see an error message in word cloud")
+    public void verifyErrorMessageInWordCloud() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Wait for the paragraph that starts with ❌ to appear
+        WebElement message = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//p[starts-with(normalize-space(), '❌')]")
+        ));
+
+        String text = message.getText();
+        assertTrue(text.startsWith("❌"), "Expected an error message starting with ❌ but got: " + text);
+        System.out.println("🚨 Found error message: " + text);
+    }
+
 }
 
