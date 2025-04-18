@@ -1,28 +1,39 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import LyricalIcon from "../images/LyricalIcon.png";
 
 const Navbar = ({ setUser }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
         localStorage.removeItem("user");
-        setUser(null); // 🔁 Clear user state in App
+        setUser(null);
         navigate("/");
     };
 
     return (
-        <nav style={{ display: "flex", justifyContent: "space-between", padding: "10px 20px", backgroundColor: "#333", color: "#fff" }}>
-            <div>
-                <Link to="/dashboard" style={{ color: "white", marginRight: "20px", textDecoration: "none" }}>Dashboard</Link>
-                <Link to="/favorites" style={{ color: "white", textDecoration: "none" }}>Favorites</Link>
+        <div className="@container bg-[#3d3547] text-white px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center">
+                <img src={LyricalIcon} alt="Logo" className="h-8 m-2" />
+                <div className="font-bold text-xl text-white mr-4">Let's Get Lyrical</div>
+                <div className="text-sm bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">Team 28</div>
+
             </div>
+            <nav className="hidden md:block">
+                <div className="flex space-x-6 text-lg">
+                    <Link to="/dashboard" className="hover:text-purple-300">Dashboard</Link>
+                    <Link to="/favorites" className="hover:text-purple-300">Favorites</Link>
+                    <Link to="/compare" className="hover:text-purple-300">Compare</Link>
+                    <Link to="/match" className="hover:text-purple-300">Lyrical Match</Link>
+                </div>
+            </nav>
             <button
                 onClick={handleLogout}
-                style={{ background: "red", color: "white", padding: "5px 10px", border: "none", cursor: "pointer" }}
+                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white"
             >
                 Logout
             </button>
-        </nav>
+        </div>
     );
 };
 

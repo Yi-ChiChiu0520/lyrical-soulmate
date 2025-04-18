@@ -128,6 +128,17 @@ public class SignupStepDefs {
         assertTrue(errorTextPresent);
     }
 
+    @Then("I see a password requirement error")
+    public void i_see_password_requirement_error() {
+        String expectedError = "Password must contain at least one uppercase letter, one lowercase letter, and one number.";
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait.until( d-> driver.findElement(By.id("errorMessage")));
+        WebElement errorElement = driver.findElement(By.id("errorMessage")); // adjust selector as needed
+        String actualError = errorElement.getText();
+        assertEquals(expectedError, actualError);
+    }
+
+
     @Then("I should be on the login page")
     public void iShouldBeOnTheLoginPage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
@@ -140,9 +151,9 @@ public class SignupStepDefs {
     public void iShouldSeeAnInputErrorMessage(String input, String expectedMessage) throws InterruptedException {
         String path;
         switch (input) {
-            case "password" -> path = "/html/body/div/div/div/form/div[1]/input";
+            case "password" -> path = "//*[@id=\"password\"]";
             case "username" -> path = "//*[@id=\"username\"]";
-            case "confirmPassword" -> path = "/html/body/div/div/div/form/div[3]/input";
+            case "confirmPassword" -> path = "//*[@id=\"confirmPassword\"]";
             default -> {
                 path = "";
                 assert (false);

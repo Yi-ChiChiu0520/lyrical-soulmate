@@ -21,4 +21,14 @@ public class StepHelper {
 
         return actualMessage.equals(expectedError);
     }
+
+    public static void clickButtonWithId(String id) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement button = wait.until(driver -> {
+            WebElement b = driver.findElement(By.id(id));
+            return b.isDisplayed() ? b : null;
+        });
+
+        button.click();
+    }
 }

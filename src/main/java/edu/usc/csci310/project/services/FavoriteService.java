@@ -41,4 +41,9 @@ public class FavoriteService {
     public boolean swapRanks(String username, int rank1, int rank2) {
         return favoriteRepository.swapRanks(username, rank1, rank2);
     }
+
+    public List<String> getAllUsersWithFavorites() {
+        return favoriteRepository.getAllUsersWithFavorites();
+    }
+
 }

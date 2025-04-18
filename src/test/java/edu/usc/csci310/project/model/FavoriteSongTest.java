@@ -58,4 +58,11 @@ class FavoriteSongTest {
         assertEquals("New lyrics", song.getLyrics());
         assertEquals(5, song.getRank());
     }
+
+    @Test
+    void testDefaultConstructorAndId() {
+        FavoriteSong emptySong = new FavoriteSong();
+        emptySong.setId(99L);
+        assertEquals(99L, emptySong.getId());
+    }
 }

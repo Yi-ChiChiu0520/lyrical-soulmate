@@ -46,9 +46,7 @@ public class FavoriteController {
     @GetMapping("/{username}")
     public ResponseEntity<List<FavoriteSong>> getFavorites(@PathVariable String username) {
         List<FavoriteSong> favorites = favoriteService.getFavorites(username);
-//        for (FavoriteSong song : favorites) {
-//            System.out.println("🎵 " + song.getTitle() + " — Lyrics: " + song.getLyrics());
-//        }
+
         return favorites.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(favorites);
     }
 
@@ -89,6 +87,47 @@ public class FavoriteController {
         }
     }
 
+
+    @GetMapping("/all-wordmaps")
+    public ResponseEntity<Map<String, Map<String, Object>>> getAllFavoritesWordMaps() {
+        List<String> usernames = favoriteService.getAllUsersWithFavorites();
+        Map<String, Map<String, Object>> result = new HashMap<>();
+
+        for (String username : usernames) {
+            List<FavoriteSong> songs = favoriteService.getFavorites(username);
+            Map<String, Integer> wordMap = generateWordMapFromFavorites(songs);
+
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("wordMap", wordMap);
+            userData.put("favorites", songs);
+
+            result.put(username, userData);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    private static final List<String> STOP_WORDS = List.of(
+            "the", "and", "a", "to", "of", "in", "is", "it", "you", "that", "on", "for", "with",
+            "as", "was", "are", "but", "be", "at", "by", "this", "have", "or", "an", "not", "we"
+    );
+
+    private Map<String, Integer> generateWordMapFromFavorites(List<FavoriteSong> songs) {
+        Map<String, Integer> wordFreq = new HashMap<>();
+
+        for (FavoriteSong song : songs) {
+            String lyrics = song.getLyrics().toLowerCase().replaceAll("[^a-zA-Z\\s]", "");
+            String[] words = lyrics.split("\\s+");
+
+            for (String word : words) {
+                if (!STOP_WORDS.contains(word)) {
+                    wordFreq.put(word, wordFreq.getOrDefault(word, 0) + 1);
+                }
+            }
+        }
+
+        return wordFreq;
+    }
 
 
 }

@@ -152,6 +152,47 @@ public class FavoriteRepository {
             }
         }
     }
+    public List<FavoriteSong> findByUsername(String hashedUsername) {
+        String sql = "SELECT * FROM favorites WHERE username = ?";
+        List<FavoriteSong> songs = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, hashedUsername);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                FavoriteSong song = new FavoriteSong();
+                song.setId(rs.getLong("id"));
+                song.setSongId(rs.getString("song_id"));
+                song.setTitle(rs.getString("title"));
+                song.setArtistName(rs.getString("artist_name"));
+                song.setReleaseDate(rs.getString("release_date"));
+                songs.add(song);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error fetching favorites: " + e.getMessage());
+        }
+
+        return songs;
+    }
+
+    public List<String> findUsernamesBySongId(String songId) {
+        String sql = "SELECT username FROM favorites WHERE song_id = ?";
+        List<String> users = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, songId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                users.add(rs.getString("username"));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error getting usernames for song: " + e.getMessage());
+        }
+
+        return users;
+    }
 
     /**
      * Get the next available rank for a new favorite song.
@@ -193,6 +234,22 @@ public class FavoriteRepository {
                 System.err.println("❌ Error closing PreparedStatement: " + e.getMessage());
             }
         }
+    }
+
+    public List<String> getAllUsersWithFavorites() {
+        List<String> usernames = new ArrayList<>();
+        String sql = "SELECT DISTINCT username FROM favorites";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                usernames.add(rs.getString("username"));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to get usernames with favorites: " + e.getMessage());
+        }
+
+        return usernames;
     }
 
 }

@@ -1,4 +1,5 @@
 Feature: Signup Functionality
+  # SPRINT REVIEW 2: Got points but we need the opposite case, where the cancel modal is declined
   Scenario: Cancel signup and confirming clears forms and redirects to login
     Given I am on the signup page
     When I enter the username "testUser1"
@@ -25,7 +26,7 @@ Feature: Signup Functionality
     And I enter the password "<password>"
     And I confirm the password with "<password>"
     And I click the signup button
-    Then I see error "Password must contain at least one uppercase letter, one lowercase letter, and one number."
+    Then I see a password requirement error
 
   Examples:
     | username  | password |  |
@@ -51,6 +52,7 @@ Feature: Signup Functionality
     Then I should be registered successfully
     And I should be redirected to the login page
 
+  # SPRINT REVIEW 2: Not needed + no points
   Scenario: Valid signup but decline confirm redirects to login
     Given I am on the signup page
     When I enter the username "newUser1"

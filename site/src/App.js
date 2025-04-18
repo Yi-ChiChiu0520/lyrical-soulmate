@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Favorites from "./pages/Favorites";
 import Navbar from "./pages/Navbar";
+import ComparePage from "./pages/ComparePage";
+import LyricalMatchPage from "./pages/LyricalMatchPage";
+import Footer from "./pages/Footer.js";
 
 const App = () => {
+    const location = useLocation();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -20,13 +24,19 @@ const App = () => {
 
     return (
         <>
-            {user && <Navbar setUser={setUser} />}
+            <div className="min-h-screen flex flex-col">
+            {user && location.pathname !== "/" && <Navbar setUser={setUser} />}
             <Routes>
                 <Route path="/" element={<Auth setUser={setUser} />} />
                 <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" replace />} />
                 <Route path="/favorites" element={user ? <Favorites user={user} /> : <Navigate to="/" replace />} />
+                <Route path="/compare" element={user ? <ComparePage user={user} /> : <Navigate to="/" replace />} />
+                <Route path="/match" element={user ? <LyricalMatchPage user={user} /> : <Navigate to="/" replace />} /> {/* 👈 NEW ROUTE */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+
+            {user && location.pathname !== "/" && <Footer />}
+            </div>
         </>
     );
 };

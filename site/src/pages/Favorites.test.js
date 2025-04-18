@@ -233,13 +233,16 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Now the remove button is in the DOM
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('❌');
         fireEvent.click(removeButtons[0]);
+
+        const confirmRemove = screen.getAllByText('Yes, remove song');
+        fireEvent.click(confirmRemove[0]);
 
         expect(axios.delete).toHaveBeenCalledWith(
             `http://localhost:8080/api/favorites/remove/${mockUser}/1`
         );
-        expect(axios.get).toHaveBeenCalledTimes(2); // Initial load and after deletion
+        expect(axios.get).toHaveBeenCalledTimes(3); // Initial load and after deletion
     });
 
     test('moves a favorite up', async () => {
@@ -408,8 +411,11 @@ describe('Favorites Component', () => {
         const song1Li = screen.getByText('Test Song 1').closest('li');
         fireEvent.mouseEnter(song1Li);
 
-        const removeButtons = screen.getAllByText('❌ Remove');
+        const removeButtons = screen.getAllByText('❌');
         fireEvent.click(removeButtons[0]);
+
+        const confirmRemove = screen.getAllByText('Yes, remove song');
+        fireEvent.click(confirmRemove[0]);
 
         await waitFor(() => {
             expect(console.error).toHaveBeenCalledWith(
@@ -417,6 +423,32 @@ describe('Favorites Component', () => {
                 expect.any(Error)
             );
         });
+    });
+
+    test('handles remove cancellation', async () => {
+        render(
+            <BrowserRouter>
+                <Favorites user={mockUser} />
+            </BrowserRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song 1's <li> so the Remove button appears
+        const song1Li = screen.getByText('Test Song 1').closest('li');
+        fireEvent.mouseEnter(song1Li);
+
+        // Now the remove button is in the DOM
+        const removeButtons = screen.getAllByText('❌');
+        fireEvent.click(removeButtons[0]);
+
+        const declineRemove = screen.getAllByText('No');
+        fireEvent.click(declineRemove[0]);
+
+
+        expect(screen.getByText('Test Song 1')).toBeInTheDocument();
     });
 
     test('filters out invalid songs from API response', async () => {
@@ -437,7 +469,7 @@ describe('Favorites Component', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getAllByText(/Test Song/).length).toBe(2);
+            expect(screen.getAllByText(/Test Song/)).toHaveLength(2);
             expect(screen.queryByText('Invalid Song')).not.toBeInTheDocument();
             expect(screen.queryByText('Empty ID')).not.toBeInTheDocument();
         });
@@ -460,14 +492,14 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Confirm the Remove button is now visible
-        expect(screen.queryByText('❌ Remove')).toBeInTheDocument();
+        expect(screen.queryByText('❌')).toBeInTheDocument();
 
         // Trigger mouse leave
         fireEvent.mouseLeave(song1Li);
 
         // The Remove button should no longer be visible
         await waitFor(() => {
-            expect(screen.queryByText('❌ Remove')).not.toBeInTheDocument();
+            expect(screen.queryByText('❌')).not.toBeInTheDocument();
         });
     });
 
