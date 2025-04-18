@@ -20,7 +20,7 @@ public class DriverManager {
 
     public static WebDriver getDriver() {
         if (driver == null) {
-           driver = new ChromeDriver();
+            driver = new ChromeDriver();
         }
         return driver;
     }
@@ -113,4 +113,9 @@ public class DriverManager {
             driver = null; // Reset driver to null after quitting
         }
     }
-} 
+
+    public static void createTestUser(Connection connection, String username) {
+        createUserWithUsername(connection, username);
+        // Set default password if needed
+    }
+}

@@ -11,8 +11,6 @@ const ComparePage = ({ user }) => {
     const [lastActivity, setLastActivity] = useState(Date.now());
     const resetInactivityTimer = () => setLastActivity(Date.now());
 
-
-
     useEffect(() => {
         if (!user) return;
 
@@ -99,15 +97,17 @@ const ComparePage = ({ user }) => {
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     className="p-2 text-black rounded-md w-64"
+                    id="compare-search-input"
                 />
 
                 {suggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white text-black mt-1 rounded shadow w-64 max-h-60 overflow-y-auto">
+                    <ul className="absolute z-10 bg-white text-black mt-1 rounded shadow w-64 max-h-60 overflow-y-auto" id="compare-suggestions-list">
                         {suggestions.map((suggestion) => (
                             <li key={suggestion} className="px-4 py-2 hover:bg-purple-100 flex items-center">
                                 <input
                                     type="checkbox"
                                     className="mr-2"
+                                    value={suggestion}
                                     checked={selectedSuggestions.includes(suggestion)}
                                     onChange={(e) => {
                                         if (e.target.checked) {
@@ -119,23 +119,27 @@ const ComparePage = ({ user }) => {
                                         }
                                     }}
                                 />
-                                <span onClick={() => handleSelectSuggestion(suggestion)}>{suggestion}</span>
+                                <span onClick={() => handleSelectSuggestion(suggestion)} className="cursor-pointer">{suggestion}</span>
                             </li>
                         ))}
                     </ul>
                 )}
 
                 <button
+                    id="compare-add-button"
                     onClick={handleBulkAdd}
                     disabled={selectedSuggestions.length === 0}
-                    className={`ml-4 px-4 py-2 mt-2 rounded ${
-                        selectedSuggestions.length > 0
-                            ? "bg-purple-500 hover:bg-purple-600"
-                            : "bg-gray-500 cursor-not-allowed"
-                    }`}
+                    className={`ml-4 px-4 py-2 mt-2 rounded ${selectedSuggestions.length > 0 ? "bg-purple-500 hover:bg-purple-600" : "bg-gray-500 cursor-not-allowed"}`}
                 >
-                    Add Selected
+                    Compare Selected
                 </button>
+            </div>
+
+            <div id="comparison-results">
+                {/* Render results based on state */}
+            </div>
+            <div id="common-songs">
+                {/* Render common songs based on state */}
             </div>
 
             <h2 className="text-xl font-bold mt-10 mb-4">Favorite Songs by Everyone</h2>
@@ -159,7 +163,6 @@ const ComparePage = ({ user }) => {
     );
 };
 
-// 🧠 Hoverable friend count display
 const FriendHover = ({ usernames }) => {
     const [hovered, setHovered] = useState(false);
 
@@ -181,7 +184,6 @@ const FriendHover = ({ usernames }) => {
     );
 };
 
-// 🔁 Helper: merge songs from multiple users into one map
 export const mergeSongs = (user, songs, existingSongMap) => {
     const updatedMap = { ...existingSongMap };
 
@@ -205,6 +207,5 @@ export const mergeSongs = (user, songs, existingSongMap) => {
 
     return updatedMap;
 };
-
 
 export default ComparePage;
