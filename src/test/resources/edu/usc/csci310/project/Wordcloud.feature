@@ -105,3 +105,47 @@ Feature: Word Cloud Functionality
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     Then The word "i" should be larger than the word "thai"
+
+  Scenario: Adding a song that is already in word cloud to word cloud
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I add "Rap God by Eminem" into the Word Cloud
+
+  Scenario: Add a song in word cloud to favorites
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I click on the word "i" in word cloud
+    And I hover over "Rap God" in Word Cloud and click Add to Favorites
+    And I navigate to the favorites page
+    Then I should see "Rap God by Eminem" in my favorites list
+
+  Scenario: Add a song in word cloud to favorites in tabular mode
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I click the switch to tabular view button
+    And I click on the word "i" in word cloud in tabular
+    And I hover over "Rap God" in Word Cloud and click Add to Favorites
+    And I navigate to the favorites page
+    Then I should see "Rap God by Eminem" in my favorites list
+
+  Scenario: Add a song that's already in favorites in word cloud to favorites
+    Given I am authenticated
+    And I have added "Rap God by Eminem" to my favorites
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I click on the word "i" in word cloud
+    And I hover over "Rap God" in Word Cloud and click Add to Favorites
+    Then I should see an error message in word cloud
+
+  Scenario: Add a song that's already in favorites in word cloud to favorites in tabular
+    Given I am authenticated
+    And I have added "Rap God by Eminem" to my favorites
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I click the switch to tabular view button
+    And I click on the word "i" in word cloud in tabular
+    And I hover over "Rap God" in Word Cloud and click Add to Favorites
+    Then I should see an error message in word cloud
