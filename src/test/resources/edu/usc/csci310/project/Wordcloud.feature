@@ -2,25 +2,28 @@ Feature: Word Cloud Functionality
 
   Scenario: Add a song to Word Cloud
     Given I am authenticated
-    When The Word Cloud is empty
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     Then "Rap God" should be visible inside the Word Cloud
 
   Scenario: Add two songs to Word Cloud
     Given I am authenticated
-    When The Word Cloud is empty
-    And I add "Lose Yourself by Eminem" into the Word Cloud
-    And I add "Rap God by Eminem" into the Word Cloud
+    When I navigate to the dashboard page
+    And I search for "10" songs by "Eminem"
+    And I select "Rap God"
+    And I select "Lose Yourself"
+    And I click the "Add Selected to Word Cloud" button
     And The Word Cloud is loaded
     Then "Lose Yourself" should be visible inside the Word Cloud
     And "Rap God" should be visible inside the Word Cloud
 
   Scenario: Add two songs then remove one from Word Cloud
     Given I am authenticated
-    When The Word Cloud is empty
-    And I add "Lose Yourself by Eminem" into the Word Cloud
-    And I add "Rap God by Eminem" into the Word Cloud
+    When I navigate to the dashboard page
+    And I search for "10" songs by "Eminem"
+    And I select "Rap God"
+    And I select "Lose Yourself"
+    And I click the "Add Selected to Word Cloud" button
     And The Word Cloud is loaded
     And I remove "Rap God by Eminem" from the Word Cloud
     Then "Rap God" should be not visible inside the Word Cloud
@@ -28,7 +31,6 @@ Feature: Word Cloud Functionality
 
   Scenario: Add one song then delete that song
     Given I am authenticated
-    When The Word Cloud is empty
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     And I remove "Rap God by Eminem" from the Word Cloud
@@ -36,7 +38,6 @@ Feature: Word Cloud Functionality
 
   Scenario: Add favorites into word cloud
     Given I am authenticated
-    When The Word Cloud is empty
     And My favorites list is empty
     And I have added "Rap God by Eminem" to my favorites
     And I have added "In My Feelings by Drake" to my favorites
@@ -47,7 +48,6 @@ Feature: Word Cloud Functionality
 
   Scenario: Add favorites then remove favorites
     Given I am authenticated
-    When The Word Cloud is empty
     And My favorites list is empty
     And I have added "God's Plan by Drake" to my favorites
     And I have added "In My Feelings by Drake" to my favorites
@@ -63,7 +63,6 @@ Feature: Word Cloud Functionality
 
   Scenario: Click on word cloud word and shows songs that its from
     Given I am authenticated
-    When The Word Cloud is empty
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     And I click on the word "Rap" in word cloud
@@ -71,9 +70,11 @@ Feature: Word Cloud Functionality
 
   Scenario: Click on word cloud word and shows two songs that its from
     Given I am authenticated
-    When The Word Cloud is empty
-    And I add "Rap God by Eminem" into the Word Cloud
-    And I add "Lose Yourself by Eminem" into the Word Cloud
+    When I navigate to the dashboard page
+    And I search for "10" songs by "Eminem"
+    And I select "Rap God"
+    And I select "Lose Yourself"
+    And I click the "Add Selected to Word Cloud" button
     And The Word Cloud is loaded
     And I click on the word "i" in word cloud
     Then it should show "Rap God by Eminem"
@@ -81,8 +82,26 @@ Feature: Word Cloud Functionality
 
   Scenario: Switch to tabular view
     Given I am authenticated
-    When The Word Cloud is empty
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     And I click the switch to tabular view button
     Then it should show the tabular view
+
+  Scenario: Reload page and word cloud should be gone
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I refresh the dashboard page
+    Then The word cloud should be not visible
+
+  Scenario: Words in word cloud aren't over 100
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    Then The words in word cloud should not be over 100
+
+  Scenario: Words that appear more frequently are rendered larger in the Word Cloud
+    Given I am authenticated
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    Then The word "i" should be larger than the word "thai"
