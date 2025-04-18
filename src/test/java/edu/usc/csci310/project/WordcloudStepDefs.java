@@ -169,173 +169,115 @@ public class WordcloudStepDefs {
     @And("I remove {string} from the Word Cloud")
     public void removeSongFromWordCloud(String songInfo) throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        String[] songParts = songInfo.split(" by ");
+        String songName = songParts[0].trim();
+        String artistName = songParts.length > 1 ? songParts[1].trim() : "";
 
         try {
-            // Break down the song info into parts we might need to match
-            String[] parts = songInfo.split(" by ");
-            String songName = parts[0].trim();
-            String artistName = parts.length > 1 ? parts[1].trim() : "";
-
             boolean removed = wait.until(driver -> {
-                // Get fresh reference to word cloud each time
-                WebElement wordCloud = driver.findElement(By.id("word-cloud"));
-                List<WebElement> listItems = wordCloud.findElements(By.tagName("li"));
+                // Find all song containers in the word cloud
+                List<WebElement> songContainers = driver.findElements(
+                        By.cssSelector("#word-cloud .divide-y > div.py-2")
+                );
 
-                for (WebElement item : listItems) {
+                for (WebElement container : songContainers) {
                     try {
-                        WebElement span = item.findElement(By.tagName("span"));
-                        String spanText = span.getText()
-                                .replace('\u00A0', ' ')
-                                .trim();
+                        // Get the song name element
+                        WebElement songLabel = container.findElement(By.cssSelector(".flex-1.min-w-0"));
+                        String labelText = songLabel.getText().replace("\u00A0", " ").trim();
 
-                        // Check for either full match or partial matches
-                        boolean matchesFull = spanText.equalsIgnoreCase(songInfo);
-                        boolean matchesSong = spanText.toLowerCase().contains(songName.toLowerCase());
-                        boolean matchesArtist = artistName.isEmpty() ||
-                                spanText.toLowerCase().contains(artistName.toLowerCase());
+                        // Check if this is the song we want to remove
+                        if (labelText.contains(songName) &&
+                                (artistName.isEmpty() || labelText.contains(artistName))) {
 
-                        if (matchesFull || (matchesSong && matchesArtist)) {
-                            WebElement removeButton = item.findElement(By.xpath(".//button[contains(text(), 'Remove')]"));
-                            new Actions(driver).moveToElement(removeButton).perform();
-                            removeButton.click();
+                            // Find and click the Remove button
+                            WebElement removeBtn = container.findElement(
+                                    By.cssSelector(".ml-4 button")
+                            );
 
-                            // Wait briefly for removal to take effect
-                            try {
-                                Thread.sleep(500);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
+                            new Actions(driver)
+                                    .moveToElement(removeBtn)
+                                    .pause(300)
+                                    .click(removeBtn)
+                                    .perform();
 
+                            Thread.sleep(800); // Wait for removal to complete
                             return true;
                         }
-                    } catch (NoSuchElementException e) {
-                        continue; // Skip items that don't match our expected structure
-                    } catch (StaleElementReferenceException e) {
-                        return false; // Will retry
+                    } catch (NoSuchElementException | StaleElementReferenceException e) {
+                        continue;
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
                 return false;
             });
 
-            assertTrue(removed, "Could not find and remove song: " + songInfo);
+            assertTrue(removed, "Failed to remove song: " + songInfo);
 
         } catch (TimeoutException e) {
-            // Debug output before failing
-            System.out.println("Final Word Cloud content: " +
-                    driver.findElement(By.id("word-cloud")).getText());
-            throw new AssertionError("Timeout while trying to remove song: " + songInfo, e);
+            String currentContent = driver.findElement(By.id("word-cloud")).getText();
+            throw new AssertionError("Timeout removing '" + songInfo + "'. Current content:\n" + currentContent);
         }
     }
 
     @Then("{string} should be not visible inside the Word Cloud")
     public void verifyWordNotVisibleInWordCloud(String word) throws InterruptedException {
-        Thread.sleep(1500); // Increased initial wait
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15)); // Increased timeout
+        Thread.sleep(1500); // Let UI render changes
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         try {
             boolean isGone = wait.until(driver -> {
                 try {
                     WebElement cloud = driver.findElement(By.id("word-cloud"));
-                    System.out.println("Current Word Cloud content: " + cloud.getText()); // Debug output
+                    List<WebElement> spans = cloud.findElements(By.xpath(".//span"));
 
-                    List<WebElement> spans = cloud.findElements(By.tagName("span"));
-                    if (spans.isEmpty()) {
-                        return true; // No words at all means our word is gone
-                    }
+                    System.out.println("🔍 Checking for word: \"" + word + "\" in Word Cloud");
+                    System.out.println("📦 Word cloud span count: " + spans.size());
 
                     for (WebElement span : spans) {
-                        String spanText = span.getText()
-                                .replace('\u00A0', ' ')
-                                .trim()
-                                .toLowerCase();
-                        System.out.println("Checking span: " + spanText); // Debug
-                        if (spanText.contains(word.toLowerCase())) {
-                            return false; // Word still found
+                        String text = span.getText().replace('\u00A0', ' ').trim().toLowerCase();
+                        System.out.println("🟣 Span text: " + text);
+                        if (text.contains(word.toLowerCase())) {
+                            return false; // Word still present
                         }
                     }
-                    return true; // Word not found in any span
+
+                    return true; // Word not found
                 } catch (StaleElementReferenceException e) {
-                    // Element was refreshed, try again
-                    return false;
+                    return false; // Retry on DOM refresh
                 } catch (NoSuchElementException e) {
-                    // Word cloud container not found - consider word gone
-                    return true;
+                    return true; // If word cloud disappeared, treat as not visible
                 }
             });
 
-            assertTrue(isGone, "Word Cloud still contains the word: " + word);
+            assertTrue(isGone, "❌ Word Cloud still contains the word: \"" + word + "\"");
+            System.out.println("✅ Word \"" + word + "\" is no longer visible in Word Cloud.");
+
         } catch (TimeoutException e) {
-            System.out.println("Final Word Cloud state: " + driver.findElement(By.id("word-cloud")).getText());
-            throw new AssertionError("Timeout waiting for word '" + word + "' to disappear from Word Cloud", e);
+            String finalContent = driver.findElement(By.id("word-cloud")).getText();
+            System.out.println("⛔ Final Word Cloud state: " + finalContent);
+            throw new AssertionError("❌ Timed out waiting for word \"" + word + "\" to disappear from Word Cloud", e);
         }
     }
+
 
     @Then("The word cloud should be not visible")
     public void verifyWordCloudIsNotVisible() throws InterruptedException {
-        Thread.sleep(1000);  // Allow any animation/rendering to complete
+        Thread.sleep(1000);  // Allow animations/rendering to finish
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        boolean isEmpty = wait.until(driver -> {
+        boolean noSongsVisible = wait.until(driver -> {
             try {
                 WebElement cloud = driver.findElement(By.id("word-cloud"));
-                List<WebElement> spans = cloud.findElements(By.tagName("span"));
-                return spans.isEmpty(); // If there are no words, treat as not visible
+                List<WebElement> headers = cloud.findElements(By.xpath(".//h3[contains(text(),'by')]"));
+                return headers.isEmpty(); // No song titles like "Rap God by Eminem"
             } catch (NoSuchElementException e) {
-                return true; // Word cloud container was removed
+                return true; // Word cloud is gone
             }
         });
 
-        assertTrue(isEmpty, "Expected the word cloud to be empty or removed, but it still contains content.");
-    }
-
-    @When("The Word Cloud is empty")
-    public void clearWordCloud() throws InterruptedException {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-
-        // Navigate to dashboard
-        driver.get("http://localhost:8080/dashboard");
-        wait.until(ExpectedConditions.urlContains("dashboard"));
-
-        try {
-            // Optional: add test content if needed
-            ensureWordCloudHasContent();
-
-            // Loop until no more remove buttons are found
-            boolean changesMade;
-            do {
-                changesMade = false;
-
-                // Refresh the word cloud section
-                WebElement wordCloud = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("word-cloud")));
-                List<WebElement> removeButtons = wordCloud.findElements(By.xpath(".//button[contains(text(),'Remove')]"));
-
-                for (WebElement removeButton : removeButtons) {
-                    if (removeButton.isDisplayed()) {
-                        new Actions(driver).moveToElement(removeButton).perform();
-                        removeButton.click();
-                        wait.until(ExpectedConditions.stalenessOf(removeButton));
-                        Thread.sleep(1500);  // Short pause before next check
-                        changesMade = true;
-                        break; // Restart loop since DOM has changed
-                    }
-                }
-
-            } while (changesMade);
-
-            // Final check: no spans left
-            wait.until(driver -> {
-                try {
-                    List<WebElement> spans = driver.findElement(By.id("word-cloud"))
-                            .findElements(By.tagName("span"));
-                    return spans.isEmpty();
-                } catch (NoSuchElementException e) {
-                    return true;
-                }
-            });
-
-        } catch (TimeoutException e) {
-            System.out.println("Word Cloud was already empty or not found.");
-        }
+        assertTrue(noSongsVisible, "❌ Expected no songs in the Word Cloud, but some are still present.");
     }
 
     private void ensureWordCloudHasContent() throws InterruptedException {
@@ -448,25 +390,29 @@ public class WordcloudStepDefs {
     public void waitForWordCloudToLoad() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
-        System.out.println("⏳ Waiting for Word Cloud to load...");
+        System.out.println("⏳ Waiting for Word Cloud to update...");
 
-        boolean loaded = wait.until(driver -> {
+        WebElement wordCloud = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("word-cloud")));
+        int initialSpanCount = wordCloud.findElements(By.tagName("span")).size();
+        System.out.println("📦 Initial span count: " + initialSpanCount);
+
+        boolean updated = wait.until(driver -> {
             try {
-                WebElement wordCloud = driver.findElement(By.id("word-cloud"));
-                List<WebElement> spans = wordCloud.findElements(By.tagName("span"));
-                System.out.println("📦 Span count: " + spans.size());
-                return spans.size() > 0;
-            } catch (NoSuchElementException | StaleElementReferenceException e) {
+                WebElement updatedCloud = driver.findElement(By.id("word-cloud"));
+                int currentSpanCount = updatedCloud.findElements(By.xpath(".//span[normalize-space(text()) != '']")).size();
+                System.out.println("📈 Current span count: " + currentSpanCount);
+                return currentSpanCount > initialSpanCount;
+            } catch (StaleElementReferenceException | NoSuchElementException e) {
                 return false;
             }
         });
 
-        if (!loaded) {
-            throw new TimeoutException("❌ Word Cloud did not finish loading within 20 seconds.");
+        if (!updated) {
+            throw new TimeoutException("❌ Word Cloud did not update after adding a song.");
         }
 
-        Thread.sleep(500); // short buffer to ensure complete render
-        System.out.println("✅ Word Cloud is fully loaded.");
+        Thread.sleep(500); // Optional buffer
+        System.out.println("✅ Word Cloud update confirmed.");
     }
 
     @Then("it should show the tabular view")
@@ -485,17 +431,101 @@ public class WordcloudStepDefs {
     public void clickSwitchToTabularViewButton() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        // Locate the toggle button using partial match on the label
+        // Locate the button using its ID
         WebElement toggleButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[contains(normalize-space(.), 'Switch to')]")
+                By.id("view-table")
         ));
 
         new Actions(driver).moveToElement(toggleButton).perform();
         toggleButton.click();
 
-        // Optional wait for UI transition (tabular view to render)
+        // Wait for the view to switch/render
         Thread.sleep(2000);
-        System.out.println("✅ Clicked 'Switch to Tabular View' button");
+
+        System.out.println("✅ Clicked 'Table' button to switch to tabular view");
     }
+
+    @And("I refresh the dashboard page")
+    public void refreshDashboardPage() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Refresh the page
+        driver.navigate().refresh();
+
+        // Wait until we're back on the dashboard and the word cloud is present
+        wait.until(ExpectedConditions.urlContains("dashboard"));
+
+        // Optional: Wait until the word cloud is visible again (if needed by tests)
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("word-cloud")));
+
+        Thread.sleep(1000); // Brief pause to allow animations or rendering to finish
+        System.out.println("🔄 Dashboard page refreshed and word cloud is ready.");
+    }
+
+    @Then("The words in word cloud should not be over 100")
+    public void verifyWordCloudWordLimit() throws InterruptedException {
+        Thread.sleep(1000); // Allow UI to fully render
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        WebElement wordCloud = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("word-cloud")));
+
+        // Locate the specific word container inside the word cloud
+        WebElement wordContainer = wordCloud.findElement(By.xpath(".//div[contains(@style, 'flex-wrap')]"));
+
+        // Count only span elements inside the word container (actual words)
+        List<WebElement> wordSpans = wordContainer.findElements(By.tagName("span"));
+        int count = wordSpans.size();
+
+        System.out.println("📦 Word count inside word cloud container: " + count);
+
+        assertTrue(count <= 100, "❌ Word cloud has more than 100 words. Found: " + count);
+        System.out.println("✅ Word cloud has " + count + " words (within limit).");
+    }
+
+    @Then("The word {string} should be larger than the word {string}")
+    public void verifyWordSizeComparison(String moreFrequent, String lessFrequent) throws InterruptedException {
+        Thread.sleep(1000);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        WebElement cloud = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("word-cloud")));
+        WebElement wordContainer = cloud.findElement(By.xpath(".//div[contains(@style, 'flex-wrap')]"));
+
+        List<WebElement> spans = wordContainer.findElements(By.tagName("span"));
+
+        double sizeMore = -1;
+        double sizeLess = -1;
+
+        for (WebElement span : spans) {
+            String text = span.getText().replace("\u00A0", " ").trim().toLowerCase();
+            String style = span.getAttribute("style");
+
+            if (text.equals(moreFrequent.toLowerCase())) {
+                sizeMore = extractFontSize(style);
+            } else if (text.equals(lessFrequent.toLowerCase())) {
+                sizeLess = extractFontSize(style);
+            }
+        }
+
+        System.out.println("🔎 Font size of \"" + moreFrequent + "\": " + sizeMore);
+        System.out.println("🔎 Font size of \"" + lessFrequent + "\": " + sizeLess);
+
+        assertTrue(sizeMore > sizeLess,
+                "❌ Expected \"" + moreFrequent + "\" to be larger than \"" + lessFrequent + "\", but it wasn't.");
+        System.out.println("✅ \"" + moreFrequent + "\" is larger than \"" + lessFrequent + "\".");
+    }
+
+    private double extractFontSize(String style) {
+        try {
+            for (String part : style.split(";")) {
+                if (part.trim().startsWith("font-size")) {
+                    return Double.parseDouble(part.split(":")[1].replace("px", "").trim());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to extract font size from: " + style);
+        }
+        return -1;
+    }
+
 }
 
