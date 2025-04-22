@@ -45,11 +45,11 @@ Feature: Song Search functionality
   Scenario: User adds one song to favorites
     Given I am authenticated
     And I navigate to the dashboard page
-    When I search for "10" songs by "The Microphones"
-    And I select "I Felt Your Shape by The Microphones"
+    When I search for "10" songs by "Nirvana"
+    And I select "Polly by Nirvana"
     And I click the "Add Selected to Favorites" button
-    Then I should see success message "✅ Added: I Felt Your Shape by The Microphones"
-    And I should see "I Felt Your Shape by The Microphones" in my favorites list
+    Then I should see success message "✅ Added: Polly by Nirvana"
+    And I should see "Polly by Nirvana" in my favorites list
 
   # SPRINT 2 REVIEW: Repeated
   Scenario: Limit number of search results displayed
