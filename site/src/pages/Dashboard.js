@@ -14,7 +14,6 @@ const Dashboard = ({ user }) => {
     const [songLimit, setSongLimit] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
-    const [showWordCloud, setShowWordCloud] = useState(false);
 
     const [isAddingFavorites, setIsAddingFavorites] = useState(false);
     const [isAddingFavoritesToCloud, setIsAddingFavoritesToCloud] = useState(false);
@@ -41,10 +40,6 @@ const Dashboard = ({ user }) => {
             clearInterval(inactivityInterval);
         };
     }, [user, lastActivity]);
-
-    useEffect(() => {
-        setShowWordCloud(wordCloudSongs.length > 0);
-    }, [wordCloudSongs]);
 
     const handleLogout = () => {
         localStorage.removeItem("user");
@@ -198,7 +193,6 @@ const Dashboard = ({ user }) => {
         }
 
         setWordCloudSongs(mapped);
-        setShowWordCloud(true);
         setCloudLoading(false);
         setIsAddingFavoritesToCloud(false);
     };
@@ -232,7 +226,6 @@ const Dashboard = ({ user }) => {
             });
         }
         setWordCloudSongs(mapped);
-        setShowWordCloud(true);
         setCloudLoading(false);
     };
 
