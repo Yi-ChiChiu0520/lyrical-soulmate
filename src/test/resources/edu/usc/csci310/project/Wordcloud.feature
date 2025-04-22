@@ -39,8 +39,8 @@ Feature: Word Cloud Functionality
   Scenario: Add favorites into word cloud
     Given I am authenticated
     And My favorites list is empty
-    And I have added "Rap God by Eminem" to my favorites
-    And I have added "In My Feelings by Drake" to my favorites
+    And I favorited "Rap God by Eminem"
+    And I favorited "In My Feelings by Drake"
     And I click the "Add All Favorites to Word Cloud" button
     And The Word Cloud is loaded
     Then "Rap God" should be visible inside the Word Cloud
@@ -49,8 +49,8 @@ Feature: Word Cloud Functionality
   Scenario: Add favorites then remove favorites
     Given I am authenticated
     And My favorites list is empty
-    And I have added "God's Plan by Drake" to my favorites
-    And I have added "In My Feelings by Drake" to my favorites
+    And I favorited "God's Plan by Drake"
+    And I favorited "In My Feelings by Drake"
     And I click the "Add All Favorites to Word Cloud" button
     And I navigate to the favorites page
     And I hover over "God's Plan by Drake"
@@ -133,7 +133,7 @@ Feature: Word Cloud Functionality
 
   Scenario: Add a song that's already in favorites in word cloud to favorites
     Given I am authenticated
-    And I have added "Rap God by Eminem" to my favorites
+    And I favorited "Rap God by Eminem"
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     And I click on the word "i" in word cloud
@@ -142,7 +142,7 @@ Feature: Word Cloud Functionality
 
   Scenario: Add a song that's already in favorites in word cloud to favorites in tabular
     Given I am authenticated
-    And I have added "Rap God by Eminem" to my favorites
+    And I favorited "Rap God by Eminem"
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
     And I click the switch to tabular view button
