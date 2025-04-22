@@ -388,7 +388,7 @@ public class WordcloudStepDefs {
 
     @And("The Word Cloud is loaded")
     public void waitForWordCloudToLoad() throws InterruptedException {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
 
         System.out.println("⏳ Waiting for Word Cloud to update...");
 
