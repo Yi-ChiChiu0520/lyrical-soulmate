@@ -10,6 +10,9 @@ const Dashboard = ({ user }) => {
     const [songs, setSongs] = useState([]);
     const [selectedSongs, setSelectedSongs] = useState([]);
     const [wordCloudSongs, setWordCloudSongs] = useState([]);
+    const [cloudStarted, setCloudStarted] = useState(false);
+    const [startMessage, setStartMessage] = useState("");
+
 
     const [songLimit, setSongLimit] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -40,6 +43,21 @@ const Dashboard = ({ user }) => {
             clearInterval(inactivityInterval);
         };
     }, [user, lastActivity]);
+
+    useEffect(() => {
+        const handler = (e) => setStartMessage(e.detail);
+        window.addEventListener("cloud-started", handler);
+        return () => window.removeEventListener("cloud-started", handler);
+    }, []);
+
+    useEffect(() => {
+        if (cloudStarted) {
+            setErrorMessage("");     // Clear error when Word Cloud starts
+            setStartMessage("✅ Word Cloud started!");
+        } else {
+            setStartMessage("");     // Clear start message when Word Cloud is stopped
+        }
+    }, [cloudStarted]);
 
     const handleLogout = () => {
         localStorage.removeItem("user");
@@ -150,83 +168,90 @@ const Dashboard = ({ user }) => {
     };
 
     const addFavoritesToWordCloud = async () => {
-        setCloudLoading(true);
-        setIsAddingFavoritesToCloud(true);
+        if (!cloudStarted) {
+            setErrorMessage("❌ Please start the Word Cloud first.");
+        }else{
+            setCloudLoading(true);
+            setIsAddingFavoritesToCloud(true);
 
-        const response = await axios.get(`http://localhost:8080/api/favorites/${user}`);
-        const favorites = response.data;
+            const response = await axios.get(`http://localhost:8080/api/favorites/${user}`);
+            const favorites = response.data;
 
-        if (!favorites || favorites.length === 0) {
-            setSuccessMessage("");
-            setErrorMessage("No favorites found.");
-            setIsAddingFavoritesToCloud(false);
-            setCloudLoading(false);
-            return;
-        }
-
-        setSuccessMessage("");
-        setErrorMessage("");
-
-        const mapped = [];
-        for (const song of favorites) {
-            let lyrics = "Unknown";
-
-            try {
-                const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
-                    params: { songId: song.songId }
-                });
-                lyrics = lyricsRes.data.lyrics;
-            } catch (err) {
-                console.warn(`Failed to get lyrics for ${song.title}`);
+            if (!favorites || favorites.length === 0) {
+                setSuccessMessage("");
+                setErrorMessage("No favorites found.");
+                setIsAddingFavoritesToCloud(false);
+                setCloudLoading(false);
+                return;
             }
 
-            mapped.push({
-                username: user,
-                songId: song.songId,
-                title: song.title,
-                url: song.url,
-                imageUrl: song.imageUrl,
-                releaseDate: song.releaseDate,
-                artistName: song.artistName,
-                lyrics
-            });
-        }
+            setSuccessMessage("");
+            setErrorMessage("");
 
-        setWordCloudSongs(mapped);
-        setCloudLoading(false);
-        setIsAddingFavoritesToCloud(false);
-    };
+            const mapped = [];
+            for (const song of favorites) {
+                let lyrics = "Unknown";
+
+                try {
+                    const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                        params: { songId: song.songId }
+                    });
+                    lyrics = lyricsRes.data.lyrics;
+                } catch (err) {
+                    console.warn(`Failed to get lyrics for ${song.title}`);
+                }
+
+                mapped.push({
+                    username: user,
+                    songId: song.songId,
+                    title: song.title,
+                    url: song.url,
+                    imageUrl: song.imageUrl,
+                    releaseDate: song.releaseDate,
+                    artistName: song.artistName,
+                    lyrics
+                });
+            }
+
+            setWordCloudSongs(mapped);
+            setCloudLoading(false);
+            setIsAddingFavoritesToCloud(false);
+        }};
 
     const addSelectedToWordCloud = async () => {
-        setCloudLoading(true);
-        const selected = songs.filter(song => selectedSongs.includes(song.result.id));
-        const mapped = [];
+        if (!cloudStarted) {
+            setErrorMessage("❌ Please start the Word Cloud first.");
+        }else{
+            setCloudLoading(true);
+            const selected = songs.filter(song => selectedSongs.includes(song.result.id));
+            const mapped = [];
 
-        for (const song of selected) {
-            let lyrics = "Unknown";
+            for (const song of selected) {
+                let lyrics = "Unknown";
 
-            try {
-                const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
-                    params: { songId: song.result.id }
+                try {
+                    const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                        params: {songId: song.result.id}
+                    });
+                    lyrics = lyricsRes.data.lyrics;
+                } catch (err) {
+                    console.warn(`Failed to get lyrics for ${song.result.full_title}`);
+                }
+
+                mapped.push({
+                    username: user,
+                    songId: song.result.id,
+                    title: song.result.full_title,
+                    url: song.result.url,
+                    imageUrl: song.result.header_image_url,
+                    releaseDate: song.result.release_date_for_display,
+                    artistName: song.result.primary_artist?.name,
+                    lyrics
                 });
-                lyrics = lyricsRes.data.lyrics;
-            } catch (err) {
-                console.warn(`Failed to get lyrics for ${song.result.full_title}`);
             }
-
-            mapped.push({
-                username: user,
-                songId: song.result.id,
-                title: song.result.full_title,
-                url: song.result.url,
-                imageUrl: song.result.header_image_url,
-                releaseDate: song.result.release_date_for_display,
-                artistName: song.result.primary_artist?.name,
-                lyrics
-            });
+            setWordCloudSongs(mapped);
+            setCloudLoading(false);
         }
-        setWordCloudSongs(mapped);
-        setCloudLoading(false);
     };
 
     if (!user) return <Navigate to="/" replace />;
@@ -321,6 +346,7 @@ const Dashboard = ({ user }) => {
                     {successMessage &&
                         <p id="search-success" style={{color: "green", marginTop: "10px"}}>{successMessage}</p>}
                     {errorMessage && <p id="search-error" style={{color: "red"}}>{errorMessage}</p>}
+                    {startMessage && <p style={{ color: "green", marginTop: "8px" }}>{startMessage}</p>}
                     {songs.length > 0 ? (
                         <div>
                             <p className="text-center text-gray-500">{`Showing up to ${songLimit} results for "${query}"`}</p>
@@ -361,7 +387,13 @@ const Dashboard = ({ user }) => {
                     )}
                 </div>
                 <div id="word-cloud" className="bg-white p-6 rounded-lg shadow-md">
-                    <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading}/>
+                    <WordCloudPanel
+                        wordCloudSongs={wordCloudSongs}
+                        user={user}
+                        loading={cloudLoading}
+                        started={cloudStarted}
+                        setStarted={setCloudStarted}
+                    />
                 </div>
 
             </div>
