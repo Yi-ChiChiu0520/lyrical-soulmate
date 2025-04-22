@@ -145,7 +145,7 @@ const Favorites = ({ user }) => {
                                             ⬇️
                                         </button>
                                         <button
-                                            onClick={(e) => {
+                                            onClick={() => {
                                                 setSongToRemove(song);
                                             }}
                                             id="remove-favorite"
