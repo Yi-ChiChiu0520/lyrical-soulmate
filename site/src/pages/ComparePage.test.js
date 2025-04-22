@@ -213,8 +213,9 @@ describe("FriendsPage", () => {
             .mockResolvedValueOnce({ data: ["bob"] }) // suggestions
             .mockRejectedValueOnce(new Error("Network error")); // simulate failure when fetching favorites
 
-        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
+        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
+            // Suppress expected console.error output in test
+        });
         render(<ComparePage user={mockUser} />);
         fireEvent.change(screen.getByPlaceholderText("Search by username"), {
             target: { value: "b" },
