@@ -2,6 +2,8 @@ package edu.usc.csci310.project.controller;
 
 import edu.usc.csci310.project.model.FavoriteSong;
 import edu.usc.csci310.project.services.FavoriteService;
+
+import edu.usc.csci310.project.services.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -9,10 +11,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -22,13 +22,19 @@ public class FavoriteControllerTest {
     @Mock
     private FavoriteService favoriteService;
 
+    @Mock
+    private UserService userService;
+
     @InjectMocks
     private FavoriteController favoriteController;
+
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        favoriteController = new FavoriteController(favoriteService, userService); // updated constructor
     }
+
 
     @Test
     public void testAddFavoriteSuccess() {
@@ -190,6 +196,117 @@ public class FavoriteControllerTest {
 
         // Optional: Ensure no blank entry exists
         assertFalse(wordMap.containsKey(""));
+    }
+
+
+    @Test
+    public void testGetPrivacy_SelfRequest_PrivateTrue() {
+        when(userService.isFavoritesPrivate("alice")).thenReturn(true);
+        ResponseEntity<Boolean> res = favoriteController.getPrivacy("alice", "alice");
+
+        assertEquals(200, res.getStatusCodeValue());
+        assertTrue(res.getBody());
+    }
+
+    @Test
+    public void testGetPrivacy_OtherRequest_PrivateTrue() {
+        when(userService.isFavoritesPrivate("alice")).thenReturn(true);
+        ResponseEntity<Boolean> res = favoriteController.getPrivacy("alice", "bob");
+
+        assertEquals(403, res.getStatusCodeValue());
+    }
+
+    @Test
+    public void testGetPrivacy_OtherRequest_PrivateFalse() {
+        when(userService.isFavoritesPrivate("alice")).thenReturn(false);
+        ResponseEntity<Boolean> res = favoriteController.getPrivacy("alice", "bob");
+
+        assertEquals(200, res.getStatusCodeValue());
+        assertFalse(res.getBody());
+    }
+
+    @Test
+    public void testUpdatePrivacy_Success() {
+        doNothing().when(userService).setFavoritesPrivacy("alice", true);
+        ResponseEntity<Void> res = favoriteController.updatePrivacy("alice", true);
+
+        assertEquals(200, res.getStatusCodeValue());
+    }
+
+    @Test
+    public void testGetFavorites_AsOwner() {
+        String user = "alice";
+        List<FavoriteSong> favorites = List.of(
+                new FavoriteSong(user, "s1", "T", "U", "I", "2023", "A", "L", 1)
+        );
+
+        when(userService.isFavoritesPrivate(user)).thenReturn(true);
+        when(favoriteService.getFavorites(user)).thenReturn(favorites);
+
+        ResponseEntity<?> response = favoriteController.getFavorites(user, user);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(favorites, response.getBody());
+    }
+
+    @Test
+    public void testGetFavorites_AsOtherUser_Private() {
+        String user = "bob";
+        String requester = "alice";
+
+        when(userService.isFavoritesPrivate(user)).thenReturn(true);
+
+        ResponseEntity<?> response = favoriteController.getFavorites(user, requester);
+
+        assertEquals(403, response.getStatusCodeValue());
+    }
+
+    @Test
+    public void testGetFavorites_AsOtherUser_Public() {
+        String user = "bob";
+        String requester = "alice";
+
+        List<FavoriteSong> favorites = List.of(
+                new FavoriteSong(user, "s1", "T", "U", "I", "2023", "A", "L", 1)
+        );
+
+        when(userService.isFavoritesPrivate(user)).thenReturn(false);
+        when(favoriteService.getFavorites(user)).thenReturn(favorites);
+
+        ResponseEntity<?> response = favoriteController.getFavorites(user, requester);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(favorites, response.getBody());
+    }
+    @Test
+    public void testGenerateWordMap_AllBranches() {
+        String username = "branchUser";
+
+        List<FavoriteSong> favorites = List.of(
+                new FavoriteSong(username, "song1", "Branch Test", "", "", "", "",
+                        "uniqueword and     the   \n\t", 1)
+                // Breakdown:
+                // "uniqueword" → not stop word, not blank         ✅ INCLUDE
+                // "and"        → is stop word, not blank           ❌
+                // "the"        → is stop word, not blank           ❌
+                // "\n\t"       → not stop word, IS blank           ❌
+        );
+
+        when(favoriteService.getAllUsersWithFavorites()).thenReturn(List.of(username));
+        when(favoriteService.getFavorites(username)).thenReturn(favorites);
+
+        ResponseEntity<Map<String, Map<String, Object>>> response = favoriteController.getAllFavoritesWordMaps();
+
+        assertEquals(200, response.getStatusCodeValue());
+
+        Map<String, Object> userData = response.getBody().get(username);
+        Map<String, Integer> wordMap = (Map<String, Integer>) userData.get("wordMap");
+
+        // ✅ Assert expected outcomes
+        assertEquals(1, wordMap.get("uniqueword"));         // ✅ Case 1: (!stop && !blank)
+        assertFalse(wordMap.containsKey("and"));            // ❌ Case 2: ( stop && !blank)
+        assertFalse(wordMap.containsKey("the"));            // ❌ Case 2: again
+        assertFalse(wordMap.containsKey(""));               // ❌ Case 3: (!stop && blank)
     }
 
 
