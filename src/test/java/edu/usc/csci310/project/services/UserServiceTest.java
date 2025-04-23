@@ -36,6 +36,7 @@ public class UserServiceTest {
 
         assertFalse(result);
         verify(userRepository).isFavoritesPrivate("testuser");
+
     }
 
     @Test
