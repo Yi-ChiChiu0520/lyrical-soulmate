@@ -48,7 +48,7 @@ public class FavoriteStepDefs {
         }
     }
 
-    @Given("I have added {string} to my favorites")
+    @Given("I favorited {string}")
     public void addSongToFavorites(String songName) {
         driver.get("http://localhost:8080/dashboard");
 
@@ -159,7 +159,7 @@ public class FavoriteStepDefs {
         }
     }
 
-    @Then("I should see search error message {string}")
+    @Then("I'll see error {string}")
     public void iShouldSeeSearchErrorMessage(String expectedMessage) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         try {
@@ -180,6 +180,12 @@ public class FavoriteStepDefs {
         assertNotNull(song);
     }
 
+    @And("I see {string} in favorites")
+    public void iSeeInMyFavoritesList(String songName) {
+        iNavigateToTheFavoritesPage();
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
+    }
     @And("I should not see {string} in my favorites list")
     public void iShouldNotSeeInMyFavoritesList(String songName) {
         iNavigateToTheFavoritesPage();
@@ -194,7 +200,7 @@ public class FavoriteStepDefs {
         new Actions(driver).moveToElement(song).perform();
     }
 
-    @Then("I should see the move and remove buttons on {string}")
+    @Then("I see move remove for {string}")
     public void iShouldSeeTheMoveAndRemoveButtonsOn(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
@@ -224,7 +230,7 @@ public class FavoriteStepDefs {
         song.findElement(By.id("move-up")).click();
     }
 
-    @And("I click the move down button on {string}")
+    @And("I move down {string}")
     public void iMoveDown(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
@@ -375,5 +381,12 @@ public class FavoriteStepDefs {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement modal = wait.until(driver -> driver.findElement(By.id("confirm-remove-modal")));
         assert modal.isDisplayed();
+    }
+
+    @Then("I see artist {string} for {string}")
+    public void iSeeArtistFor(String artist, String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertTrue(song.findElement(By.id("artist-name")).getText().contains(artist));
+
     }
 }
