@@ -113,7 +113,7 @@ const Auth = ({ setUser }) => {
                     ) : (
                         <>
                             <h1 className="text-white font-bold text-2xl" aria-label="Login">
-                                Log in to Let's Get Lyrical
+                                Log in to Let&apos;s Get Lyrical
                             </h1>
                         </>
                     )}
