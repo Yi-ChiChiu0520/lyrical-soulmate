@@ -465,6 +465,88 @@ class UserRepositoryTest {
 
         assertTrue(result.isEmpty());
     }
+    @Test
+    void testIsFavoritesPrivateTrue() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getBoolean("favorites_private")).thenReturn(true);
+
+        boolean result = userRepository.isFavoritesPrivate("user");
+        assertTrue(result);
+    }
+
+    @Test
+    void testIsFavoritesPrivateFalse() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getBoolean("favorites_private")).thenReturn(false);
+
+        boolean result = userRepository.isFavoritesPrivate("user");
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsFavoritesPrivateSQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Failed"));
+
+        assertThrows(RuntimeException.class, () -> userRepository.isFavoritesPrivate("user"));
+    }
+
+    @Test
+    void testUpdateFavoritesPrivacySuccess() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeUpdate()).thenReturn(1);
+
+        assertDoesNotThrow(() -> userRepository.updateFavoritesPrivacy("user", true));
+    }
+
+    @Test
+    void testUpdateFavoritesPrivacySQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Failed"));
+
+        assertThrows(RuntimeException.class, () -> userRepository.updateFavoritesPrivacy("user", false));
+    }
+    @Test
+    void testIsFavoritesPrivate_True() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getBoolean("favorites_private")).thenReturn(true);
+
+        boolean result = userRepository.isFavoritesPrivate("user");
+        assertTrue(result); // ✅ Branch: next=true, getBoolean=true
+    }
+
+    @Test
+    void testIsFavoritesPrivate_FalseFromResultSet() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getBoolean("favorites_private")).thenReturn(false);
+
+        boolean result = userRepository.isFavoritesPrivate("user");
+        assertFalse(result); // ✅ Branch: next=true, getBoolean=false
+    }
+
+    @Test
+    void testIsFavoritesPrivate_ResultSetNextFalse() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
+        when(mockStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        boolean result = userRepository.isFavoritesPrivate("user");
+        assertFalse(result); // ✅ Branch: next=false
+    }
+
+    @Test
+    void testIsFavoritesPrivate_SQLException() throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("fail"));
+
+        assertThrows(RuntimeException.class, () -> userRepository.isFavoritesPrivate("user"));
+        // ✅ Branch: exception thrown
+    }
 
 
 }

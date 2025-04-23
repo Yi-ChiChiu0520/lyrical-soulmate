@@ -46,4 +46,5 @@ public class FavoriteService {
         return favoriteRepository.getAllUsersWithFavorites();
     }
 
+
 }
