@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {render, screen, fireEvent, waitFor, within} from '@testing-library/react';
 import axios from 'axios';
 import WordCloudPanel from './WordCloudPanel';
 import { act } from 'react-dom/test-utils';
@@ -174,6 +174,32 @@ test('shows Add to Favorites button on hover and hides on mouse leave', async ()
         expect(screen.queryByText(/Add to Favorites/i)).not.toBeInTheDocument();
     });
 });
+
+test('clicking a relevant song from word cloud will show lyrics', async() => {
+    axios.get.mockResolvedValue({
+        data: { lyrics: 'sunshine happiness' }
+    });
+
+    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+
+    // wait for word cloud
+    await screen.findByText('sunshine');
+
+    // click a word to trigger relatedSongs
+    fireEvent.click(screen.getByText('sunshine'));
+
+    const songDiv = screen.getByText('Test Song 1');
+    fireEvent.click(songDiv);
+
+    const lyricsLabel = await screen.findByText(/♫ Lyrics:/i);
+    const lyricsContainer = lyricsLabel.parentElement;
+    await waitFor(() => {
+        expect(within(lyricsContainer).getByText(/sunshine/i)).toBeInTheDocument();
+        expect(within(lyricsContainer).getByText(/happiness/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(songDiv);
+})
 
 test('clicking a word in table view shows related songs', async () => {
     axios.get.mockResolvedValue({
