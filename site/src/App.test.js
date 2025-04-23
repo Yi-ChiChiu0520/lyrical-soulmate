@@ -6,7 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 // Mock components to simplify route testing
 jest.mock("./pages/Dashboard", () => () => <div>Mock Dashboard</div>);
 jest.mock("./pages/Favorites", () => () => <div>Mock Favorites</div>);
-jest.mock("./pages/Auth", () => () => <div>Let's Get Lyrical</div>);
+jest.mock("./pages/Auth", () => () => <div>Let&apos;s Get Lyrical</div>);
 jest.mock("./pages/Navbar", () => () => <div>Navbar</div>);
 
 describe("App routing", () => {

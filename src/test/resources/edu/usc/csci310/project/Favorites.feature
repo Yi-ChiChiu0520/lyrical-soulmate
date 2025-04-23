@@ -8,7 +8,7 @@ Feature: User Favorites List Feature
 
   Scenario: User removes a favorite song
     Given I am authenticated
-    And I have added "Show Me How by Men I Trust" to my favorites
+    And I favorited "Show Me How by Men I Trust"
     When I navigate to the favorites page
     And I hover over "Show Me How by Men I Trust"
     And I click the remove button on "Show Me How by Men I Trust"
@@ -18,7 +18,7 @@ Feature: User Favorites List Feature
 
   Scenario: User does not confirm song removal
     Given I am authenticated
-    And I have added "Winona by Drop Nineteens" to my favorites
+    And I favorited "Winona by Drop Nineteens"
     When I navigate to the favorites page
     And I hover over "Winona by Drop Nineteens"
     And I click the remove button on "Winona by Drop Nineteens"
@@ -29,9 +29,9 @@ Feature: User Favorites List Feature
   Scenario: Favorites persist across sessions with correct order
     Given I am authenticated
     And My favorites list is empty
-    When I have added "when you sleep by my bloody valentine" to my favorites
-    And I have added "Nurse! by bar italia" to my favorites
-    And I have added "Sofia by Clairo" to my favorites
+    When I favorited "when you sleep by my bloody valentine"
+    And I favorited "Nurse! by bar italia"
+    And I favorited "Sofia by Clairo"
     Then I should have the following order in my favorites list
       | 0 | when you sleep by my bloody valentine |
       | 1 | Nurse! by bar italia                  |
@@ -49,9 +49,9 @@ Feature: User Favorites List Feature
   Scenario: User moves favorites up and down successfully
     Given I am authenticated
     And My favorites list is empty
-    And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
-    And I have added "Me and Your Mama by Childish Gambino" to my favorites
-    And I have added "Ribs by Lorde" to my favorites
+    And I favorited "The Phone Works Both Ways by The Jazz June"
+    And I favorited "Me and Your Mama by Childish Gambino"
+    And I favorited "Ribs by Lorde"
     When I navigate to the favorites page
     Then I should have the following order in my favorites list
       | 0 | The Phone Works Both Ways by The Jazz June |
@@ -60,7 +60,7 @@ Feature: User Favorites List Feature
     When I hover over "Ribs by Lorde"
     And I click the move up button on "Ribs by Lorde"
     And I hover over "The Phone Works Both Ways by The Jazz June"
-    And I click the move down button on "The Phone Works Both Ways by The Jazz June"
+    And I move down "The Phone Works Both Ways by The Jazz June"
     Then I should have the following order in my favorites list
       | 0 | Ribs by Lorde                              |
       | 1 | The Phone Works Both Ways by The Jazz June |
@@ -69,14 +69,14 @@ Feature: User Favorites List Feature
   Scenario: Moved favorites order persists after re-login
     Given I am authenticated
     And My favorites list is empty
-    And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
-    And I have added "Me and Your Mama by Childish Gambino" to my favorites
-    And I have added "Ribs by Lorde" to my favorites
+    And I favorited "The Phone Works Both Ways by The Jazz June"
+    And I favorited "Me and Your Mama by Childish Gambino"
+    And I favorited "Ribs by Lorde"
     And I navigate to the favorites page
     And I hover over "Ribs by Lorde"
     And I click the move up button on "Ribs by Lorde"
     And I hover over "The Phone Works Both Ways by The Jazz June"
-    And I click the move down button on "The Phone Works Both Ways by The Jazz June"
+    And I move down "The Phone Works Both Ways by The Jazz June"
     When I am not authenticated
     And I am on the login page
     And I am authenticated
@@ -96,23 +96,23 @@ Feature: User Favorites List Feature
   Scenario: Hovering over song shows buttons
     Given I am authenticated
     And My favorites list is empty
-    And I have added "The Phone Works Both Ways by The Jazz June" to my favorites
+    And I favorited "The Phone Works Both Ways by The Jazz June"
     When I navigate to the favorites page
     And I hover over "The Phone Works Both Ways by The Jazz June"
-    Then I should see the move and remove buttons on "The Phone Works Both Ways by The Jazz June"
+    Then I see move remove for "The Phone Works Both Ways by The Jazz June"
 
   Scenario: User fails to add duplicate song
     Given I am authenticated
-    And I have added "Toxic by Britney Spears" to my favorites
+    And I favorited "Toxic by Britney Spears"
     And I navigate to the dashboard page
     When I search for "10" songs by "Britney Spears"
     And I select "Toxic by Britney Spears"
     And I click the "Add Selected to Favorites" button
-    Then I should see search error message "⚠️ Already in favorites: Toxic by Britney Spears"
+    Then I'll see error "⚠️ Already in favorites: Toxic by Britney Spears"
 
   Scenario: Bulk add songs to favorites
     Given I am authenticated
-    And I have added "the Moon by The Microphones" to my favorites
+    And I favorited "the Moon by The Microphones"
     And I navigate to the dashboard page
     When I search for "20" songs by "The Microphones"
     And I select "the Glow pt. 2 by The Microphones"
@@ -120,15 +120,15 @@ Feature: User Favorites List Feature
     And I select "Headless Horseman by The Microphones"
     And I click the "Add Selected to Favorites" button
     Then I should see success message "✅ Added: the Glow pt. 2 by The Microphones, Headless Horseman by The Microphones"
-    And I should see search error message "⚠️ Already in favorites: the Moon by The Microphones"
+    And I'll see error "⚠️ Already in favorites: the Moon by The Microphones"
     And I should see "the Moon by The Microphones" in my favorites list
     And I should see "the Glow pt. 2 by The Microphones" in my favorites list
-    And I should see "Headless Horseman by The Microphones" in my favorites list
+    And I see "Headless Horseman by The Microphones" in favorites
 
   Scenario: User moves song up
     Given I am authenticated
-    And I have added "White Owls by smokedope2016" to my favorites
-    And I have added "Laputa by Panchiko" to my favorites
+    And I favorited "White Owls by smokedope2016"
+    And I favorited "Laputa by Panchiko"
     When I navigate to the favorites page
     And I hover over "Laputa by Panchiko"
     And I click the move up button on "Laputa by Panchiko"
@@ -136,17 +136,17 @@ Feature: User Favorites List Feature
 
   Scenario: User moves song down
     Given I am authenticated
-    And I have added "Venus as a Boy by Björk" to my favorites
-    And I have added "Easter Pink by fakemink" to my favorites
+    And I favorited "Venus as a Boy by Björk"
+    And I favorited "Easter Pink by fakemink"
     When I navigate to the favorites page
     And I hover over "Venus as a Boy by Björk"
-    And I click the move down button on "Venus as a Boy by Björk"
+    And I move down "Venus as a Boy by Björk"
     Then I should see "Easter Pink by fakemink" above "Venus as a Boy by Björk"
 
   Scenario: User views additional song info in favorites
     Given I am authenticated
-    And I have added "Northern Sky by Nick Drake" to my favorites
+    And I favorited "Northern Sky by Nick Drake"
     When I navigate to the favorites page
     And I click on the song title "Northern Sky by Nick Drake"
-    Then I should see the artist name "Nick Drake" for "Northern Sky by Nick Drake"
+    Then I see artist "Nick Drake" for "Northern Sky by Nick Drake"
     And I should see the release date "1971" for "Northern Sky by Nick Drake"

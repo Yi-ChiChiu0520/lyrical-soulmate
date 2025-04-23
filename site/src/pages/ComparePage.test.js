@@ -340,41 +340,46 @@ describe('ComparePage Component', () => {
         });
     });
 
-    test('handles API error with 403 status when fetching friend favorites', async () => {
-        // Set friend1 to fail with 403
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/users/search')) {
-                return Promise.resolve({ data: mockSuggestions });
-            } else if (url.includes(`/api/favorites/${mockUser}`)) {
-                return Promise.resolve({ data: mockFavorites });
-            } else if (url.includes('/api/favorites/privacy/friend1')) {
-                return Promise.resolve({ data: false });
-            } else if (url.includes('/api/favorites/friend1')) {
-                return Promise.reject({ response: { status: 403 } });
-            } else if (url.includes('/api/favorites/privacy/')) {
-                return Promise.resolve({ data: false });
-            }
-            return Promise.reject(new Error('Not found'));
-        });
-
-        render(<ComparePage user={mockUser} />);
-
-        // Search and add friend1
-        const searchInput = screen.getByPlaceholderText('Search by username');
-        fireEvent.change(searchInput, { target: { value: 'fr' } });
-
-        await waitFor(() => {
-            expect(screen.getByText('friend1')).toBeInTheDocument();
-        });
-
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-        fireEvent.click(screen.getByText('Compare Selected'));
-
-        await waitFor(() => {
-            expect(screen.getByText("⚠️ friend1's favorites are private.")).toBeInTheDocument();
-        });
+test('handles API error with 403 status when fetching friend favorites', async () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
+        // Suppress expected console.error output in test
     });
+
+    axios.get.mockImplementation((url) => {
+        if (url.includes('/users/search')) {
+            return Promise.resolve({ data: mockSuggestions });
+        } else if (url.includes(`/api/favorites/${mockUser}`)) {
+            return Promise.resolve({ data: mockFavorites });
+        } else if (url.includes('/api/favorites/privacy/friend1')) {
+            return Promise.resolve({ data: false });
+        } else if (url.includes('/api/favorites/friend1')) {
+            return Promise.reject({ response: { status: 403 } });
+        } else if (url.includes('/api/favorites/privacy/')) {
+            return Promise.resolve({ data: false });
+        }
+        return Promise.reject(new Error('Not found'));
+    });
+
+    render(<ComparePage user={mockUser} />);
+
+    const searchInput = screen.getByPlaceholderText('Search by username');
+    fireEvent.change(searchInput, { target: { value: 'fr' } });
+
+    await waitFor(() => {
+        expect(screen.getByText('friend1')).toBeInTheDocument();
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]);
+    fireEvent.click(screen.getByText('Compare Selected'));
+
+    await waitFor(() => {
+        expect(screen.getByText("⚠️ friend1's favorites are private.")).toBeInTheDocument();
+    });
+
+    consoleErrorSpy.mockRestore(); // Optional: restore console after test
+});
+
 
     test('handles API error when searching for users', async () => {
         // Make search fail
