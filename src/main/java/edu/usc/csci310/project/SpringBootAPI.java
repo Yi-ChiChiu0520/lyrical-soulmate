@@ -19,8 +19,7 @@ public class SpringBootAPI {
 
         // set the genius access token as a system property
         if (geniusAccessToken == null) {
-            System.err.println("Error: GENIUS_ACCESS_TOKEN not found in .env file.");
-            System.exit(1);
+            throw new IllegalStateException("GENIUS_ACCESS_TOKEN not found");
         } else {
             System.setProperty("GENIUS_ACCESS_TOKEN", geniusAccessToken);
         }
