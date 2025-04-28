@@ -100,7 +100,7 @@ Feature: Word Cloud Functionality
     And The Word Cloud is loaded
     Then The words in word cloud should not be over 100
 
-  Scenario: Words that appear more frequently are rendered larger in the Word Cloud
+  Scenario: Words that appear more frequently are larger in the Word Cloud
     Given I am authenticated
     And I add "Rap God by Eminem" into the Word Cloud
     And The Word Cloud is loaded
@@ -140,7 +140,7 @@ Feature: Word Cloud Functionality
     And I hover over "Rap God" in Word Cloud and click Add to Favorites
     Then I should see an error message in word cloud
 
-  Scenario: Add a song that's already in favorites in word cloud to favorites in tabular
+  Scenario: Re-favorite already favorited song from word cloud in tabular
     Given I am authenticated
     And I favorited "Rap God by Eminem"
     And I add "Rap God by Eminem" into the Word Cloud

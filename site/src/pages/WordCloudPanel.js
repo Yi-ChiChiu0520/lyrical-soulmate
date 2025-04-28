@@ -16,6 +16,7 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
     const [hoveredSongId, setHoveredSongId] = useState(null);
     const [statusMessage, setStatusMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [expandedSong,setExpandedSong] = useState(null);
 
     useEffect(() => {
         if (typeof loadingProp === "boolean") {
@@ -90,7 +91,21 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
         const matches = wordCloudSongs.filter(song =>
             song.lyrics?.toLowerCase().includes(word.toLowerCase())
         );
-        setRelatedSongs(matches);
+        const matchesData = matches.map((song) => {
+            const lyrics = song.lyrics;
+            const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
+            const target =word.toLowerCase();
+            let count = 0;
+            for (let word of words) {
+                if (word === target) {
+                    count++;
+                }
+            }
+            return {...song, wordCount: count}
+        })
+        setRelatedSongs(matchesData);
+        setStatusMessage("");
+        setExpandedSong(null);
     };
 
     const addToFavorites = async (song) => {
@@ -122,6 +137,21 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
         setStartError("");
         generateWordCloud(updated);
     };
+
+    function HighlightedLyrics({ lyrics, word }) {
+        const target = word.toLowerCase();
+
+        const highlighted = lyrics.split(" ").map((w, i) => {
+            const match = w === target;
+            return (
+                <span key={i} style={{ backgroundColor: match ? 'yellow' : 'transparent' }}>
+        {w + " "}
+      </span>
+            );
+        });
+
+        return <div style={{ whiteSpace: 'pre-wrap' }}>{highlighted}</div>;
+    }
 
 
     return (
@@ -280,17 +310,35 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                                 onMouseEnter={() => setHoveredSongId(song.songId)}
                                 onMouseLeave={() => setHoveredSongId(null)}
                             >
-                                <span className="text-gray-900 font-medium">{song.title}</span>
-                                <div className="ml-4">
-                                    {hoveredSongId === song.songId && (
-                                        <button
-                                            onClick={() => addToFavorites(song)}
-                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 hover:bg-blue-100 px-3 py-0 rounded-md transition-all duration-200"
-                                        >
-                                            Add to Favorites
-                                        </button>
-                                    )}
+                                <div
+                                    onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}
+                                    className="flex flex-col w-full">
+                                    <div className="flex flex-row justify-between w-full">
+                                        <span className="text-gray-900 font-medium w-3/4">{song.title}</span>
+                                        {hoveredSongId === song.songId && (
+                                            <div className="ml-4">
+                                                <button
+                                                    onClick={(e) => {e.stopPropagation(); addToFavorites(song)}}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 hover:bg-blue-100 px-3 py-0 rounded-md transition-all duration-200"
+                                                >
+                                                    Add to Favorites
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span className="text-gray-900 font-sm">Word Count: {song.wordCount}</span>
+                                    {expandedSong === song.songId && (<div>
+                                        <div
+                                            className="mt-2 text-gray-600 animate-fadeIn">
+                                            <p id="artist-name" className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
+                                            <p id="release-date" className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
+                                        </div>
+                                        <div className="text-gray-900 font-xs">
+                                            ♫ Lyrics:<HighlightedLyrics  lyrics={song.lyrics} word={selectedWord} />
+                                        </div>
+                                    </div>)}
                                 </div>
+
                             </div>
                         ))}
                         {statusMessage && (

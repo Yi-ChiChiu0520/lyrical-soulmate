@@ -341,7 +341,7 @@ describe('Dashboard', () => {
         // POST still succeeds
         axios.post.mockResolvedValueOnce({ status: 200 });
 
-        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => { /* no-op */ });
 
         render(<Dashboard user="testUser" />);
 
@@ -477,7 +477,7 @@ describe('Dashboard', () => {
             .mockResolvedValueOnce({ data: favorites }) // /api/favorites/user
             .mockRejectedValueOnce(new Error("Lyrics fetch failed")); // /api/genius/lyrics
 
-        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {/* no-op */});
 
         render(<Dashboard user="testUser" />);
         fireEvent.click(screen.getByRole('button', { name: /add all favorites to word cloud/i }));
@@ -505,7 +505,7 @@ describe('Dashboard', () => {
             .mockResolvedValueOnce({ data: { response: { hits: [song] } } }) // search result
             .mockRejectedValueOnce(new Error("Lyrics API failure"));         // lyrics fetch fails
 
-        const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+        const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {/* no-op */});
 
         render(<Dashboard user="testUser" />);
 
@@ -610,7 +610,7 @@ describe('Dashboard', () => {
         axios.post.mockResolvedValueOnce({ status: 200 });
 
         // Spy on console.info
-        const consoleSpy = jest.spyOn(console, "info").mockImplementation(() => {});
+        const consoleSpy = jest.spyOn(console, "info").mockImplementation(() => {/* no-op */});
 
         render(
             <BrowserRouter>

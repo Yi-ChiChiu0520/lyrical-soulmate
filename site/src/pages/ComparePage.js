@@ -9,6 +9,8 @@ const ComparePage = ({ user }) => {
     const [songMap, setSongMap] = useState({}); // songId -> { song, users: [] }
     const [expandedSongs, setExpandedSongs] = useState({});
     const [lastActivity, setLastActivity] = useState(Date.now());
+    const [privateUserErrors, setPrivateUserErrors] = useState([]);
+
     const resetInactivityTimer = () => setLastActivity(Date.now());
 
     useEffect(() => {
@@ -18,7 +20,7 @@ const ComparePage = ({ user }) => {
         events.forEach(event => window.addEventListener(event, resetInactivityTimer));
 
         const timeoutCheck = setInterval(() => {
-            if (Date.now() - lastActivity > 60000) { // 1 minute
+            if (Date.now() - lastActivity > 60000) {
                 handleLogout();
                 clearInterval(timeoutCheck);
             }
@@ -53,6 +55,23 @@ const ComparePage = ({ user }) => {
         fetchSuggestions();
     }, [searchInput]);
 
+    useEffect(() => {
+        if (!user) return;
+
+        const loadOwnFavorites = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8080/api/favorites/${user}?requester=${user}`);
+                const updated = mergeSongs(user, res.data, {});
+                setSongMap(updated);
+                setAddedFriends([user]);
+            } catch (err) {
+                console.error("Failed to load your own favorites");
+            }
+        };
+
+        loadOwnFavorites();
+    }, [user]);
+
     const handleSelectSuggestion = (name) => {
         setSearchInput(name);
     };
@@ -60,19 +79,34 @@ const ComparePage = ({ user }) => {
     const handleBulkAdd = async () => {
         const usernamesToAdd = selectedSuggestions.filter(name => !addedFriends.includes(name));
         let updatedMap = { ...songMap };
+        let errorList = [];
 
         for (const username of usernamesToAdd) {
             try {
-                const res = await axios.get(`http://localhost:8080/api/favorites/${username}`);
-                const favorites = res.data;
+                const privacyRes = await axios.get(`http://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
+                const isPrivate = privacyRes.data;
+
+                if (isPrivate) {
+                    errorList.push(`${username}'s favorites are private.`);
+                    continue;
+                }
+
+                const favoritesRes = await axios.get(`http://localhost:8080/api/favorites/${username}?requester=${user}`);
+                const favorites = favoritesRes.data;
 
                 updatedMap = mergeSongs(username, favorites, updatedMap);
                 setAddedFriends(prev => [...prev, username]);
             } catch (err) {
-                console.error(`Error loading favorites for ${username}`);
+                if (err.response?.status === 403) {
+                    errorList.push(`${username}'s favorites are private.`);
+                } else {
+                    console.error(`Error loading favorites for ${username}`, err);
+                    errorList.push(`Could not load favorites for ${username}.`);
+                }
             }
         }
 
+        setPrivateUserErrors(errorList);
         setSongMap(updatedMap);
         setSearchInput("");
         setSuggestions([]);
@@ -85,6 +119,23 @@ const ComparePage = ({ user }) => {
             [songId]: !prev[songId]
         }));
     };
+
+    // Rank logic
+    const rankedSongs = Object.entries(songMap)
+        .map(([id, data]) => ({ id, ...data }))
+        .sort((a, b) => b.users.length - a.users.length);
+
+    let currentRank = 1;
+    let lastCount = null;
+    const rankedWithPosition = rankedSongs.map((song, index) => {
+        if (song.users.length !== lastCount) {
+            currentRank = index + 1;
+            lastCount = song.users.length;
+        }
+        return { ...song, rank: currentRank };
+    });
+
+    if (!user) return;
 
     return (
         <div onClick={resetInactivityTimer} className="p-6 text-white bg-[#2d203f] min-h-screen">
@@ -135,21 +186,23 @@ const ComparePage = ({ user }) => {
                 </button>
             </div>
 
-            <div id="comparison-results">
-                {/* Render results based on state */}
-            </div>
-            <div id="common-songs">
-                {/* Render common songs based on state */}
-            </div>
+            {privateUserErrors.length > 0 && (
+                <div className="mb-6 text-red-400 bg-red-900 bg-opacity-20 p-4 rounded">
+                    {privateUserErrors.map((msg, idx) => (
+                        <div key={idx}>⚠️ {msg}</div>
+                    ))}
+                </div>
+            )}
 
-            <h2 className="text-xl font-bold mt-10 mb-4">Favorite Songs by Everyone</h2>
+            <h2 className="text-xl font-bold mt-10 mb-4">Favorite Songs by You and Friends</h2>
             <ul className="space-y-4">
-                {Object.entries(songMap).map(([songId, data]) => (
-                    <li key={songId} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
-                        <div onClick={() => toggleSongDetails(songId)} className="cursor-pointer text-lg font-semibold">
-                            {data.title}
+                {rankedWithPosition.map((data) => (
+                    <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
+                        <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex justify-between">
+                            <span>{data.title}</span>
+                            <RankHover rank={data.rank} usernames={data.users} />
                         </div>
-                        {expandedSongs[songId] && (
+                        {expandedSongs[data.id] && (
                             <div className="mt-2 text-sm text-gray-300">
                                 <p>Artist: {data.artistName}</p>
                                 <p>Release Date: {data.releaseDate}</p>
@@ -174,8 +227,30 @@ const FriendHover = ({ usernames }) => {
         >
             <span>{usernames.length} friend(s) have this song</span>
             {hovered && (
-                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow">
+                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
                     {usernames.map(name => (
+                        <div key={name}>{name}</div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const RankHover = ({ rank, usernames }) => {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+        <div
+            className="relative text-sm font-bold bg-purple-600 px-2 py-1 rounded text-white"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+        >
+            #{rank}
+            {hovered && (
+                <div className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
+                    <div className="font-semibold mb-1">Users:</div>
+                    {usernames.map((name) => (
                         <div key={name}>{name}</div>
                     ))}
                 </div>
