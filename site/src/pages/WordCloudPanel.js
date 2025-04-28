@@ -20,6 +20,8 @@ const WordCloudPanel = ({
     const [hoveredSongId, setHoveredSongId] = useState(null);
     const [statusMessage, setStatusMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [numProcessed, setNumProcessed] = useState(0); // the number of songs already added
+    const [songsAdding, setSongsAdding] = useState(0); // total number of songs being added to the word cloud
     const [expandedSong, setExpandedSong] = useState(null);
     const [isGeneratingEnabled, setIsGeneratingEnabled] = useState(isGeneratingEnabledProp);
 
@@ -49,7 +51,12 @@ const WordCloudPanel = ({
     }, [incomingSongs, isGeneratingEnabled]);
 
     const generateWordCloud = async (songs) => {
+        // setup loading bar
+        setNumProcessed(0);
+        setSongsAdding(songs.length);
         setLoading(true);
+
+        // process the songs
         const wordFreq = {};
         const updatedSongs = [];
 
@@ -70,17 +77,23 @@ const WordCloudPanel = ({
                 console.error("Failed to fetch lyrics:", err);
                 updatedSongs.push({ ...song, lyrics: "" });
             }
+
+            setNumProcessed(prev => prev + 1);
         }
 
         const entries = Object.entries(wordFreq).slice(0, 100);
+
+        // Apply softmax-like scaling for font sizes
         const counts = entries.map(([_, count]) => count);
         const max = Math.max(...counts);
         const min = Math.min(...counts);
         const range = max - min || 1;
 
+        // Define size limits
         const minFontSize = 12;
         const maxFontSize = 48;
 
+        // Scale frequencies to font sizes smoothly
         const scaled = entries.map(([word, count]) => {
             const norm = (count - min) / range;
             const smooth = 1 / (1 + Math.exp(-5 * (norm - 0.5)));
@@ -88,7 +101,10 @@ const WordCloudPanel = ({
             return { word, count, size };
         });
 
+        // Shuffle for visual randomness
         const shuffled = scaled.sort(() => 0.5 - Math.random());
+
+        setWordMap(shuffled);
 
         setWordMap(shuffled);
         setWordCloudSongs(updatedSongs);
@@ -199,6 +215,7 @@ const WordCloudPanel = ({
                         </button>
                     </div>
                 </div>
+
             </div>
 
             {statusMessage && (
@@ -227,12 +244,24 @@ const WordCloudPanel = ({
                 </div>
             )}
 
+            {loading && isGeneratingEnabled && songsAdding > 0 && (
+                <div className="mt-6 space-y-2">
+                    <div className="text-sm text-gray-600">
+                        Processing {numProcessed} of {songsAdding} songs…
+                    </div>
+
+                    <progress
+                        className="w-full h-2 rounded-md bg-gray-200 overflow-hidden"
+                        value={numProcessed}
+                        max={songsAdding}
+                    />
+                </div>
+            )}
             {loading && isGeneratingEnabled && (
                 <p style={{ fontStyle: "italic", color: "gray", marginTop: "30px" }}>
                     ⏳ Generating word cloud...
                 </p>
             )}
-
             {!loading && isGeneratingEnabled && viewMode === "cloud" && (
                 <div style={{ marginTop: "20px", display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
                     {wordMap.map(({ word, size }) => (
