@@ -198,6 +198,12 @@ const Dashboard = ({ user }) => {
     };
 
     const addSelectedToWordCloud = async () => {
+        if (selectedSongs.length === 0) {
+            alert("Please select at least one song to add to the word cloud.");
+            setCloudLoading(false);
+            return;
+        }
+
         setCloudLoading(true);
         const selected = songs.filter(song => selectedSongs.includes(song.result.id));
         const mapped = [];
@@ -225,7 +231,9 @@ const Dashboard = ({ user }) => {
                 lyrics
             });
         }
-        setWordCloudSongs(mapped);
+
+        setWordCloudSongs(prev => mergeWordCloudSongs(prev, mapped));
+
         setCloudLoading(false);
     };
 
@@ -369,5 +377,11 @@ const Dashboard = ({ user }) => {
 
     );
 };
+
+export function mergeWordCloudSongs(prev, incoming) {
+    const existingIds = new Set(prev.map(song => song.songId));
+    const newSongs = incoming.filter(song => !existingIds.has(song.songId));
+    return [...prev, ...newSongs];
+}
 
 export default Dashboard;

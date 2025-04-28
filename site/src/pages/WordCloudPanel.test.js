@@ -28,13 +28,27 @@ beforeEach(() => {
     axios.get.mockResolvedValue(mockLyrics); // Every lyrics request gets the same fast response
 });
 
-test('displays loading spinner if loading prop is true', () => {
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={[]} loading={true} />);
-    expect(screen.getByText(/generating word cloud/i)).toBeInTheDocument();
+test('displays loading spinner if loading prop is true', async () => {
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
+
+    await waitFor(() => {
+        expect(screen.getByText(/generating word cloud/i)).toBeInTheDocument();
+    });
 });
 
+
 test('renders word cloud from one song and responds to word click', async () => {
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
 
     // wait for one of the words to appear
     const word = await screen.findByText('sunshine');
@@ -46,20 +60,33 @@ test('renders word cloud from one song and responds to word click', async () => 
     expect(screen.getByText('Test Song 1')).toBeInTheDocument();
 });
 test('toggles between cloud and table view', async () => {
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
+
     await screen.findByText('sunshine');
 
     fireEvent.click(screen.getByRole('button', { name: /table/i }));
     expect(screen.getByText('Word')).toBeInTheDocument();
     expect(screen.getByText('Count')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /word cloud/i }));
+    fireEvent.click(screen.getByTestId('view-cloud'));
     expect(screen.queryByText('Word')).not.toBeInTheDocument();
 });
+
 test('adds song to favorites successfully', async () => {
     axios.post.mockResolvedValue({});
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
+
     const word = await screen.findByText('sunshine');
     fireEvent.click(word);
 
@@ -74,6 +101,7 @@ test('adds song to favorites successfully', async () => {
         expect(screen.getByText(/✅ Added Test Song 1 to favorites/i)).toBeInTheDocument();
     });
 });
+
 test('removes a song from word cloud and regenerates it', async () => {
     axios.get.mockResolvedValue({
         data: { lyrics: 'sunshine rainbow happiness' }
@@ -91,7 +119,12 @@ test('removes a song from word cloud and regenerates it', async () => {
         }
     ];
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={twoSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={twoSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
 
     // Use flexible matchers to avoid emoji issues
     expect(await screen.findByText(/Test Song 1/)).toBeInTheDocument();
@@ -110,7 +143,13 @@ test('removes a song from word cloud and regenerates it', async () => {
 test('shows error if adding to favorites fails', async () => {
     axios.post.mockRejectedValue(new Error("Already exists"));
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
+
     const word = await screen.findByText('sunshine');
     fireEvent.click(word);
 
@@ -124,19 +163,24 @@ test('shows error if adding to favorites fails', async () => {
 });
 
 test('handles failed lyrics fetch and logs error', async () => {
-    const errorSong = {
+    const errorSong = [{
         songId: 'broken-123',
         title: 'Broken Song',
         url: 'http://test.com/broken',
         imageUrl: 'http://test.com/img.jpg',
         releaseDate: '2023-04-01',
         artistName: 'Broken Artist'
-    };
+    }];
 
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     axios.get.mockRejectedValueOnce(new Error('Lyrics fetch failed'));
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={[errorSong]} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={errorSong}
+        loading={false} // Set to false to let the component initiate the fetch
+        isGeneratingEnabled={true}
+    />);
 
     await waitFor(() => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -154,7 +198,12 @@ test('shows Add to Favorites button on hover and hides on mouse leave', async ()
         data: { lyrics: 'sunshine happiness' }
     });
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
 
     // wait for word cloud
     await screen.findByText('sunshine');
@@ -180,7 +229,12 @@ test('clicking a relevant song from word cloud will show lyrics', async() => {
         data: { lyrics: 'sunshine happiness' }
     });
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
 
     // wait for word cloud
     await screen.findByText('sunshine');
@@ -206,7 +260,12 @@ test('clicking a word in table view shows related songs', async () => {
         data: { lyrics: 'rainbow sunshine happiness' }
     });
 
-    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} />);
+    render(<WordCloudPanel
+        user={mockUser}
+        wordCloudSongs={mockSongs}
+        loading={true}
+        isGeneratingEnabled={true}
+    />);
 
     // Switch to table view
     await screen.findByText('rainbow'); // wait for initial render
@@ -220,3 +279,143 @@ test('clicking a word in table view shows related songs', async () => {
     await screen.findByText(/songs containing "sunshine"/i);
     expect(screen.getByText('Test Song 1')).toBeInTheDocument();
 });
+
+test('shows correct status message based on isGeneratingEnabled', async () => {
+    // Case 1: when isGeneratingEnabled is false
+    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} isGeneratingEnabled={false} />);
+    expect(await screen.findByText(/❌ Please start the word cloud before generating/i)).toBeInTheDocument();
+
+    // Case 2: when isGeneratingEnabled is true
+    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} isGeneratingEnabled={true} />);
+    expect(await screen.findByText(/✅ Word Cloud started/i)).toBeInTheDocument();
+});
+
+test('clears word cloud when incomingSongs is empty or invalid', () => {
+    const testCases = [
+        { description: 'empty array', input: [] },
+        { description: 'null', input: null },
+        { description: 'undefined', input: undefined }
+    ];
+
+    testCases.forEach(({ description, input }) => {
+        const { container } = render(<WordCloudPanel
+            user={mockUser}
+            wordCloudSongs={input}
+            loading={false}
+            isGeneratingEnabled={true}
+        />);
+
+        // Find the song count within the main panel only
+        const panel = container.firstChild;
+        const songCount = within(panel).getByText(/0 songs/i);
+
+        expect(songCount).toBeInTheDocument();
+        expect(screen.queryByText(/sunshine/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+});
+test('clicking Stop Word Cloud clears state and shows stop message', async () => {
+    render(
+        <WordCloudPanel
+            user={mockUser}
+            wordCloudSongs={mockSongs}
+            isGeneratingEnabled={true}  // make sure word cloud starts enabled
+        />
+    );
+
+    // Start in "🛑 Stop Word Cloud" state
+    const toggleButton = screen.getByRole('button', { name: /stop word cloud/i });
+    fireEvent.click(toggleButton);
+
+    await waitFor(() => {
+        expect(screen.getByText(/❌ Please start the word cloud before generating./i)).toBeInTheDocument();
+    });
+
+    // You can also verify that no songs are visible now
+    expect(screen.queryByText('Test Song 1')).not.toBeInTheDocument();
+});
+
+test('treats missing lyrics as empty string without crashing', async () => {
+    // Simulate missing lyrics
+    axios.get.mockResolvedValueOnce({
+        data: { lyrics: undefined } // 👈 No lyrics provided
+    });
+
+    render(<WordCloudPanel user={mockUser} wordCloudSongs={mockSongs} isGeneratingEnabled={true} />);
+
+    await waitFor(() => {
+        // After "generation", there should be no word displayed since lyrics were empty
+        expect(screen.queryByText(/sunshine/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/happiness/i)).not.toBeInTheDocument();
+    });
+
+    // Additionally you can check: no words rendered
+    const wordCloud = document.querySelector("#view-cloud");
+    expect(wordCloud).toBeTruthy();
+});
+test('stopping word cloud clears wordCloudSongs', async () => {
+    axios.get.mockResolvedValue({
+        data: { lyrics: 'sunshine rainbow happiness' }
+    });
+
+    render(
+        <WordCloudPanel
+            user={mockUser}
+            wordCloudSongs={mockSongs}
+            loading={true}
+            isGeneratingEnabled={true}
+        />
+    );
+
+    // Wait for word cloud to render
+    expect(await screen.findByText('sunshine')).toBeInTheDocument();
+
+    // Click the "Stop Word Cloud" button
+    fireEvent.click(screen.getByRole('button', { name: /stop word cloud/i }));
+
+    // After stopping, songs should be cleared — no songs rendered
+    await waitFor(() => {
+        expect(screen.queryByText('Test Song 1')).not.toBeInTheDocument();
+    });
+
+    // Bonus: You can also check if "0 songs" appears
+    expect(screen.getByText(/0 songs/i)).toBeInTheDocument();
+
+    // And error message updates
+    expect(screen.getByText(/please start the word cloud/i)).toBeInTheDocument();
+});
+
+test('stopping word cloud clears all states and shows stop message', async () => {
+    axios.get.mockResolvedValue({
+        data: { lyrics: 'sunshine rainbow happiness' }
+    });
+
+    const { getByRole, queryByText, getByText } = render(
+        <WordCloudPanel
+            user={mockUser}
+            wordCloudSongs={mockSongs}
+            loading={false}
+            isGeneratingEnabled={true}
+        />
+    );
+
+    // Wait until a word appears -> means word cloud generated
+    await screen.findByText('sunshine');
+
+    // 1. Simulate clicking the Stop Word Cloud button
+    fireEvent.click(getByRole('button', { name: /stop word cloud/i }));
+
+    // 2. Confirm word cloud is cleared (no words visible anymore)
+    await waitFor(() => {
+        expect(queryByText('sunshine')).not.toBeInTheDocument();
+        expect(queryByText('happiness')).not.toBeInTheDocument();
+        expect(queryByText('rainbow')).not.toBeInTheDocument();
+    });
+
+    // 3. Confirm no songs are listed anymore
+    expect(queryByText('Test Song 1')).not.toBeInTheDocument();
+
+    // 4. Confirm status message changed to stop message
+    expect(getByText(/❌ Please start the word cloud/i)).toBeInTheDocument();
+});
+
