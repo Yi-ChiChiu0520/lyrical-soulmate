@@ -29,15 +29,16 @@ public class DriverManager {
         try (Statement stmt = connection.createStatement()) {
             // drop and create users table
             stmt.executeUpdate("DROP TABLE IF EXISTS users");
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
+            String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT UNIQUE NOT NULL, " +
                     "raw_username TEXT UNIQUE NOT NULL, " +
                     "password TEXT NOT NULL, " +
                     "failed_login_attempts INTEGER DEFAULT 0, " +
-                    "account_locked BOOLEAN DEFAULT FALSE, " +
-                    "lock_time TIMESTAMP DEFAULT NULL)";
-            stmt.executeUpdate(createTableSQL);
+                    "account_locked INTEGER DEFAULT 0, " +
+                    "lock_time TIMESTAMP DEFAULT NULL, " +
+                    "favorites_private INTEGER DEFAULT 0)";
+            stmt.executeUpdate(createUsersTableSQL);
 
             // Drop and Create Favorites Table
             stmt.executeUpdate("DROP TABLE IF EXISTS favorites");

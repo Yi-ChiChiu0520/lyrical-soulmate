@@ -214,7 +214,7 @@ public class FavoriteStepDefs {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
 
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         WebElement button = wait.until(driver -> {
             WebElement b = song.findElement(By.id("remove-favorite"));
             return b.isDisplayed() ? b : null;
@@ -227,14 +227,28 @@ public class FavoriteStepDefs {
     public void iMoveUp(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
-        song.findElement(By.id("move-up")).click();
+
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement button = wait.until(driver -> {
+            WebElement b = song.findElement(By.id("move-up"));
+            return b.isDisplayed() ? b : null;
+        });
+
+        button.click();
     }
 
     @And("I move down {string}")
     public void iMoveDown(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
-        song.findElement(By.id("move-down")).click();
+
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement button = wait.until(driver -> {
+            WebElement b = song.findElement(By.id("move-down"));
+            return b.isDisplayed() ? b : null;
+        });
+
+        button.click();
     }
 
     @Then("I should see {string} above {string}")
