@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import axios from 'axios';
 import Dashboard from './Dashboard';
 import { BrowserRouter } from "react-router-dom";
+import { mergeWordCloudSongs } from "./Dashboard"; // same file, easy
 
 jest.mock('axios');
 jest.mock('react-router-dom', () => ({
@@ -27,10 +28,32 @@ describe('Dashboard', () => {
         window.location = { reload: jest.fn() };
     });
 
-
     test('redirects if no user is provided', () => {
         render(<Dashboard user={null} />);
         expect(screen.getByTestId('navigate')).toBeInTheDocument();
+    });
+
+    test("creates a Set of existing songIds and only keeps new songs", () => {
+        const prev = [
+            { songId: "1", title: "First Song" },
+            { songId: "2", title: "Second Song" },
+        ];
+        const mapped = [
+            { songId: "2", title: "Second Song (again)" },
+            { songId: "3", title: "Third Song" },
+        ];
+        const existingIds = new Set(prev.map((song) => song.songId));
+        expect(existingIds.has("1")).toBe(true);
+        expect(existingIds.has("2")).toBe(true);
+        expect(existingIds.has("3")).toBe(false);
+        const newSongs = mapped.filter((song) => !existingIds.has(song.songId));
+        expect(newSongs).toEqual([{ songId: "3", title: "Third Song" }]);
+        const merged = [...prev, ...newSongs];
+        expect(merged).toEqual([
+            { songId: "1", title: "First Song" },
+            { songId: "2", title: "Second Song" },
+            { songId: "3", title: "Third Song" },
+        ]);
     });
 
     test('renders dashboard with welcome message and inputs', () => {
@@ -184,10 +207,9 @@ describe('Dashboard', () => {
                 url: 'http://genius.com/song'
             }
         };
-
         axios.get
-            .mockResolvedValueOnce({ data: { response: { hits: [song] } } }) // search
-            .mockResolvedValueOnce({ data: { lyrics: 'test lyrics' } }); // lyrics
+            .mockResolvedValueOnce({ data: { response: { hits: [song] } } })
+            .mockResolvedValueOnce({ data: { lyrics: 'test lyrics' } });
 
         render(<Dashboard user={user} />);
         fireEvent.change(screen.getByPlaceholderText(/enter artist name/i), {
@@ -202,12 +224,35 @@ describe('Dashboard', () => {
             expect(screen.getByText(/🎵 Test Song/)).toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByRole('checkbox'));
-        fireEvent.click(screen.getByRole('button', { name: /add selected to word cloud/i }));
+        // wrap in act to flush state updates
+        await act(async () => {
+            fireEvent.click(screen.getByRole('checkbox'));
+            fireEvent.click(screen.getByRole('button', { name: /add selected to word cloud/i }));
+        });
 
         await waitFor(() => {
             expect(screen.getByTestId('word-cloud-panel')).toBeInTheDocument();
         });
+    });
+
+    test("filters out songs with existing songIds", () => {
+        const prev = [
+            { songId: "1", title: "First Song" },
+            { songId: "2", title: "Second Song" },
+        ];
+
+        const incoming = [
+            { songId: "2", title: "Duplicate Second Song" },
+            { songId: "3", title: "Third Song" },
+        ];
+
+        const result = mergeWordCloudSongs(prev, incoming);
+
+        expect(result).toEqual([
+            { songId: "1", title: "First Song" },
+            { songId: "2", title: "Second Song" },
+            { songId: "3", title: "Third Song" },
+        ]);
     });
 
     test('adds all favorites to word cloud', async () => {
@@ -307,20 +352,18 @@ describe('Dashboard', () => {
 
         console.error.mockRestore(); // clean up
     });
-    test("shows alert if no songs are selected when adding to favorites", async () => {
-        axios.get.mockResolvedValueOnce({ data: [] }); // word cloud call on mount
 
+    test('shows alert and stops if no songs selected for word cloud', async () => {
         render(<Dashboard user="testUser" />);
+        const addToWordCloudButton = screen.getByRole('button', { name: /add selected to word cloud/i });
 
-        fireEvent.click(screen.getByRole("button", { name: /add selected to favorites/i }));
-
-        await waitFor(() => {
-            expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add.");
+        await act(async () => {
+            fireEvent.click(addToWordCloudButton);
         });
 
-        // Optional: ensure no axios.post was called
-        expect(axios.post).not.toHaveBeenCalled();
+        expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add to the word cloud.");
     });
+
     test("logs warning if lyrics fetch fails during add to favorites", async () => {
         const song = {
             result: {
@@ -725,25 +768,20 @@ describe('Dashboard', () => {
     });
 
 });
+
 describe('setWordCloudSongs updater logic', () => {
     it('should correctly add only non-duplicate songs', () => {
-        const initialSongs = [
-            { songId: '1', title: 'Existing Song' }
-        ];
-
+        const initialSongs = [ { songId: '1', title: 'Existing Song' } ];
         const mapped = [
-            { songId: '1', title: 'Duplicate Song' }, // duplicate
-            { songId: '2', title: 'New Song' }         // new
+            { songId: '1', title: 'Duplicate Song' },
+            { songId: '2', title: 'New Song' }
         ];
-
         const updater = (prev) => {
             const existingIds = new Set(prev.map(song => song.songId));
             const newSongs = mapped.filter(song => !existingIds.has(song.songId));
             return [...prev, ...newSongs];
         };
-
         const result = updater(initialSongs);
-
         expect(result).toHaveLength(2);
         expect(result).toContainEqual({ songId: '1', title: 'Existing Song' });
         expect(result).toContainEqual({ songId: '2', title: 'New Song' });

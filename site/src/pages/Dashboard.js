@@ -232,11 +232,7 @@ const Dashboard = ({ user }) => {
             });
         }
 
-        setWordCloudSongs(prev => {
-            const existingIds = new Set(prev.map(song => song.songId));
-            const newSongs = mapped.filter(song => !existingIds.has(song.songId));
-            return [...prev, ...newSongs];
-        });
+        setWordCloudSongs(prev => mergeWordCloudSongs(prev, mapped));
 
         setCloudLoading(false);
     };
@@ -381,5 +377,11 @@ const Dashboard = ({ user }) => {
 
     );
 };
+
+export function mergeWordCloudSongs(prev, incoming) {
+    const existingIds = new Set(prev.map(song => song.songId));
+    const newSongs = incoming.filter(song => !existingIds.has(song.songId));
+    return [...prev, ...newSongs];
+}
 
 export default Dashboard;
