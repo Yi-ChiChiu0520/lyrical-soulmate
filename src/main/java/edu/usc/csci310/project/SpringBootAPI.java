@@ -1,5 +1,6 @@
 package edu.usc.csci310.project;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +13,17 @@ import org.springframework.web.client.RestTemplate;
 public class SpringBootAPI {
 
     public static void main(String[] args) {
+        // load the env with the API key
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        String geniusAccessToken = dotenv.get("GENIUS_ACCESS_TOKEN");
+
+        // set the genius access token as a system property
+        if (geniusAccessToken == null) {
+            throw new IllegalStateException("GENIUS_ACCESS_TOKEN not found");
+        } else {
+            System.setProperty("GENIUS_ACCESS_TOKEN", geniusAccessToken);
+        }
+
         SpringApplication.run(SpringBootAPI.class, args);
     }
 
