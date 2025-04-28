@@ -176,4 +176,29 @@ public class LoginStepDefs {
         String user = (String) js.executeScript("return window.localStorage.getItem('user');");
         assertNull(user);
     }
+
+    @When("I navigate to {string}")
+    public void iNavigateTo(String arg0) {
+        driver.get(arg0);
+    }
+
+    @Then("I should be redirected to the signup page")
+    public void iShouldBeRedirectedToTheSignupPage() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
+        WebElement loginButton = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("signupButton"));
+
+            return el.isDisplayed() ? el : null;
+        });
+        String url = driver.getCurrentUrl();
+        assertEquals("http://localhost:8080/", url);
+        assertTrue(loginButton.isDisplayed());
+    }
+
+    @When("I click the switch to signup button")
+    public void iClickTheSwitchToSignupButton() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement signupButton = wait.until(driver -> driver.findElement(By.id("switchSignup")));
+        signupButton.click();
+    }
 }
