@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -15,12 +16,13 @@ import java.util.Collections;
 @CrossOrigin(origins = "http://localhost:3000")
 public class GeniusProxyController {
 
-    private final String geniusAccessToken = "hzNuZ98H7BLcGIBa-K84ZV1NO2s63JCIxz2ZWY-ywyeOOaj9B0ldwpa8Nz0OitGV";
+    private final String geniusAccessToken;
     private final RestTemplate restTemplate;
 
     @Autowired
-    public GeniusProxyController(RestTemplate restTemplate) {
+    public GeniusProxyController(RestTemplate restTemplate, @Value("${GENIUS_ACCESS_TOKEN}") String geniusAccessToken) {
         this.restTemplate = restTemplate;
+        this.geniusAccessToken = geniusAccessToken;
     }
 
     @GetMapping("/search")
