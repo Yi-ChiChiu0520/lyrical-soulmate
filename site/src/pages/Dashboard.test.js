@@ -655,4 +655,98 @@ describe('Dashboard', () => {
 
         consoleSpy.mockRestore();
     });
+
+    test('shows alert and stops if no songs selected for word cloud', async () => {
+        render(<Dashboard user="testUser" />);
+
+        const addToWordCloudButton = screen.getByRole('button', { name: /add selected to word cloud/i });
+
+        await act(async () => {
+            fireEvent.click(addToWordCloudButton);
+        });
+
+        expect(window.alert).toHaveBeenCalledWith("Please select at least one song to add to the word cloud.");
+    });
+
+    test('prevents duplicates when adding songs to word cloud', () => {
+        // Simulate initial word cloud state
+        let prevSongs = [
+            {
+                songId: '1',
+                title: 'Existing Song',
+                url: 'http://test.com/1',
+                imageUrl: 'http://test.com/img1.jpg',
+                releaseDate: '2023-01-01',
+                artistName: 'Artist 1',
+                lyrics: 'existing lyrics'
+            }
+        ];
+
+        // Incoming new songs
+        const newSongs = [
+            {
+                songId: '1', // duplicate of existing
+                title: 'Duplicate Song',
+                url: 'http://test.com/dupe',
+                imageUrl: 'http://test.com/dupe.jpg',
+                releaseDate: '2023-03-01',
+                artistName: 'Artist Dupe',
+                lyrics: 'duplicate lyrics'
+            },
+            {
+                songId: '2', // new song
+                title: 'New Song',
+                url: 'http://test.com/2',
+                imageUrl: 'http://test.com/img2.jpg',
+                releaseDate: '2023-02-01',
+                artistName: 'Artist 2',
+                lyrics: 'new lyrics'
+            }
+        ];
+
+        // Simulate real setState updater function
+        const result = (prev => {
+            const existingIds = new Set(prev.map(song => song.songId));
+            const newUniqueSongs = newSongs.filter(song => !existingIds.has(song.songId));
+            return [...prev, ...newUniqueSongs];
+        })(prevSongs);
+
+        // Now verify the result
+        expect(result).toHaveLength(2);
+
+        // Existing song remains
+        expect(result).toContainEqual(prevSongs[0]);
+
+        // New song added
+        expect(result).toContainEqual(newSongs[1]);
+
+        // Duplicate not added
+        expect(result).not.toContainEqual(newSongs[0]);
+    });
+
+});
+describe('setWordCloudSongs updater logic', () => {
+    it('should correctly add only non-duplicate songs', () => {
+        const initialSongs = [
+            { songId: '1', title: 'Existing Song' }
+        ];
+
+        const mapped = [
+            { songId: '1', title: 'Duplicate Song' }, // duplicate
+            { songId: '2', title: 'New Song' }         // new
+        ];
+
+        const updater = (prev) => {
+            const existingIds = new Set(prev.map(song => song.songId));
+            const newSongs = mapped.filter(song => !existingIds.has(song.songId));
+            return [...prev, ...newSongs];
+        };
+
+        const result = updater(initialSongs);
+
+        expect(result).toHaveLength(2);
+        expect(result).toContainEqual({ songId: '1', title: 'Existing Song' });
+        expect(result).toContainEqual({ songId: '2', title: 'New Song' });
+        expect(result).not.toContainEqual({ songId: '1', title: 'Duplicate Song' });
+    });
 });

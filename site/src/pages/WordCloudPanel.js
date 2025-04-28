@@ -6,8 +6,12 @@ const stopWords = new Set([
     "as", "was", "are", "but", "be", "at", "by", "this", "have", "or", "an", "not", "we"
 ]);
 
-const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingProp, started, setStarted }) => {
-    const [startError, setStartError] = useState("");
+const WordCloudPanel = ({
+                            user,
+                            wordCloudSongs: incomingSongs,
+                            loading: loadingProp,
+                            isGeneratingEnabled: isGeneratingEnabledProp
+                        }) => {
     const [wordCloudSongs, setWordCloudSongs] = useState([]);
     const [wordMap, setWordMap] = useState([]);
     const [viewMode, setViewMode] = useState("cloud");
@@ -16,7 +20,12 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
     const [hoveredSongId, setHoveredSongId] = useState(null);
     const [statusMessage, setStatusMessage] = useState("");
     const [loading, setLoading] = useState(false);
-    const [expandedSong,setExpandedSong] = useState(null);
+    const [expandedSong, setExpandedSong] = useState(null);
+    const [isGeneratingEnabled, setIsGeneratingEnabled] = useState(isGeneratingEnabledProp);
+
+    useEffect(() => {
+        setIsGeneratingEnabled(isGeneratingEnabledProp);
+    }, [isGeneratingEnabledProp]);
 
     useEffect(() => {
         if (typeof loadingProp === "boolean") {
@@ -25,17 +34,19 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
     }, [loadingProp]);
 
     useEffect(() => {
+        if (!isGeneratingEnabled) {
+            setStatusMessage("❌ Please start the word cloud before generating.");
+            return;
+        } else {
+            setStatusMessage("✅ Word Cloud started.");
+        }
         if (Array.isArray(incomingSongs) && incomingSongs.length > 0) {
-            if (started) {
-                generateWordCloud(incomingSongs);
-            } else {
-                setStartError("❌ Please start the word cloud first.");
-            }
+            generateWordCloud(incomingSongs);
         } else {
             setWordMap([]);
             setWordCloudSongs([]);
         }
-    }, [incomingSongs, started]);
+    }, [incomingSongs, isGeneratingEnabled]);
 
     const generateWordCloud = async (songs) => {
         setLoading(true);
@@ -47,7 +58,7 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                 const res = await axios.get("http://localhost:8080/api/genius/lyrics", {
                     params: { songId: song.songId }
                 });
-                const lyrics = (res.data.lyrics)
+                const lyrics = (res.data.lyrics || "")
                     .toLowerCase()
                     .replace(/[^a-zA-Z\s]/g, "");
                 const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
@@ -88,23 +99,18 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
 
     const handleWordClick = (word) => {
         setSelectedWord(word);
-        const matches = wordCloudSongs.filter(song =>
-            song.lyrics?.toLowerCase().includes(word.toLowerCase())
-        );
+        const matches = wordCloudSongs.filter(song => song.lyrics?.toLowerCase().includes(word.toLowerCase()));
         const matchesData = matches.map((song) => {
             const lyrics = song.lyrics;
-            const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
-            const target =word.toLowerCase();
+            const words = lyrics.split(/\s+/).filter(w => w && !stopWords.has(w));
+            const target = word.toLowerCase();
             let count = 0;
-            for (let word of words) {
-                if (word === target) {
-                    count++;
-                }
+            for (let w of words) {
+                if (w === target) count++;
             }
-            return {...song, wordCount: count}
-        })
+            return { ...song, wordCount: count };
+        });
         setRelatedSongs(matchesData);
-        setStatusMessage("");
         setExpandedSong(null);
     };
 
@@ -129,60 +135,42 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
     const handleRemoveFromWordCloud = (songId) => {
         const updated = wordCloudSongs.filter(song => song.songId !== songId);
         setWordCloudSongs(updated);
-
-        if (!started) {
-            setStartError("❌ Please start the word cloud first.");
-            return;
-        }
-        setStartError("");
         generateWordCloud(updated);
     };
 
     function HighlightedLyrics({ lyrics, word }) {
         const target = word.toLowerCase();
-
-        const highlighted = lyrics.split(" ").map((w, i) => {
-            const match = w === target;
-            return (
-                <span key={i} style={{ backgroundColor: match ? 'yellow' : 'transparent' }}>
+        const highlighted = lyrics.split(" ").map((w, i) => (
+            <span key={i} style={{ backgroundColor: w === target ? 'yellow' : 'transparent' }}>
         {w + " "}
       </span>
-            );
-        });
-
+        ));
         return <div style={{ whiteSpace: 'pre-wrap' }}>{highlighted}</div>;
     }
-
 
     return (
         <div>
             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                    <h2 className="text-xl font-semibold mr-4">Word Cloud</h2>
+                <div className="flex items-center space-x-4">
+                    <h2 className="text-xl font-semibold">Word Cloud</h2>
                     <button
-                        id="start-wordcloud"
                         onClick={() => {
-                            const newState = !started;
-                            setStarted(newState);
-                            setStartError("");
-                            if (newState) {
-                                window.dispatchEvent(new CustomEvent("cloud-started", { detail: "✅ Word Cloud started!" }));
-                            } else {
-                                window.dispatchEvent(new CustomEvent("cloud-started", { detail: "" }));
-                            }
+                            const next = !isGeneratingEnabled;
+                            setIsGeneratingEnabled(next);
+                            setWordMap([]);
+                            setWordCloudSongs([]);
+                            setSelectedWord(null);
+                            setRelatedSongs([]);
+                            setStatusMessage("❌ Please start the word cloud before generating.");
                         }}
-                        className={`text-sm px-3 py-1 rounded-md font-medium transition-colors duration-200 ${
-                            started
-                                ? "bg-gray-300 text-gray-700"
-                                : "bg-green-600 text-white hover:bg-green-700"
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 border ${
+                            isGeneratingEnabled ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200" :
+                                "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
                         }`}
                     >
-                        {started ? "Stop Word Cloud" : "Start Word Cloud"}
+                        {isGeneratingEnabled ? "🛑 Stop Word Cloud" : "▶️ Start Word Cloud"}
                     </button>
-                    {startError && (
-                        <span className="ml-4 text-red-600 text-sm font-medium">{startError}</span>
-                    )}
-                    <span className="ml-2 bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                    <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
             {wordCloudSongs.length} songs
           </span>
                 </div>
@@ -192,11 +180,10 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                     <div className="flex border border-gray-300 rounded-md overflow-hidden">
                         <button
                             id="view-cloud"
+                            data-testid="view-cloud"
                             onClick={() => setViewMode("cloud")}
                             className={`px-3 py-1 text-sm ${
-                                viewMode === "cloud"
-                                    ? "bg-purple-50 text-purple-600 font-medium"
-                                    : "bg-white text-gray-500 hover:bg-gray-50"
+                                viewMode === "cloud" ? "bg-purple-50 text-purple-600 font-medium" : "bg-white text-gray-500 hover:bg-gray-50"
                             }`}
                         >
                             Word Cloud
@@ -205,9 +192,7 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                             id="view-table"
                             onClick={() => setViewMode("table")}
                             className={`px-3 py-1 text-sm ${
-                                viewMode === "table"
-                                    ? "bg-purple-50 text-purple-600 font-medium"
-                                    : "bg-white text-gray-500 hover:bg-gray-50"
+                                viewMode === "table" ? "bg-purple-50 text-purple-600 font-medium" : "bg-white text-gray-500 hover:bg-gray-50"
                             }`}
                         >
                             Table
@@ -216,7 +201,13 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                 </div>
             </div>
 
-            {started && Array.isArray(wordCloudSongs) && (
+            {statusMessage && (
+                <div className="text-sm mb-2" style={{ color: statusMessage.startsWith("✅") ? "green" : "red" }}>
+                    {statusMessage}
+                </div>
+            )}
+
+            {Array.isArray(wordCloudSongs) && (
                 <div className="divide-y divide-gray-200">
                     {wordCloudSongs.map((song) => (
                         <div key={song.songId} className="py-2 flex items-center justify-between">
@@ -236,72 +227,45 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                 </div>
             )}
 
-            {loading ? (
+            {loading && isGeneratingEnabled && (
                 <p style={{ fontStyle: "italic", color: "gray", marginTop: "30px" }}>
                     ⏳ Generating word cloud...
                 </p>
-            ) : (
-                started &&
-                (viewMode === "cloud" ? (
-                    <div
-                        style={{
-                            marginTop: "20px",
-                            display: "flex",
-                            flexWrap: "wrap",
-                            justifyContent: "center"
-                        }}
-                    >
-                        {wordMap.map(({ word, size }) => (
-                            <span
-                                key={word}
-                                onClick={() => handleWordClick(word)}
-                                style={{
-                                    fontSize: `${size}px`,
-                                    margin: "8px",
-                                    cursor: "pointer"
-                                }}
-                            >
-                {word}
-              </span>
-                        ))}
-                    </div>
-                ) : (
-                    <table
-                        style={{
-                            margin: "auto",
-                            marginTop: "20px",
-                            borderCollapse: "collapse"
-                        }}
-                    >
-                        <thead>
-                        <tr>
-                            <th>Word</th>
-                            <th>Count</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {wordMap
-                            .sort((a, b) => b.count - a.count)
-                            .map(({ word, count }) => (
-                                <tr
-                                    key={word}
-                                    onClick={() => handleWordClick(word)}
-                                    style={{ cursor: "pointer" }}
-                                >
-                                    <td>{word}</td>
-                                    <td>{count}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ))
             )}
 
-            {selectedWord && started && (
+            {!loading && isGeneratingEnabled && viewMode === "cloud" && (
+                <div style={{ marginTop: "20px", display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+                    {wordMap.map(({ word, size }) => (
+                        <span
+                            key={word}
+                            onClick={() => handleWordClick(word)}
+                            style={{ fontSize: `${size}px`, margin: "8px", cursor: "pointer" }}
+                        >
+              {word}
+            </span>
+                    ))}
+                </div>
+            )}
+
+            {!loading && isGeneratingEnabled && viewMode === "table" && (
+                <table style={{ margin: "auto", marginTop: "20px", borderCollapse: "collapse" }}>
+                    <thead>
+                    <tr><th>Word</th><th>Count</th></tr>
+                    </thead>
+                    <tbody>
+                    {wordMap.sort((a, b) => b.count - a.count).map(({ word, count }) => (
+                        <tr key={word} onClick={() => handleWordClick(word)} style={{ cursor: "pointer" }}>
+                            <td>{word}</td>
+                            <td>{count}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            )}
+
+            {selectedWord && (
                 <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                        🎧 Songs containing "{selectedWord}"
-                    </h2>
+                    <h2 className="text-xl font-semibold mb-4">🎧 Songs containing "{selectedWord}"</h2>
                     <div className="divide-y divide-gray-200">
                         {relatedSongs.map((song) => (
                             <div
@@ -312,13 +276,17 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                             >
                                 <div
                                     onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}
-                                    className="flex flex-col w-full">
+                                    className="flex flex-col w-full"
+                                >
                                     <div className="flex flex-row justify-between w-full">
                                         <span className="text-gray-900 font-medium w-3/4">{song.title}</span>
                                         {hoveredSongId === song.songId && (
                                             <div className="ml-4">
                                                 <button
-                                                    onClick={(e) => {e.stopPropagation(); addToFavorites(song)}}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        addToFavorites(song);
+                                                    }}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 hover:bg-blue-100 px-3 py-0 rounded-md transition-all duration-200"
                                                 >
                                                     Add to Favorites
@@ -327,29 +295,18 @@ const WordCloudPanel = ({ user, wordCloudSongs: incomingSongs, loading: loadingP
                                         )}
                                     </div>
                                     <span className="text-gray-900 font-sm">Word Count: {song.wordCount}</span>
-                                    {expandedSong === song.songId && (<div>
-                                        <div
-                                            className="mt-2 text-gray-600 animate-fadeIn">
-                                            <p id="artist-name" className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
-                                            <p id="release-date" className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
+                                    {expandedSong === song.songId && (
+                                        <div className="mt-2 text-gray-600 animate-fadeIn">
+                                            <p className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
+                                            <p className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
+                                            <div className="text-gray-900 font-xs">
+                                                ♫ Lyrics:<HighlightedLyrics lyrics={song.lyrics} word={selectedWord} />
+                                            </div>
                                         </div>
-                                        <div className="text-gray-900 font-xs">
-                                            ♫ Lyrics:<HighlightedLyrics  lyrics={song.lyrics} word={selectedWord} />
-                                        </div>
-                                    </div>)}
+                                    )}
                                 </div>
-
                             </div>
                         ))}
-                        {statusMessage && (
-                            <p
-                                style={{
-                                    color: statusMessage.startsWith("✅") ? "green" : "red"
-                                }}
-                            >
-                                {statusMessage}
-                            </p>
-                        )}
                     </div>
                 </div>
             )}
