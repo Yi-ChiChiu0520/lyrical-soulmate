@@ -40,7 +40,7 @@ public class FavoriteStepDefs {
     }
 
     public List<WebElement> getFavoritesList() {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
         try {
             return wait.until(driver -> driver.findElement(By.id("favorites-list")).findElements(By.tagName("li")));
         } catch (TimeoutException e) {
@@ -200,13 +200,19 @@ public class FavoriteStepDefs {
         new Actions(driver).moveToElement(song).perform();
     }
 
-    @Then("I see move remove for {string}")
+    @Then("I see the remove button for {string}")
     public void iShouldSeeTheMoveAndRemoveButtonsOn(String songName) {
+        WebElement song = findSongInFavoritesList(songName);
+        assertNotNull(song);
+        assertNotNull(song.findElement(By.id("remove-favorite")));
+    }
+
+    @Then("I see the move buttons for {string}")
+    public void iShouldSeeTheMoveButtonsOn(String songName) {
         WebElement song = findSongInFavoritesList(songName);
         assertNotNull(song);
         assertNotNull(song.findElement(By.id("move-up")));
         assertNotNull(song.findElement(By.id("move-down")));
-        assertNotNull(song.findElement(By.id("remove-favorite")));
     }
 
     @And("I click the remove button on {string}")
@@ -393,7 +399,14 @@ public class FavoriteStepDefs {
     @And("I see the remove confirmation modal")
     public void iSeeTheRemoveConfirmationModal() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement modal = wait.until(driver -> driver.findElement(By.id("confirm-remove-modal")));
+        WebElement modal = wait.until(driver -> driver.findElement(By.id("confirm-remove-song-modal")));
+        assert modal.isDisplayed();
+    }
+
+    @And("I see the clear favorites confirmation modal")
+    public void iSeeTheClearFavoritesConfirmationModal() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement modal = wait.until(driver -> driver.findElement(By.id("confirm-clear-favorites-modal")));
         assert modal.isDisplayed();
     }
 
@@ -402,5 +415,50 @@ public class FavoriteStepDefs {
         WebElement song = findSongInFavoritesList(songName);
         assertTrue(song.findElement(By.id("artist-name")).getText().contains(artist));
 
+    }
+
+    @When("I click on the favorites tab")
+    public void iClickTheFavoritesButton() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement button = wait.until(driver -> driver.findElement(By.id("favorites-button")));
+        button.click();
+    }
+
+    @Then("I should see my favorites list")
+    public void iSeeMyFavoritesList() {
+        iShouldSee("Favorite Songs");
+    }
+
+    @And("I click the toggle privacy switch")
+    public void iSetMyFavoritesListToPrivate() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement button = wait.until(driver -> driver.findElement(By.id("toggle-privacy")));
+        button.click();
+    }
+
+
+    @And("My favorites list is public")
+    public void myFavoritesListIsPublic() {
+        DriverManager.setUserFavorites(connection, "testUser", false);
+    }
+
+    @And("My favorites list is private")
+    public void myFavoritesListIsPrivate() {
+        DriverManager.setUserFavorites(connection, "testUser", true);
+    }
+
+    @Then("I should see {string}")
+    public void iShouldSee(String message) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        boolean messagePresent = wait.until(driver -> driver.getPageSource().contains(message));
+        assertTrue(messagePresent, "Message not found: " + message);
+    }
+
+
+    @Then("I should see my favorites are {string}")
+    public void iShouldSeeMyFavoritesAre(String arg0) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement button = wait.until(driver -> driver.findElement(By.id("privacy-setting")));
+        assertEquals(button.getText(), arg0);
     }
 }

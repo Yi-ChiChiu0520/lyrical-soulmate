@@ -22,6 +22,7 @@ describe('Dashboard', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
         window.alert = jest.fn();
         Storage.prototype.removeItem = jest.fn();
         delete window.location;

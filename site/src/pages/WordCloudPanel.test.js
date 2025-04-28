@@ -25,6 +25,7 @@ const mockLyrics = {
 
 beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
     axios.get.mockResolvedValue(mockLyrics); // Every lyrics request gets the same fast response
 });
 

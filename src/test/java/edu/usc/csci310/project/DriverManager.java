@@ -1,7 +1,10 @@
 package edu.usc.csci310.project;
 
+import edu.usc.csci310.project.repository.FavoriteRepository;
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
+import edu.usc.csci310.project.services.FavoriteService;
+import edu.usc.csci310.project.services.UserService;
 import io.cucumber.java.Before;
 import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.JavascriptExecutor;
@@ -93,6 +96,13 @@ public class DriverManager {
         } catch (SQLException e) {
             throw new RuntimeException("Error resetting user favorites", e);
         }
+    }
+
+    // toggle user favorites privacy
+    public static void setUserFavorites(Connection connection, String username, boolean isPrivate) {
+        UserRepository userRepository = new UserRepository(connection);
+        UserService userService = new UserService(userRepository);
+        userService.setFavoritesPrivacy(username, isPrivate);
     }
 
     // creates a test user and signs in using localstorage

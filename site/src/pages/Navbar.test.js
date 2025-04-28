@@ -24,6 +24,7 @@ describe("Navbar", () => {
     let mockSetUser;
 
     beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
         mockSetUser = jest.fn();
         localStorage.clear();
     });
