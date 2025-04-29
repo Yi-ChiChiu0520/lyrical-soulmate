@@ -6,7 +6,7 @@ const ComparePage = ({ user }) => {
     const [suggestions, setSuggestions] = useState([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState([]);
     const [addedFriends, setAddedFriends] = useState([]);
-    const [songMap, setSongMap] = useState({}); // songId -> { song, users: [] }
+    const [songMap, setSongMap] = useState({});
     const [expandedSongs, setExpandedSongs] = useState({});
     const [lastActivity, setLastActivity] = useState(Date.now());
     const [privateUserErrors, setPrivateUserErrors] = useState([]);
@@ -120,7 +120,7 @@ const ComparePage = ({ user }) => {
         }));
     };
 
-    // Rank logic
+    // Ranking logic
     const rankedSongs = Object.entries(songMap)
         .map(([id, data]) => ({ id, ...data }))
         .sort((a, b) => b.users.length - a.users.length);
@@ -135,7 +135,7 @@ const ComparePage = ({ user }) => {
         return { ...song, rank: currentRank };
     });
 
-    if (!user) return;
+    if (!user) return null;
 
     return (
         <div onClick={resetInactivityTimer} className="p-6 text-white bg-[#2d203f] min-h-screen">
@@ -196,8 +196,13 @@ const ComparePage = ({ user }) => {
             <ul className="space-y-4">
                 {rankedWithPosition.map((data) => (
                     <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
-                        <div className="flex justify-between">
-                            <span onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold">{data.title}</span>
+                        <div className="flex justify-between items-center">
+                            <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex flex-col">
+                                <span>{data.title}</span>
+                                <UserHover usernames={data.users}>
+                                    <span className="text-xs text-gray-300">{data.users.length} favorited</span>
+                                </UserHover>
+                            </div>
                             <RankHover rank={data.rank} usernames={data.users} onClick={() => toggleSongDetails(data.id)} />
                         </div>
                         {expandedSongs[data.id] && (
@@ -205,7 +210,7 @@ const ComparePage = ({ user }) => {
                                 <p>Artist: {data.artistName}</p>
                                 <p>Release Date: {data.releaseDate}</p>
                                 <div className="mt-2">
-                                    <p>Favorited by:</p>
+                                    <p>Favorited by ({data.users.length} friends):</p>
                                     <ul className="list-disc list-inside">
                                         {data.users.map((username) => (
                                             <li key={username}>{username}</li>
@@ -221,6 +226,7 @@ const ComparePage = ({ user }) => {
     );
 };
 
+// Shows #rank badge with hover user list
 export const RankHover = ({ rank, usernames, onClick }) => {
     const [hovered, setHovered] = useState(false);
 
@@ -233,7 +239,30 @@ export const RankHover = ({ rank, usernames, onClick }) => {
         >
             #{rank}
             {hovered && (
-                <div className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
+                <div className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10 whitespace-nowrap">
+                    <div className="font-semibold mb-1">Users:</div>
+                    {usernames.map((name) => (
+                        <div key={name}>{name}</div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Shows favorited count with hover user list
+export const UserHover = ({ usernames, children }) => {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+        <div
+            className="relative inline-block"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+        >
+            {children}
+            {hovered && (
+                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10 whitespace-nowrap">
                     <div className="font-semibold mb-1">Users:</div>
                     {usernames.map((name) => (
                         <div key={name}>{name}</div>
