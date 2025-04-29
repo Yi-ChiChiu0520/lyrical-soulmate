@@ -28,6 +28,7 @@ describe("LyricalMatchPage", () => {
     };
 
     beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
         jest.clearAllMocks();
         axios.get.mockImplementation((url) => {
             if (url.includes(`/favorites/${user}`)) {

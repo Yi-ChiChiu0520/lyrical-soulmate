@@ -63,6 +63,7 @@ const mockFriend1Favorites = [
 
 describe('ComparePage Component', () => {
     beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
         jest.clearAllMocks();
         jest.useFakeTimers();
 

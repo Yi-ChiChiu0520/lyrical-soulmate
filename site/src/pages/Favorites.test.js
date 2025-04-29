@@ -63,6 +63,7 @@ describe('Favorites Component', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useFakeTimers();
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
 
         // Default axios responses
         axios.get.mockImplementation((url) => {
@@ -79,12 +80,14 @@ describe('Favorites Component', () => {
         jest.useRealTimers();
     });
 
-    test('redirects to home when user is not provided', () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={null} />
-            </BrowserRouter>
-        );
+    test('redirects to home when user is not provided', async () => {
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={null}/>
+                </BrowserRouter>
+            );
+        });
 
         expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/');
     });
@@ -99,11 +102,14 @@ describe('Favorites Component', () => {
             return Promise.reject(new Error('Not found'));
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
@@ -122,11 +128,14 @@ describe('Favorites Component', () => {
             return Promise.reject(new Error('Not found'));
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
@@ -134,11 +143,14 @@ describe('Favorites Component', () => {
     });
 
     test('expands song details when clicking on a song title', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -162,11 +174,14 @@ describe('Favorites Component', () => {
     });
 
     test('shows removal confirmation when clicking remove button', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -187,11 +202,14 @@ describe('Favorites Component', () => {
     test('removes song when confirming removal', async () => {
         axios.delete.mockResolvedValue({});
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -219,11 +237,14 @@ describe('Favorites Component', () => {
     });
 
     test('cancels removal when clicking cancel button', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -249,17 +270,24 @@ describe('Favorites Component', () => {
     test('clears all favorites when clicking clear all button', async () => {
         axios.delete.mockResolvedValue({});
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+                );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
         });
 
+        // fire click on clear all button
         fireEvent.click(screen.getByText('🧹 Clear All Favorites'));
+
+        // accept on the modal
+        fireEvent.click(screen.getByText('Yes, clear all'));
 
         // Check if API was called for each song
         await waitFor(() => {
@@ -278,14 +306,43 @@ describe('Favorites Component', () => {
         });
     });
 
+    test('doesnt clear all favorites when clicking decline clear all button', async () => {
+        axios.delete.mockResolvedValue({});
 
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
+        });
+
+        // fire click on clear all button
+        fireEvent.click(screen.getByText('🧹 Clear All Favorites'));
+
+        // accept on the modal
+        fireEvent.click(screen.getByText('No'));
+
+        // Check if API was called for each song
+        await waitFor(() => {
+            expect(axios.delete).toHaveBeenCalledTimes(0);
+        });
+    });
 
     test('moves a favorite up', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 2')).toBeInTheDocument();
@@ -316,11 +373,14 @@ describe('Favorites Component', () => {
     });
 
     test('moves a favorite down', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -358,11 +418,14 @@ describe('Favorites Component', () => {
             .mockResolvedValueOnce({ data: false });       // after toggle
         axios.post.mockResolvedValueOnce({});             // toggle succeeds
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         // wait for the "Private" label
         await waitFor(() => {
@@ -398,11 +461,14 @@ describe('Favorites Component', () => {
             .mockResolvedValueOnce({ data: true });
         axios.post.mockResolvedValueOnce({});
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
         // wait for “Public” label
         await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
 
@@ -431,11 +497,14 @@ describe('Favorites Component', () => {
             .mockResolvedValueOnce({ data: mockFavorites });
         axios.post.mockRejectedValueOnce(new Error("network error"));
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
         await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
 
         const toggleDiv = screen.getByText("Public").previousSibling;
@@ -446,6 +515,7 @@ describe('Favorites Component', () => {
             expect(screen.getByText("⚠️ Failed to update privacy.")).toBeInTheDocument()
         );
     });
+
     test('handles errors when fetching favorites', async () => {
         axios.get.mockImplementation((url) => {
             if (url.includes('/api/favorites/privacy/')) {
@@ -456,14 +526,16 @@ describe('Favorites Component', () => {
             return Promise.reject(new Error('Not found'));
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
-            expect(screen.getByText('⚠️ Could not fetch favorite songs.')).toBeInTheDocument();
             expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
         });
     });
@@ -478,11 +550,14 @@ describe('Favorites Component', () => {
             return Promise.reject(new Error('Not found'));
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('⚠️ Could not load privacy settings.')).toBeInTheDocument();
@@ -501,11 +576,14 @@ describe('Favorites Component', () => {
 
         axios.post.mockRejectedValue(new Error('API Error'));
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Public')).toBeInTheDocument();
@@ -523,11 +601,14 @@ describe('Favorites Component', () => {
     test('handles errors when removing a song', async () => {
         axios.delete.mockRejectedValue(new Error('API Error'));
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -552,17 +633,21 @@ describe('Favorites Component', () => {
     test('handles errors when clearing all favorites', async () => {
         axios.delete.mockRejectedValue(new Error('API Error'));
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText('🧹 Clear All Favorites'));
+        fireEvent.click(screen.getByText('🧹 Clear All Favorites'))
+        fireEvent.click(screen.getByText('Yes, clear all'));
 
         // Check if error message is displayed
         await waitFor(() => {
@@ -573,11 +658,14 @@ describe('Favorites Component', () => {
     test('handles errors when moving a song', async () => {
         axios.post.mockRejectedValue(new Error('API Error'));
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -601,11 +689,14 @@ describe('Favorites Component', () => {
             value: { reload: jest.fn() }
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
@@ -626,11 +717,14 @@ describe('Favorites Component', () => {
             value: { reload: jest.fn() }
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
@@ -685,11 +779,14 @@ describe('Favorites Component', () => {
             return Promise.reject(new Error('Not found'));
         });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -699,11 +796,14 @@ describe('Favorites Component', () => {
     });
 
     test('does not allow invalid moves (beyond array bounds)', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -751,11 +851,14 @@ describe('Favorites Component', () => {
             .mockResolvedValueOnce({ data: false })
             .mockResolvedValueOnce({ data: mockSongs });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         // wait for our song to render
         const songTitle = await screen.findByText("HoverSong");
@@ -859,7 +962,5 @@ describe("favorites page is keyboard navigable",() => {
         await waitFor(() => {
             expect(screen.queryByText('Test Artist 1')).not.toBeInTheDocument();
         });
-
     })
-
 })

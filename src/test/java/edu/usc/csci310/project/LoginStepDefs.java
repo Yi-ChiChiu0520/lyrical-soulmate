@@ -121,11 +121,20 @@ public class LoginStepDefs {
         assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
-    @When("I am not authenticated")
-    public void iAmNotAuthenticated() {
+    public void logout() {
         driver.manage().deleteAllCookies();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         js.executeScript("window.localStorage.clear();");
+    }
+
+    @When("I am not authenticated")
+    public void iAmNotAuthenticated() {
+        logout();
+    }
+
+    @When("I am logged out")
+    public void iAmLoggedOut() {
+        logout();
     }
 
     @Given("I navigate to the dashboard page")
@@ -167,6 +176,12 @@ public class LoginStepDefs {
 
     @Given("I am authenticated")
     public void iAmAuthenticated() {
+        DriverManager.signInAsTester(connection);
+    }
+
+    @When("I log out and log back in")
+    public void logoutAndIn() {
+        logout();
         DriverManager.signInAsTester(connection);
     }
 

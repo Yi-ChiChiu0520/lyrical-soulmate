@@ -8,6 +8,7 @@ const Favorites = ({ user }) => {
     const [expandedSong, setExpandedSong] = useState(null);
     const [hoveredSongId, setHoveredSongId] = useState(null);
     const [songToRemove, setSongToRemove] = useState(null);
+    const [confirmingRemoval, setConfirmingRemoval] = useState(false);
     const [lastActivity, setLastActivity] = useState(Date.now());
     const [isPrivate, setIsPrivate] = useState(false);
     const [message, setMessage] = useState("");
@@ -78,7 +79,6 @@ const Favorites = ({ user }) => {
         } catch (error) {
             console.error("Error fetching favorites:", error);
             setFavorites([]);
-            setMessage("⚠️ Could not fetch favorite songs.");
         }
     };
 
@@ -147,6 +147,7 @@ const Favorites = ({ user }) => {
                 <div className="mb-4 flex items-center space-x-4">
                     <span aria-label="Favorites Privacy Label" className="text-gray-800 font-medium">🔒 Favorites Privacy:</span>
                     <div
+                        id = "toggle-privacy"
                         role="switch"
                         aria-label="Toggle Privacy"
                         aria-checked={isPrivate}
@@ -164,13 +165,13 @@ const Favorites = ({ user }) => {
                             className={`bg-white w-6 h-6 rounded-full shadow-md transform duration-300 ease-in-out ${isPrivate ? "translate-x-6" : "translate-x-0"}`}
                         ></div>
                     </div>
-                    <span aria-label={`Favorites are currently ${isPrivate ? "Private" : "Public"}`} className="text-sm text-gray-700">{isPrivate ? "Private" : "Public"}</span>
+                    <span id="privacy-setting" aria-label={`Favorites are currently ${isPrivate ? "Private" : "Public"}`} className="text-sm text-gray-700">{isPrivate ? "Private" : "Public"}</span>
                 </div>
 
                 {favorites.length > 0 && (
                     <div className="mb-4">
                         <button
-                            onClick={clearAllFavorites}
+                            onClick={() => setConfirmingRemoval(true)}
                             aria-label="Clear All Favorites"
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                         >
@@ -279,7 +280,7 @@ const Favorites = ({ user }) => {
 
                 {songToRemove && (
                     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-md shadow-lg text-center" id="confirm-remove-modal">
+                        <div className="bg-white p-6 rounded-md shadow-lg text-center" id="confirm-remove-song-modal">
                             <h3 aria-label="Confirm Removal Header" className="text-lg font-semibold mb-2">Confirm Removal</h3>
                             <p aria-label={`Confirm removal of ${songToRemove.title}`}>Are you sure you want to remove {songToRemove.title} from your favorites?</p>
                             <div className="mt-4">
@@ -299,6 +300,36 @@ const Favorites = ({ user }) => {
                                     onClick={() => setSongToRemove(null)}
                                     className="px-4 py-2 bg-red-500 text-white rounded"
                                     aria-label="No, do not remove song"
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {confirmingRemoval && (
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-md shadow-lg text-center" id="confirm-clear-favorites-modal">
+                            <h3 aria-label="Confirm Clear Favorites Header" className="text-lg font-semibold mb-2">Confirm Removal</h3>
+                            <p aria-label={`Confirm clearing of all favorites`}>Are you sure you want to clear your favorites?</p>
+                            <div className="mt-4">
+                                <button
+                                    id="accept-remove"
+                                    onClick={async () => {
+                                        await clearAllFavorites();
+                                        setConfirmingRemoval(false);
+                                    }}
+                                    className="mr-3 px-4 py-2 bg-green-500 text-white rounded"
+                                    aria-label="Yes, clear all favorites"
+                                >
+                                    Yes, clear all
+                                </button>
+                                <button
+                                    id="decline-remove"
+                                    onClick={() => setConfirmingRemoval(false)}
+                                    className="px-4 py-2 bg-red-500 text-white rounded"
+                                    aria-label="No, do not clear favorites"
                                 >
                                     No
                                 </button>
