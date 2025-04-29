@@ -139,7 +139,7 @@ const ComparePage = ({ user }) => {
 
     return (
         <div onClick={resetInactivityTimer} className="p-6 text-white bg-[#2d203f] min-h-screen">
-            <h1 className="text-2xl font-bold mb-4">Find Friends</h1>
+            <h1 className="text-2xl font-bold mb-4" aria-label="Find Friends page heading">Find Friends</h1>
 
             <div className="mb-6 relative">
                 <input
@@ -149,10 +149,11 @@ const ComparePage = ({ user }) => {
                     onChange={(e) => setSearchInput(e.target.value)}
                     className="p-2 text-black rounded-md w-64"
                     id="compare-search-input"
+                    aria-label="Search by username"
                 />
 
                 {suggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white text-black mt-1 rounded shadow w-64 max-h-60 overflow-y-auto" id="compare-suggestions-list">
+                    <ul className="absolute z-10 bg-white text-black mt-1 rounded shadow w-64 max-h-60 overflow-y-auto" id="compare-suggestions-list" aria-label="Suggestions list">
                         {suggestions.map((suggestion) => (
                             <li key={suggestion} className="px-4 py-2 hover:bg-purple-100 flex items-center">
                                 <input
@@ -169,8 +170,9 @@ const ComparePage = ({ user }) => {
                                             );
                                         }
                                     }}
+                                    aria-label={`Select ${suggestion}`}
                                 />
-                                <span onClick={() => handleSelectSuggestion(suggestion)} className="cursor-pointer">{suggestion}</span>
+                                <span aria-label={`Select suggestion ${suggestion}`} onClick={() => handleSelectSuggestion(suggestion)} className="cursor-pointer">{suggestion}</span>
                             </li>
                         ))}
                     </ul>
@@ -181,31 +183,43 @@ const ComparePage = ({ user }) => {
                     onClick={handleBulkAdd}
                     disabled={selectedSuggestions.length === 0}
                     className={`ml-4 px-4 py-2 mt-2 rounded ${selectedSuggestions.length > 0 ? "bg-purple-500 hover:bg-purple-600" : "bg-gray-500 cursor-not-allowed"}`}
+                    aria-label="Compare selected friends"
                 >
                     Compare Selected
                 </button>
             </div>
 
             {privateUserErrors.length > 0 && (
-                <div className="mb-6 text-red-400 bg-red-900 bg-opacity-20 p-4 rounded">
+                <div className="mb-6 text-red-400 bg-red-900 bg-opacity-20 p-4 rounded" aria-label="Private user error messages">
                     {privateUserErrors.map((msg, idx) => (
-                        <div key={idx}>⚠️ {msg}</div>
+                        <div aria-label={`Warning msg: ${msg}`} key={idx}>⚠️ {msg}</div>
                     ))}
                 </div>
             )}
 
-            <h2 className="text-xl font-bold mt-10 mb-4">Favorite Songs by You and Friends</h2>
-            <ul className="space-y-4">
+            <h2 className="text-xl font-bold mt-10 mb-4" aria-label="Favorite Songs section">Favorite Songs by You and Friends</h2>
+            <ul className="space-y-4" aria-label="Favorite songs list">
                 {rankedWithPosition.map((data) => (
-                    <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
-                        <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex justify-between">
-                            <span>{data.title}</span>
+                    <li key={data.id}
+                        tabIndex={0}
+                        role="button"
+                        aria-expanded={expandedSongs[data.id] != null}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && e.target === e.currentTarget) {
+                                e.preventDefault();
+                                toggleSongDetails(data.id);
+                            }
+                        }}
+                        className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]"
+                        aria-label={`Favorite song ${data.title}`}>
+                        <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex justify-between" aria-label={`Toggle details for ${data.title}`}>
+                            <span aria-label={`Song title ${data.title}`}>{data.title}</span>
                             <RankHover rank={data.rank} usernames={data.users} />
                         </div>
                         {expandedSongs[data.id] && (
-                            <div className="mt-2 text-sm text-gray-300">
-                                <p>Artist: {data.artistName}</p>
-                                <p>Release Date: {data.releaseDate}</p>
+                            <div className="mt-2 text-sm text-gray-300" aria-label={`Details for ${data.title}`}>
+                                <p aria-label={`Artist ${data.artistName} for ${data.title}`}>Artist: {data.artistName}</p>
+                                <p aria-label={`Release Date ${data.releaseDate} for ${data.title}`}>Release Date: {data.releaseDate}</p>
                             </div>
                         )}
                         <FriendHover usernames={data.users} />
@@ -223,13 +237,17 @@ const FriendHover = ({ usernames }) => {
         <div
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            onFocus={() => setHovered(true)}
+            onBlur={() => setHovered(false)}
+            tabIndex={0}
             className="relative mt-2 text-sm"
+            aria-label={`${usernames.length} friends have this song`}
         >
-            <span>{usernames.length} friend(s) have this song</span>
+            <span aria-label={`${usernames.length} friends have this song`}>{usernames.length} friend(s) have this song</span>
             {hovered && (
-                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
+                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10" aria-label="List of friends">
                     {usernames.map(name => (
-                        <div key={name}>{name}</div>
+                        <div key={name} aria-label={`Username ${name}`}>{name}</div>
                     ))}
                 </div>
             )}
@@ -245,15 +263,19 @@ const RankHover = ({ rank, usernames }) => {
             className="relative text-sm font-bold bg-purple-600 px-2 py-1 rounded text-white"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            onFocus={() => setHovered(true)}
+            onBlur={() => setHovered(false)}
+            tabIndex={0}
+            aria-label={`Song rank ${rank}`}
         >
             #{rank}
-            {hovered && (
-                <div className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
-                    <div className="font-semibold mb-1">Users:</div>
-                    {usernames.map((name) => (
-                        <div key={name}>{name}</div>
-                    ))}
-                </div>
+            {hovered && (<div
+                className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
+                <div aria-label="Users who like this song" className="font-semibold mb-1">Users:</div>
+                {usernames.map((name) => (
+                    <div aria-label={`User ${name} has rank ${rank}`} key={name}>{name}</div>
+                ))}
+            </div>
             )}
         </div>
     );

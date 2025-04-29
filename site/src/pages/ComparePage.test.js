@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import ComparePage, { mergeSongs } from './ComparePage';
 import axios from 'axios';
+import userEvent from "@testing-library/user-event";
 
 // Mock axios
 jest.mock('axios');
@@ -340,45 +341,45 @@ describe('ComparePage Component', () => {
         });
     });
 
-test('handles API error with 403 status when fetching friend favorites', async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
-        // Suppress expected console.error output in test
+    test('handles API error with 403 status when fetching friend favorites', async () => {
+        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
+            // Suppress expected console.error output in test
+        });
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/friend1')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.reject({ response: { status: 403 } });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'fr' } });
+
+        await waitFor(() => {
+            expect(screen.getByText('friend1')).toBeInTheDocument();
+        });
+
+        const checkboxes = screen.getAllByRole('checkbox');
+        fireEvent.click(checkboxes[0]);
+        fireEvent.click(screen.getByText('Compare Selected'));
+
+        await waitFor(() => {
+            expect(screen.getByText("⚠️ friend1's favorites are private.")).toBeInTheDocument();
+        });
+
+        consoleErrorSpy.mockRestore(); // Optional: restore console after test
     });
-
-    axios.get.mockImplementation((url) => {
-        if (url.includes('/users/search')) {
-            return Promise.resolve({ data: mockSuggestions });
-        } else if (url.includes(`/api/favorites/${mockUser}`)) {
-            return Promise.resolve({ data: mockFavorites });
-        } else if (url.includes('/api/favorites/privacy/friend1')) {
-            return Promise.resolve({ data: false });
-        } else if (url.includes('/api/favorites/friend1')) {
-            return Promise.reject({ response: { status: 403 } });
-        } else if (url.includes('/api/favorites/privacy/')) {
-            return Promise.resolve({ data: false });
-        }
-        return Promise.reject(new Error('Not found'));
-    });
-
-    render(<ComparePage user={mockUser} />);
-
-    const searchInput = screen.getByPlaceholderText('Search by username');
-    fireEvent.change(searchInput, { target: { value: 'fr' } });
-
-    await waitFor(() => {
-        expect(screen.getByText('friend1')).toBeInTheDocument();
-    });
-
-    const checkboxes = screen.getAllByRole('checkbox');
-    fireEvent.click(checkboxes[0]);
-    fireEvent.click(screen.getByText('Compare Selected'));
-
-    await waitFor(() => {
-        expect(screen.getByText("⚠️ friend1's favorites are private.")).toBeInTheDocument();
-    });
-
-    consoleErrorSpy.mockRestore(); // Optional: restore console after test
-});
 
 
     test('handles API error when searching for users', async () => {
@@ -585,6 +586,7 @@ test('handles API error with 403 status when fetching friend favorites', async (
             expect(favoritesCalls[0][0]).toContain('friend2');
         });
     });
+
 });
 
 describe('mergeSongs function', () => {
@@ -770,5 +772,48 @@ describe('mergeSongs function', () => {
             expect(screen.queryByText("Users:")).not.toBeInTheDocument();
         });
     });
+
+    test("compare page is keyboard navigable", async() => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false }); // Default to public
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.resolve({ data: mockFriend1Favorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+
+        const usere = userEvent.setup();
+        const tabUntilLabel = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await usere.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        await tabUntilLabel("Favorite song");
+        await usere.keyboard('[Enter]');
+
+        expect(await screen.findByText(/artist:/i)).toBeInTheDocument();
+        expect(await screen.findByText(/release date:/i)).toBeInTheDocument();
+
+        await tabUntilLabel("Song rank ");
+        await tabUntilLabel("Users who like this song");
+
+    })
+
+
 
 });
