@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import axios from 'axios';
 import WordCloudPanel from './WordCloudPanel';
 import { act } from 'react-dom/test-utils';
-
+import userEvent from "@testing-library/user-event";
 jest.mock('axios');
 
 const mockUser = 'testUser';
@@ -148,12 +148,23 @@ test('shows Add to Favorites button on hover and hides on mouse leave', async ()
 
     const songDiv = screen.getByText('Test Song 1').closest('div');
 
-    fireEvent.mouseEnter(songDiv);
-    expect(screen.getByText(/Add to Favorites/i)).toBeInTheDocument();
+    const addToFavoritesButton = await screen.findByText(/Add to Favorites/i);
+    expect(addToFavoritesButton.parentElement).toHaveClass('opacity-0');
 
-    fireEvent.mouseLeave(songDiv);
+    // Hover the song div
+    fireEvent.mouseEnter(songDiv);
+
+    // Now it should have opacity-100 (visible)
     await waitFor(() => {
-        expect(screen.queryByText(/Add to Favorites/i)).not.toBeInTheDocument();
+        expect(addToFavoritesButton.parentElement).toHaveClass('opacity-100');
+    });
+
+    // Mouse leave again
+    fireEvent.mouseLeave(songDiv);
+
+    // It should go back to opacity-0 (hidden)
+    await waitFor(() => {
+        expect(addToFavoritesButton.parentElement).toHaveClass('opacity-0');
     });
 });
 
@@ -244,3 +255,112 @@ test('stopping word cloud clears wordCloudSongs and shows 0 songs', async () => 
 
     expect(screen.getByText(/0 songs/i)).toBeInTheDocument();
 });
+
+describe('panel is keyboard navigable',() => {
+    const testView = async (view) => {
+        const user = userEvent.setup();
+
+        const tabUntil = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await user.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        if (view === 'table') {
+            fireEvent.click(screen.getByRole('button', { name: /switch view to table/i }));
+        }
+
+        await tabUntil('WordCloud Word:')
+        // Press Enter to select the word
+        await user.keyboard("[Enter]");
+
+        // It should open related songs now
+        expect(await screen.findByText(/songs containing/i)).toBeInTheDocument();
+
+        // Tab to the first song
+        await tabUntil('Related Song:');
+
+        const firstSongTitle = screen.getAllByRole("button", { name: /Related Song: Test Song 1/i })[0];
+        expect(firstSongTitle).toHaveFocus();
+
+        // Press Enter to expand song details
+        await user.keyboard("[Enter]");
+        expect(await screen.findByText(/Artist 1/)).toBeInTheDocument();
+
+        // Press Enter again to collapse
+        await user.keyboard("[Enter]");
+        expect(screen.queryByText(/Artist 1/)).not.toBeInTheDocument();
+
+        // Tab to the "Add to Favorites" button
+        await user.tab();
+        const addToFavoritesButtons = screen.getAllByRole("button", { name: /Add to Favorites/i }).filter((button)=>button.parentElement?.classList.contains('opacity-100'));
+        const addToFavoritesButton = addToFavoritesButtons[0];
+
+        expect(addToFavoritesButton).toHaveFocus();
+
+        // Press Enter to "Add to Favorites"
+        await user.keyboard("[Enter]");
+
+        expect(await screen.findByText(/Added Test Song 1 to favorites/i)).toBeInTheDocument();
+
+        await tabUntil('Related Song:');
+    }
+
+    it("cloud view allows tabbing through clickable elements and expands/collapses sections on Enter", async () => {
+        const twoSongs = [
+            { ...mockSongs[0] },
+            {
+                songId: '2',
+                title: 'Second Song',
+                url: 'http://test.com/2',
+                imageUrl: 'http://test.com/img2.jpg',
+                releaseDate: '2023-02-01',
+                artistName: 'Artist 2'
+            }
+        ];
+        render(
+            <WordCloudPanel
+                user="testuser"
+                wordCloudSongs={twoSongs}
+                loading={false}
+                isGeneratingEnabled={true}
+            />
+        );
+
+        await findWordContaining('sun');
+        await testView('cloud');
+    });
+
+    it("table view allows tabbing through clickable elements and expands/collapses sections on Enter", async () => {
+        const twoSongs = [
+            { ...mockSongs[0] },
+            {
+                songId: '2',
+                title: 'Second Song',
+                url: 'http://test.com/2',
+                imageUrl: 'http://test.com/img2.jpg',
+                releaseDate: '2023-02-01',
+                artistName: 'Artist 2'
+            }
+        ];
+        render(
+            <WordCloudPanel
+                user="testuser"
+                wordCloudSongs={twoSongs}
+                isGeneratingEnabled={true}
+            />
+        );
+
+        await findWordContaining('sun');
+        await testView('table');
+    });
+
+
+})

@@ -242,18 +242,19 @@ const Dashboard = ({ user }) => {
     return (
         <div onClick={resetInactivityTimer} className="@container flex-1 px-4 py-12 bg-[#d0c2dc]">
             <div className="max-w-4xl mx-auto space-y-8">
-                <h2 className="text-3xl font-bold text-center text-[#3d3547] mb-8">Welcome, {user}!</h2>
+                <h2 aria-label={`Welcome, ${user}`} className="text-3xl font-bold text-center text-[#3d3547] mb-8">Welcome, {user}!</h2>
 
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-grow">
-                            <label htmlFor="songSearch" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label aria-label={`label for song search`} htmlFor="songSearch" className="block text-sm font-medium text-gray-700 mb-1">
                                 Search songs
                             </label>
 
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                                <span aria-label={`Search query icon magnifying glass`} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
                                 <input
+                                    aria-label={`Artist search query input`}
                                     id="song-title"
                                     type="search"
                                     placeholder="Enter artist name..."
@@ -265,11 +266,12 @@ const Dashboard = ({ user }) => {
                             </div>
                         </div>
                         <div className="flex flex-col justify-end">
-                            <label htmlFor="resultCount" className="block text-xs font-medium text-gray-700 mb-1">
+                            <label aria-label={`label: number of search results`} htmlFor="resultCount" className="block text-xs font-medium text-gray-700 mb-1">
                                 Number of results
                             </label>
                             <div className="relative flex items-center">
                                 <input
+                                    aria-label={`set number of search results`}
                                     id="song-limit"
                                     type="number"
                                     min="1"
@@ -282,11 +284,12 @@ const Dashboard = ({ user }) => {
                         </div>
 
                         <div className="flex flex-col justify-end">
-                            <label className="block text-sm font-medium text-transparent mb-1">&nbsp;</label>
+                            <label aria-label={`padding space`} className="block text-sm font-medium text-transparent mb-1">&nbsp;</label>
                             <button
                                 id="search-button"
                                 onClick={fetchSongs}
                                 className="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-md transition duration-300 ease-in-out flex items-center justify-center shadow-sm"
+                                aria-label={`Search`}
                             >
                                 Search
                             </button>
@@ -297,9 +300,10 @@ const Dashboard = ({ user }) => {
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-semibold mb-4">Search Results</h2>
+                    <h2 aria-label={`header for search result section`} className="text-xl font-semibold mb-4">Search Results</h2>
                     <div className="flex flex-col sm:flex-row justify-center gap-2 my-6">
                         <button
+                            aria-label={`add selected to favorites`}
                             id="add-to-favorites"
                             onClick={bulkAddToFavorites}
                             disabled={isAddingFavorites}
@@ -314,6 +318,7 @@ const Dashboard = ({ user }) => {
                         <button
                             id="add-to-wordcloud"
                             onClick={addSelectedToWordCloud}
+                            aria-label={`add selected to word cloud`}
                             className="bg-[#f57c00] hover:bg-orange-700 text-gray-100 font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out border border-gray-300"
                         >
                             Add Selected to Word Cloud
@@ -321,22 +326,24 @@ const Dashboard = ({ user }) => {
                         <button
                             id="add-all-favorites"
                             onClick={addFavoritesToWordCloud}
+                            aria-label={`add all favorites to word cloud`}
                             className="bg-[#8c5ad0] hover:bg-purple-700 text-gray-100 font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out border border-gray-300"
                         >
                             {isAddingFavoritesToCloud ? "Adding..." : "Add All Favorites to Word Cloud"}
                         </button>
                     </div>
                     {successMessage &&
-                        <p id="search-success" style={{color: "green", marginTop: "10px"}}>{successMessage}</p>}
-                    {errorMessage && <p id="search-error" style={{color: "red"}}>{errorMessage}</p>}
+                        <p aria-label={`success message: ${successMessage}`} id="search-success" style={{color: "green", marginTop: "10px"}}>{successMessage}</p>}
+                    {errorMessage && <p aria-label={`error message: ${errorMessage}`} id="search-error" style={{color: "red"}}>{errorMessage}</p>}
                     {songs.length > 0 ? (
                         <div>
-                            <p className="text-center text-gray-500">{`Showing up to ${songLimit} results for "${query}"`}</p>
+                            <p aria-label={`Showing up to ${songLimit} results for ${query}`} className="text-center text-gray-500">{`Showing up to ${songLimit} results for "${query}"`}</p>
                             <ul id="results-list" style={{listStyleType: "none", padding: 0}}>
                                 {songs.map((song) => (
                                     <li key={song.result.id}
                                         style={{marginBottom: "10px", display: "flex", alignItems: "center"}}>
                                         <input
+                                            aria-label={`select song checkbox`}
                                             type="checkbox"
                                             checked={selectedSongs.includes(song.result.id)}
                                             onChange={() => toggleSelectSong(song.result.id)}
@@ -344,7 +351,7 @@ const Dashboard = ({ user }) => {
                                         />
                                         <img
                                             src={song.result.header_image_url}
-                                            alt="Song Cover"
+                                            alt={`Song Cover for ${song.result.full_title}`}
                                             style={{
                                                 width: "50px",
                                                 height: "50px",
@@ -353,10 +360,10 @@ const Dashboard = ({ user }) => {
                                             }}
                                         />
                                         <div style={{display: "flex", flexDirection: "column"}}>
-                                        <span id="song-name" style={{fontWeight: "bold", cursor: "pointer"}}>
+                                        <span aria-label={`song title: ${song.result.full_title}`} id="song-name" style={{fontWeight: "bold", cursor: "pointer"}}>
                                             🎵 {song.result.full_title}
                                         </span>
-                                            <span style={{fontSize: "12px", color: "gray"}}>
+                                            <span aria-label={`release date: ${song.result.release_date_for_display}`} style={{fontSize: "12px", color: "gray"}}>
                                             📅 {song.result.release_date_for_display}
                                         </span>
                                         </div>
@@ -365,7 +372,7 @@ const Dashboard = ({ user }) => {
                             </ul>
                         </div>
                     ) : (
-                        <p className="text-center text-gray-500">No songs found.</p>
+                        <p aria-label={`no songs found.`} className="text-center text-gray-500">No songs found.</p>
                     )}
                 </div>
                 <div id="word-cloud" className="bg-white p-6 rounded-lg shadow-md">

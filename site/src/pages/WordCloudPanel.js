@@ -157,7 +157,7 @@ const WordCloudPanel = ({
     function HighlightedLyrics({ lyrics, word }) {
         const targetStem = stemmer(word);
         const highlighted = lyrics.split(" ").map((w, i) => (
-            <span key={i} style={{ backgroundColor: stemmer(w) === targetStem ? 'yellow' : 'transparent' }}>
+            <span aria-label={`Lyric word: ${w}`} key={i} style={{ backgroundColor: stemmer(w) === targetStem ? 'yellow' : 'transparent' }}>
         {w + " "}
       </span>
         ));
@@ -169,7 +169,7 @@ const WordCloudPanel = ({
             {/* HEADER */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                    <h2 className="text-xl font-semibold">Word Cloud</h2>
+                    <h2 aria-label="Word Cloud Page" className="text-xl font-semibold">Word Cloud</h2>
                     <button
                         onClick={() => {
                             const next = !isGeneratingEnabled;
@@ -184,16 +184,17 @@ const WordCloudPanel = ({
                             isGeneratingEnabled ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200" :
                                 "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
                         }`}
+                        aria-label={`${isGeneratingEnabled ? "Stop word cloud" : "start world cloud"}`}
                     >
                         {isGeneratingEnabled ? "🛑 Stop Word Cloud" : "▶️ Start Word Cloud"}
                     </button>
-                    <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                    <span aria-label={`${wordCloudSongs.length} songs in Word Cloud`} className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
             {wordCloudSongs.length} songs
           </span>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">View:</span>
+                    <span aria-label={`Word cloud View Settings`} className="text-sm text-gray-500">View:</span>
                     <div className="flex border border-gray-300 rounded-md overflow-hidden">
                         <button
                             id="view-cloud"
@@ -201,6 +202,7 @@ const WordCloudPanel = ({
                             className={`px-3 py-1 text-sm ${
                                 viewMode === "cloud" ? "bg-purple-50 text-purple-600 font-medium" : "bg-white text-gray-500 hover:bg-gray-50"
                             }`}
+                            aria-label={`Switch view to cloud`}
                         >
                             Word Cloud
                         </button>
@@ -210,6 +212,7 @@ const WordCloudPanel = ({
                             className={`px-3 py-1 text-sm ${
                                 viewMode === "table" ? "bg-purple-50 text-purple-600 font-medium" : "bg-white text-gray-500 hover:bg-gray-50"
                             }`}
+                            aria-label={`Switch view to table`}
                         >
                             Table
                         </button>
@@ -219,7 +222,7 @@ const WordCloudPanel = ({
 
             {/* STATUS MESSAGE */}
             {statusMessage && (
-                <div className="text-sm mb-2" style={{ color: statusMessage.startsWith("✅") ? "green" : "red" }}>
+                <div aria-label={`Status Message: ${statusMessage}`} className="text-sm mb-2" style={{ color: statusMessage.startsWith("✅") ? "green" : "red" }}>
                     {statusMessage}
                 </div>
             )}
@@ -230,11 +233,12 @@ const WordCloudPanel = ({
                     {wordCloudSongs.map((song) => (
                         <div key={song.songId} className="py-2 flex items-center justify-between">
                             <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-medium text-gray-900 truncate">🎵 {song.title}</h3>
+                                <h3 aria-label={`Song: ${song.title}`} className="text-sm font-medium text-gray-900 truncate">🎵 {song.title}</h3>
                             </div>
                             <div className="ml-4 flex-shrink-0">
                                 <button
                                     onClick={() => handleRemoveFromWordCloud(song.songId)}
+                                    aria-label={`Remove ${song.title} from word cloud.`}
                                     className="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors duration-200"
                                 >
                                     Remove
@@ -248,14 +252,19 @@ const WordCloudPanel = ({
             {/* LOADING BAR */}
             {loading && isGeneratingEnabled && songsAdding > 0 && (
                 <div className="mt-6 space-y-2">
-                    <div className="text-sm text-gray-600">
+                    <div aria-label={`Processing ${numProcessed} of ${songsAdding} songs...`} className="text-sm text-gray-600">
                         Processing {numProcessed} of {songsAdding} songs…
                     </div>
-                    <progress className="w-full h-2 rounded-md bg-gray-200 overflow-hidden" value={numProcessed} max={songsAdding} />
+                    <progress
+                        className="w-full h-2 rounded-md bg-gray-200 overflow-hidden"
+                        value={numProcessed}
+                        max={songsAdding}
+                        aria-label={`${numProcessed} songs processed.`}
+                    />
                 </div>
             )}
             {loading && isGeneratingEnabled && (
-                <p style={{ fontStyle: "italic", color: "gray", marginTop: "30px" }}>
+                <p aria-label={`Generating word cloud...`} style={{ fontStyle: "italic", color: "gray", marginTop: "30px" }}>
                     ⏳ Generating word cloud...
                 </p>
             )}
@@ -266,8 +275,17 @@ const WordCloudPanel = ({
                     {wordMap.map(({ word, size }) => (
                         <span
                             key={word}
+                            tabIndex={0}
+                            role="button"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleWordClick(word);
+                                }
+                            }}
                             onClick={() => handleWordClick(word)}
                             style={{ fontSize: `${size}px`, margin: "8px", cursor: "pointer" }}
+                            aria-label={`WordCloud Word: ${word}`}
                         >
               {word}
             </span>
@@ -277,12 +295,26 @@ const WordCloudPanel = ({
 
             {!loading && isGeneratingEnabled && viewMode === "table" && (
                 <table style={{ margin: "auto", marginTop: "20px", borderCollapse: "collapse" }}>
-                    <thead><tr><th>Word</th><th>Count</th></tr></thead>
+                    <thead>
+                    <tr><th aria-label={`Table Header: Word`}>Word</th><th aria-label={`Table Header: Count`}>Count</th></tr>
+                    </thead>
                     <tbody>
                     {wordMap.sort((a, b) => b.count - a.count).map(({ word, count }) => (
-                        <tr key={word} onClick={() => handleWordClick(word)} style={{ cursor: "pointer" }}>
-                            <td>{word}</td>
-                            <td>{count}</td>
+                        <tr
+                            key={word}
+                            tabIndex={0}
+                            role="button"
+                            onClick={() => handleWordClick(word)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleWordClick(word);
+                                }
+                            }}
+                            aria-label={`WordCloud Word: ${word}`}
+                            style={{ cursor: "pointer" }}>
+                            <td aria-label={`Table Entry Word: ${word}`}>{word}</td>
+                            <td aria-label={`Table Entry Count: ${count}`}>{count}</td>
                         </tr>
                     ))}
                     </tbody>
@@ -292,7 +324,7 @@ const WordCloudPanel = ({
             {/* RELATED SONGS */}
             {selectedWord && (
                 <div>
-                    <h2 className="text-xl font-semibold mb-4">🎧 Songs containing "{selectedWord}"</h2>
+                    <h2 aria-label={`Related Songs Header`} className="text-xl font-semibold mb-4">🎧 Songs containing "{selectedWord}"</h2>
                     <div className="divide-y divide-gray-200">
                         {relatedSongs.map((song) => (
                             <div
@@ -303,34 +335,53 @@ const WordCloudPanel = ({
                             >
                                 <div
                                     onClick={() => setExpandedSong(expandedSong === song.songId ? null : song.songId)}
-                                    className="flex flex-col w-full"
-                                >
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-expanded={expandedSong === song.songId}
+                                    onFocus={() => setHoveredSongId(song.songId)}
+                                    onBlur={(e) => {
+                                        // only blur if focus is leaving the entire item
+                                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                                            setHoveredSongId(null);
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && e.target === e.currentTarget) {
+                                            e.preventDefault();
+                                            setExpandedSong(expandedSong === song.songId ? null : song.songId);
+                                        }
+                                    }}
+                                    aria-label={`Related Song: ${song.title}`}
+                                    className="flex flex-col w-full">
                                     <div className="flex flex-row justify-between w-full">
-                                        <span className="text-gray-900 font-medium w-3/4">{song.title}</span>
-                                        {hoveredSongId === song.songId && (
-                                            <div className="ml-4">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
+                                        <span aria-label={`Related Song Title: ${song.title}`} className="text-gray-900 font-medium w-3/4">{song.title}</span>
+                                        <div className={`ml-4 ${hoveredSongId === song.songId ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                                            <button
+                                                aria-label={`Add to Favorites button`}
+                                                onClick={(e) => {e.stopPropagation(); addToFavorites(song)}}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" && e.target === e.currentTarget) {
+                                                        e.preventDefault();
                                                         addToFavorites(song);
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 hover:bg-blue-100 px-3 py-0 rounded-md transition-all duration-200"
-                                                >
-                                                    Add to Favorites
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span className="text-gray-900 font-sm">Word Count: {song.wordCount}</span>
-                                    {expandedSong === song.songId && (
-                                        <div className="mt-2 text-gray-600 animate-fadeIn">
-                                            <p className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
-                                            <p className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
-                                            <div className="text-gray-900 font-xs">
-                                                ♫ Lyrics:<HighlightedLyrics lyrics={song.lyrics} word={selectedWord} />
-                                            </div>
+                                                    }
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 hover:bg-blue-100 px-3 py-0 rounded-md transition-all duration-200"
+                                            >
+                                                Add to Favorites
+                                            </button>
                                         </div>
-                                    )}
+                                    </div>
+                                    <span aria-label={`Word Count: ${song.wordCount}`} className="text-gray-900 font-sm">Word Count: {song.wordCount}</span>
+                                    {expandedSong === song.songId && (<div>
+                                        <div
+                                            className="mt-2 text-gray-600 animate-fadeIn">
+                                            <p aria-label={`Expanded Related Song Artist Name: ${song.artistName}`} id="artist-name" className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
+                                            <p aria-label={`Expanded Related Song Release Date: ${song.releaseDate}`} id="release-date" className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
+                                        </div>
+                                        <div aria-label={`Lyrics:`} className="text-gray-900 font-xs">
+                                            ♫ Lyrics:<HighlightedLyrics lyrics={song.lyrics} word={selectedWord} />
+                                        </div>
+                                    </div>)}
                                 </div>
                             </div>
                         ))}
@@ -342,4 +393,3 @@ const WordCloudPanel = ({
 };
 
 export default WordCloudPanel;
-
