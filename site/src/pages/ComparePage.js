@@ -164,9 +164,7 @@ const ComparePage = ({ user }) => {
                                         if (e.target.checked) {
                                             setSelectedSuggestions(prev => [...prev, suggestion]);
                                         } else {
-                                            setSelectedSuggestions(prev =>
-                                                prev.filter(name => name !== suggestion)
-                                            );
+                                            setSelectedSuggestions(prev => prev.filter(name => name !== suggestion));
                                         }
                                     }}
                                 />
@@ -198,17 +196,24 @@ const ComparePage = ({ user }) => {
             <ul className="space-y-4">
                 {rankedWithPosition.map((data) => (
                     <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
-                        <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex justify-between">
-                            <span>{data.title}</span>
-                            <RankHover rank={data.rank} usernames={data.users} />
+                        <div className="flex justify-between">
+                            <span onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold">{data.title}</span>
+                            <RankHover rank={data.rank} usernames={data.users} onClick={() => toggleSongDetails(data.id)} />
                         </div>
                         {expandedSongs[data.id] && (
                             <div className="mt-2 text-sm text-gray-300">
                                 <p>Artist: {data.artistName}</p>
                                 <p>Release Date: {data.releaseDate}</p>
+                                <div className="mt-2">
+                                    <p>Favorited by:</p>
+                                    <ul className="list-disc list-inside">
+                                        {data.users.map((username) => (
+                                            <li key={username}>{username}</li>
+                                        ))}
+                                    </ul>
+                                </div>
                             </div>
                         )}
-                        <FriendHover usernames={data.users} />
                     </li>
                 ))}
             </ul>
@@ -216,35 +221,15 @@ const ComparePage = ({ user }) => {
     );
 };
 
-const FriendHover = ({ usernames }) => {
+export const RankHover = ({ rank, usernames, onClick }) => {
     const [hovered, setHovered] = useState(false);
 
     return (
         <div
+            className="relative text-sm font-bold bg-purple-600 px-2 py-1 rounded text-white cursor-pointer"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="relative mt-2 text-sm"
-        >
-            <span>{usernames.length} friend(s) have this song</span>
-            {hovered && (
-                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10">
-                    {usernames.map(name => (
-                        <div key={name}>{name}</div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-const RankHover = ({ rank, usernames }) => {
-    const [hovered, setHovered] = useState(false);
-
-    return (
-        <div
-            className="relative text-sm font-bold bg-purple-600 px-2 py-1 rounded text-white"
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
+            onClick={onClick}
         >
             #{rank}
             {hovered && (
