@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import Favorites from './Favorites';
 import axios from 'axios';
 import { BrowserRouter } from 'react-router-dom';
+import ComparePage from "./ComparePage";
+import userEvent from "@testing-library/user-event";
 
 // Mock axios
 jest.mock('axios');
@@ -201,12 +203,12 @@ describe('Favorites Component', () => {
         axios.delete.mockResolvedValue({});
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -236,12 +238,12 @@ describe('Favorites Component', () => {
 
     test('cancels removal when clicking cancel button', async () => {
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -269,11 +271,11 @@ describe('Favorites Component', () => {
         axios.delete.mockResolvedValue({});
 
         await act(async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-            );
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+                );
         });
 
 
@@ -334,12 +336,12 @@ describe('Favorites Component', () => {
 
     test('moves a favorite up', async () => {
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-        );
-    });
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -350,8 +352,12 @@ describe('Favorites Component', () => {
         const song2Li = screen.getByText('Test Song 2').closest('li');
         fireEvent.mouseEnter(song2Li);
 
-        const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[0]); // or upButtons[1], depending on test indexing
+
+        const upButtons = screen.getAllByRole('button', { name: /Move up/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const upButton = upButtons[0];
+        fireEvent.click(upButton);
 
         expect(axios.post).toHaveBeenCalledWith(
             'http://localhost:8080/api/favorites/swap',
@@ -368,12 +374,12 @@ describe('Favorites Component', () => {
 
     test('moves a favorite down', async () => {
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -413,12 +419,12 @@ describe('Favorites Component', () => {
         axios.post.mockResolvedValueOnce({});             // toggle succeeds
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         // wait for the "Private" label
@@ -456,12 +462,12 @@ describe('Favorites Component', () => {
         axios.post.mockResolvedValueOnce({});
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
         // wait for “Public” label
         await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
@@ -492,12 +498,12 @@ describe('Favorites Component', () => {
         axios.post.mockRejectedValueOnce(new Error("network error"));
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
         await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
 
@@ -521,12 +527,12 @@ describe('Favorites Component', () => {
         });
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -545,12 +551,12 @@ describe('Favorites Component', () => {
         });
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -571,12 +577,12 @@ describe('Favorites Component', () => {
         axios.post.mockRejectedValue(new Error('API Error'));
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -596,12 +602,12 @@ describe('Favorites Component', () => {
         axios.delete.mockRejectedValue(new Error('API Error'));
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -628,12 +634,12 @@ describe('Favorites Component', () => {
         axios.delete.mockRejectedValue(new Error('API Error'));
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -653,12 +659,12 @@ describe('Favorites Component', () => {
         axios.post.mockRejectedValue(new Error('API Error'));
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -684,12 +690,12 @@ describe('Favorites Component', () => {
         });
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -712,12 +718,12 @@ describe('Favorites Component', () => {
         });
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -774,12 +780,12 @@ describe('Favorites Component', () => {
         });
 
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -791,12 +797,12 @@ describe('Favorites Component', () => {
 
     test('does not allow invalid moves (beyond array bounds)', async () => {
         await act(async () => {
-    render(
-        <BrowserRouter>
-            <Favorites user={mockUser} />
-        </BrowserRouter>
-    );
-});
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
 
 
         await waitFor(() => {
@@ -808,8 +814,11 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Try to move first song up (should do nothing)
-        const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[0]);
+        const upButtons = screen.getAllByRole('button', { name: /Move up/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const upButton = upButtons[0];
+        fireEvent.click(upButton);
         expect(axios.post).not.toHaveBeenCalled();
 
         // Hover over second song so Down button appears
@@ -817,8 +826,11 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song2Li);
 
         // Try to move last song down (should do nothing)
-        const downButtons = screen.getAllByText('⬇️');
-        fireEvent.click(downButtons[0]);
+        const downButtons = screen.getAllByRole('button', { name: /Move down/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const downButton = downButtons[0];
+        fireEvent.click(downButton);
         expect(axios.post).not.toHaveBeenCalled();
     });
     it("shows action buttons on hover and hides them on mouse leave", async () => {
@@ -852,25 +864,103 @@ describe('Favorites Component', () => {
         const songTitle = await screen.findByText("HoverSong");
         const listItem = songTitle.closest("li");
 
+        const moveUpButtons = screen.getAllByLabelText("Move up");
+        const moveDownButtons = screen.getAllByLabelText("Move down");
+        const removeButtons = screen.getAllByLabelText("Remove");
+
+
         // Before hover: no action buttons
-        expect(screen.queryByLabelText("Move up")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Move down")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Remove")).not.toBeInTheDocument();
+        const countVisible = (buttons) =>
+            buttons.filter((button) => button.parentElement?.classList.contains('opacity-100')).length;
+
+        // Before hover: none should be visible
+        expect(countVisible(moveUpButtons)).toBe(0);
+        expect(countVisible(moveDownButtons)).toBe(0);
+        expect(countVisible(removeButtons)).toBe(0);
 
         // Hover
         fireEvent.mouseEnter(listItem);
-        expect(screen.getByLabelText("Move up")).toBeInTheDocument();
-        expect(screen.getByLabelText("Move down")).toBeInTheDocument();
-        expect(screen.getByLabelText("Remove")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(countVisible(moveUpButtons)).toBe(1);
+            expect(countVisible(moveDownButtons)).toBe(1);
+            expect(countVisible(removeButtons)).toBe(1);
+        });
 
         // Mouse leave
         fireEvent.mouseLeave(listItem);
+
+        // After leave: none visible again
         await waitFor(() => {
-            expect(screen.queryByLabelText("Move up")).not.toBeInTheDocument();
-            expect(screen.queryByLabelText("Move down")).not.toBeInTheDocument();
-            expect(screen.queryByLabelText("Remove")).not.toBeInTheDocument();
+            expect(countVisible(moveUpButtons)).toBe(0);
+            expect(countVisible(moveDownButtons)).toBe(0);
+            expect(countVisible(removeButtons)).toBe(0);
         });
     });
-
-
 });
+
+describe("favorites page is keyboard navigable",() => {
+    test("everything tabbable, expand/collapse on enter", async() => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false }); // Default to public
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        const user = userEvent.setup();
+        const tabUntilLabel = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await user.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        render(
+            <BrowserRouter>
+                <Favorites user={mockUser} />
+            </BrowserRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // toggle privacy
+        await tabUntilLabel("Toggle Privacy");
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        await tabUntilLabel("Move up")
+        await user.tab();
+        // move second song up
+        await tabUntilLabel("Move up");
+        await user.keyboard("[Space]");
+        await waitFor(() => {
+            // moveFavorite causes fetchFavorites, so let's wait for any favorite to be in DOM
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+        // await new Promise((x) => setTimeout(x, 1000));
+
+        // expand top song
+        await tabUntilLabel("Favorite Song:")
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.getByText('Test Artist 1')).toBeInTheDocument();
+        });
+        // collapse
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.queryByText('Test Artist 1')).not.toBeInTheDocument();
+        });
+    })
+})

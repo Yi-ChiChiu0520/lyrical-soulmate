@@ -163,11 +163,11 @@ const LyricalMatchPage = ({ user }) => {
 
     const UserComparison = ({ title, user }) => (
         <div className="my-6 p-4 border rounded shadow bg-white">
-            <h2 className="text-xl font-bold mb-2">{`${title}: ${user?.username}`}</h2>
-            <h3 className="text-md mb-2">Their Favorite Songs:</h3>
+            <h2 aria-label={`${title}: ${user?.username}`} className="text-xl font-bold mb-2">{`${title}: ${user?.username}`}</h2>
+            <h3 aria-label={`their favorite songs:`} className="text-md mb-2">Their Favorite Songs:</h3>
             <ul className="list-disc pl-6">
                 {user?.favorites?.map(song => (
-                    <li key={song.songId}>{song.title} — {song.artistName}</li>
+                    <li aria-label={`${song.title}, ${song.artistName}`} key={song.songId}>{song.title} — {song.artistName}</li>
                 ))}
             </ul>
         </div>
@@ -176,14 +176,14 @@ const LyricalMatchPage = ({ user }) => {
 
     return (
         <div onClick={resetInactivityTimer} className="p-6 bg-gray-100 min-h-screen">
-            <h1 className="text-3xl font-bold mb-4 text-center">🔍 Find Your Lyrical Soulmate & Enemy</h1>
+            <h1 aria-label={`Find your lyrical soulmate and enemy`} className="text-3xl font-bold mb-4 text-center">🔍 Find Your Lyrical Soulmate & Enemy</h1>
 
             {skippedUsers.length > 0 && (
-                <div className="mb-4 px-4 py-2 rounded bg-yellow-100 text-yellow-800 border border-yellow-300 shadow-sm">
+                <div aria-label={`skipped users with private favorite lists`} className="mb-4 px-4 py-2 rounded bg-yellow-100 text-yellow-800 border border-yellow-300 shadow-sm">
                     ⚠️ Skipped {skippedUsers.length} user{skippedUsers.length > 1 ? "s" : ""} with private favorites:
                     <ul className="list-disc list-inside mt-1">
                         {skippedUsers.map((u) => (
-                            <li key={u}>{u}</li>
+                            <li aria-label={`user with private favorites: ${u}`} key={u}>{u}</li>
                         ))}
                     </ul>
                 </div>
@@ -197,6 +197,7 @@ const LyricalMatchPage = ({ user }) => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        aria-label={`You're each other's lyrical soulmate! overlay`}
                     >
                         🎉 You're each other's lyrical soulmate!
                     </motion.div>
@@ -209,6 +210,7 @@ const LyricalMatchPage = ({ user }) => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        aria-label={`You're each other's lyrical enemy... overlay`}
                     >
                         😈 You're each other's lyrical enemy...
                     </motion.div>
@@ -226,6 +228,7 @@ const LyricalMatchPage = ({ user }) => {
                         }
                     }}
                     className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                    aria-label={`show soulmate button`}
                 >
                     Show Soulmate
                 </button>
@@ -239,6 +242,7 @@ const LyricalMatchPage = ({ user }) => {
                         }
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    aria-label={`show enemy button`}
                 >
                     Show Enemy
                 </button>
@@ -249,11 +253,11 @@ const LyricalMatchPage = ({ user }) => {
                     <UserComparison title="🎵 Your Lyrical Soulmate" user={soulmate} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-lg font-semibold mt-4 mb-2 text-center">Your Word Cloud</h3>
+                            <h3 aria-label={`your word cloud`} className="text-lg font-semibold mt-4 mb-2 text-center">Your Word Cloud</h3>
                             <WordCloudPanel user={user} wordCloudSongs={userSongs} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold mt-4 mb-2 text-center">{soulmate.username}'s Word Cloud</h3>
+                            <h3 aria-label={`${soulmate.username}'s word cloud`} className="text-lg font-semibold mt-4 mb-2 text-center">{soulmate.username}'s Word Cloud</h3>
                             <WordCloudPanel user={soulmate.username} wordCloudSongs={soulmate.favorites} />
                         </div>
                     </div>
@@ -265,11 +269,11 @@ const LyricalMatchPage = ({ user }) => {
                     <UserComparison title="🖤 Your Lyrical Enemy" user={enemy} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-lg font-semibold mt-4 mb-2 text-center">Your Word Cloud</h3>
+                            <h3 aria-label={`your word cloud`} className="text-lg font-semibold mt-4 mb-2 text-center">Your Word Cloud</h3>
                             <WordCloudPanel user={user} wordCloudSongs={userSongs} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold mt-4 mb-2 text-center">{enemy.username}'s Word Cloud</h3>
+                            <h3 aria-label={`${enemy.username}'s word cloud`} className="text-lg font-semibold mt-4 mb-2 text-center">{enemy.username}'s Word Cloud</h3>
                             <WordCloudPanel user={enemy.username} wordCloudSongs={enemy.favorites} />
                         </div>
                     </div>

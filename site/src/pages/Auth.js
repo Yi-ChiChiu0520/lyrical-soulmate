@@ -108,11 +108,11 @@ const Auth = ({ setUser }) => {
                 <div className="flex flex-col items-center mb-4">
                     <img src={LyricalIcon} alt="Logo" className="h-20 mb-2" />
                     {isSignup ? (
-                        <h2 className="text-white font-bold text-2xl text-center" aria-label="Sign Up">  Sign up to find your<br />lyrical soulmate
+                        <h2 className="text-white font-bold text-2xl text-center" aria-label="Sign Up Header">  Sign up to find your<br />lyrical soulmate
                         </h2>
                     ) : (
                         <>
-                            <h1 className="text-white font-bold text-2xl" aria-label="Login">
+                            <h1 className="text-white font-bold text-2xl" aria-label="Login Header">
                                 Log in to Let&apos;s Get Lyrical
                             </h1>
                         </>
@@ -122,24 +122,26 @@ const Auth = ({ setUser }) => {
                     className="flex flex-col items-center"
                     onSubmit={handleAuth}>
                     <div className="w-full mb-4 text-left">
-                        <label className="text-white block my-2">Username</label>
+                        <label aria-label={`label for username input`} className="text-white block my-2">Username</label>
                         <input
                             className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                             id="username"
                             type="text"
                             placeholder="Username"
+                            aria-label={`username input`}
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
                         />
                     </div>
                     <div className="w-full mb-4 text-left">
-                        <label className="text-white block my-2">Password</label>
+                        <label aria-label={`label for password input`} className="text-white block my-2">Password</label>
                         <input
                             className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                             id="password"
                             type="password"
                             placeholder="Password"
+                            aria-label={`password input`}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -147,31 +149,33 @@ const Auth = ({ setUser }) => {
                     </div>
                     {isSignup && (
                         <div className="w-full mb-4 text-left">
-                            <label className="text-white block my-2">Confirm Password</label>
+                            <label aria-label={`label for password input`} className="text-white block my-2">Confirm Password</label>
                             <input
                                 className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
                                 id="confirmPassword"
                                 type="password"
                                 placeholder="Confirm Password"
+                                aria-label={`confirm password input`}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
-                            {passwordError && <p className="text-red-400 mt-3 -mb-6">{passwordError}</p>}
+                            {passwordError && <p aria-label={`password error: ${passwordError}`} className="text-red-400 mt-3 -mb-6">{passwordError}</p>}
                         </div>
                     )}
-                    {error && <p id="errorMessage" className="text-red-400">{error}</p>}
-                    {message && <p id="successMessage" className="text-green-400">{message}</p>}
+                    {error && <p aria-label={`error message: ${error}`} id="errorMessage" className="text-red-400">{error}</p>}
+                    {message && <p aria-label={`message: ${message}`} id="successMessage" className="text-green-400">{message}</p>}
                     <button
                         className="bg-white text-black font-semibold rounded-full mt-8 py-2 w-32 hover:bg-neutral-200 mt-4"
                         id={isSignup ? "signupButton" : "loginButton"}
                         type="submit"
                         disabled={isSignup && passwordError}
+                        aria-label={`${isSignup ? "Sign Up" : "Login"}`}
                     >
                         {isSignup ? "Sign Up" : "Login"}
                     </button>
                 </form>
-                <button className="text-purple-300 mt-8" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
+                <button aria-label={`${isSignup ? "link to login page" : "link to signup page"}`} className="text-purple-300 mt-8" id="switchSignup" onClick={() => setIsSignup(!isSignup)}>
                     {isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
                 </button>
 
@@ -182,6 +186,7 @@ const Auth = ({ setUser }) => {
                         onClick={() => {
                             setShowCancelSignupConfirm(true); // <-- show confirmation
                         }}
+                        aria-label={'cancel signup button'}
                     >
                         Cancel sign up and return to login
                     </button>
@@ -193,12 +198,13 @@ const Auth = ({ setUser }) => {
                 {showConfirmation && (
                     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" >
                         <div className="bg-white p-6 rounded-md shadow-lg text-center">
-                            <h3 className="text-lg font-semibold mb-2">Before Signing Up</h3>
-                            <p>Are you sure you want to register?</p>
+                            <h3 aria-label={`signup confirmation header`} className="text-lg font-semibold mb-2">Before Signing Up</h3>
+                            <p aria-label={`confirmation question, are you sure you want to register?`}>Are you sure you want to register?</p>
                             <div className="mt-4">
                                 <button
                                     id="confirmSignup"
                                     onClick={confirmFinalSignup}
+                                    aria-label={`Yes, Create Account`}
                                     className="mr-3 px-4 py-2 bg-green-500 text-white rounded"
                                 >
                                     Yes, Create Account
@@ -206,6 +212,7 @@ const Auth = ({ setUser }) => {
                                 <button
                                     id="cancelSignup"
                                     onClick={confirmCancel}
+                                    aria-label={`No`}
                                     className="px-4 py-2 bg-red-500 text-white rounded"
                                 >
                                     No
@@ -217,7 +224,7 @@ const Auth = ({ setUser }) => {
                 {showCancelSignupConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-md shadow-lg text-center">
-                            <h3 className="text-lg font-semibold mb-2">Are you sure you want to cancel account creation?</h3>
+                            <h3 aria-label={`cancel account creation header`} className="text-lg font-semibold mb-2">Are you sure you want to cancel account creation?</h3>
                             <div className="mt-4">
                                 <button
                                     id="confirmCancel"
@@ -232,6 +239,7 @@ const Auth = ({ setUser }) => {
                                         setPasswordError("");
                                         setMessage("");
                                     }}
+                                    aria-label={`Yes, Cancel Signup`}
                                     className="mr-3 px-4 py-2 bg-green-500 text-white rounded"
                                 >
                                     Yes, Cancel Signup
@@ -240,6 +248,7 @@ const Auth = ({ setUser }) => {
                                     id="dontCancel"
                                     onClick={() => setShowCancelSignupConfirm(false)}
                                     className="px-4 py-2 bg-red-500 text-white rounded"
+                                    aria-label={`No`}
                                 >
                                     No
                                 </button>
