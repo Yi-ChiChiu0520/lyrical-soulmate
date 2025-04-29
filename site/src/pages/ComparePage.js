@@ -196,27 +196,48 @@ const ComparePage = ({ user }) => {
             )}
 
             <h2 className="text-xl font-bold mt-10 mb-4" aria-label="Favorite Songs section">Favorite Songs by You and Friends</h2>
-            <ul className="space-y-4" aria-label="Favorite songs list">
+            <ul className="space-y-4" aria-label="Favorite ul Songs list">
                 {rankedWithPosition.map((data) => (
                     <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
                         <div className="flex justify-between items-center">
-                            <div onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex flex-col">
-                                <span>{data.title}</span>
+                            <div
+                                onClick={() => toggleSongDetails(data.id)} className="cursor-pointer text-lg font-semibold flex flex-col"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        toggleSongDetails(data.id);
+                                    }
+                                }}
+                                aria-label={`Favorite song`}
+                                tabIndex={0}
+                                role="button">
+                                <span aria-label={data.title}>{data.title}</span>
                                 <UserHover usernames={data.users}>
-                                    <span className="text-xs text-gray-300">{data.users.length} favorited</span>
+                                    <span aria-label={`${data.users.length} favorited`} className="text-xs text-gray-300">{data.users.length} favorited</span>
                                 </UserHover>
                             </div>
-                            <RankHover rank={data.rank} usernames={data.users} onClick={() => toggleSongDetails(data.id)} />
+                            <RankHover
+                                rank={data.rank}
+                                usernames={data.users}
+                                tabIndex={0}
+                                role="button"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        toggleSongDetails(data.id);
+                                    }
+                                }}
+                                onClick={() => toggleSongDetails(data.id)} />
                         </div>
                         {expandedSongs[data.id] && (
                             <div className="mt-2 text-sm text-gray-300">
-                                <p>Artist: {data.artistName}</p>
-                                <p>Release Date: {data.releaseDate}</p>
+                                <p aria-label={`Song Artist Name: ${data.artistName}`}>Artist: {data.artistName}</p>
+                                <p aria-label={`Song Release Date: ${data.releaseDate}`}>Release Date: {data.releaseDate}</p>
                                 <div className="mt-2">
-                                    <p>Favorited by ({data.users.length} friends):</p>
+                                    <p aria-label={`Favorited by (${data.users.length} friends):`}>Favorited by ({data.users.length} friends):</p>
                                     <ul className="list-disc list-inside">
                                         {data.users.map((username) => (
-                                            <li key={username}>{username}</li>
+                                            <li aria-label={username} key={username}>{username}</li>
                                         ))}
                                     </ul>
                                 </div>
@@ -230,7 +251,7 @@ const ComparePage = ({ user }) => {
 };
 
 // Shows #rank badge with hover user list
-export const RankHover = ({ rank, usernames, onClick }) => {
+export const RankHover = ({ rank, usernames, onClick, ...props }) => {
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -241,6 +262,7 @@ export const RankHover = ({ rank, usernames, onClick }) => {
             onClick={onClick}
             onFocus={() => setHovered(true)}
             onBlur={() => setHovered(false)}
+            {...props}
             tabIndex={0}
             aria-label={`Song rank ${rank}`}
         >
@@ -269,14 +291,14 @@ export const UserHover = ({ usernames, children }) => {
             onFocus={() => setHovered(true)}
             onBlur={() => setHovered(false)}
             tabIndex={0}
-            aria-label={`Song rank ${rank}`}
+            aria-label={`User list`}
         >
             {children}
             {hovered && (
                 <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10 whitespace-nowrap">
-                    <div className="font-semibold mb-1">Users:</div>
+                    <div aria-label={`Users:`} className="font-semibold mb-1">Users:</div>
                     {usernames.map((name) => (
-                        <div key={name}>{name}</div>
+                        <div aria-label={name} key={name}>{name}</div>
                     ))}
                 </div>
             )}

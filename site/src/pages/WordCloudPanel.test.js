@@ -334,8 +334,7 @@ describe('panel is keyboard navigable',() => {
             />
         );
 
-        // Wait until word cloud is generated
-        expect(await screen.findByText("sunshine")).toBeInTheDocument();
+        await findWordContaining('sun');
         await testView('cloud');
     });
 
@@ -355,13 +354,11 @@ describe('panel is keyboard navigable',() => {
             <WordCloudPanel
                 user="testuser"
                 wordCloudSongs={twoSongs}
-                loading={false}
                 isGeneratingEnabled={true}
             />
         );
 
-        // Wait until word cloud is generated
-        expect(await screen.findByText("sunshine")).toBeInTheDocument();
+        await findWordContaining('sun');
         await testView('table');
     });
 

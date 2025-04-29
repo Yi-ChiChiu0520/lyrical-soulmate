@@ -849,6 +849,8 @@ describe('compare page is keyboard navigable', () => {
         expect(await screen.findByText(/release date:/i)).toBeInTheDocument();
 
         await tabUntilLabel("Song rank ");
+        await usere.keyboard('[Enter]');
+        await usere.keyboard('[Enter]');
         await tabUntilLabel("Users who like this song");
 
     })

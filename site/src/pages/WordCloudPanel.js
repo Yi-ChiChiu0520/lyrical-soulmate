@@ -378,8 +378,8 @@ const WordCloudPanel = ({
                                             <p aria-label={`Expanded Related Song Artist Name: ${song.artistName}`} id="artist-name" className="font-medium">🎤 Artist: <strong>{song.artistName}</strong></p>
                                             <p aria-label={`Expanded Related Song Release Date: ${song.releaseDate}`} id="release-date" className="font-medium">📅 Release Date: <strong>{song.releaseDate}</strong></p>
                                         </div>
-                                        <div className="text-gray-900 font-xs">
-                                            ♫ Lyrics:<HighlightedLyrics  lyrics={song.lyrics} word={selectedWord} />
+                                        <div aria-label={`Lyrics:`} className="text-gray-900 font-xs">
+                                            ♫ Lyrics:<HighlightedLyrics lyrics={song.lyrics} word={selectedWord} />
                                         </div>
                                     </div>)}
                                 </div>
