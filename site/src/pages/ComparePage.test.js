@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import axios from 'axios';
-import ComparePage, { mergeSongs, RankHover } from './ComparePage';
+import ComparePage, { mergeSongs, RankHover, UserHover } from './ComparePage';
 
 // Mock axios
 jest.mock('axios');
@@ -775,4 +775,37 @@ describe('RankHover Component', () => {
     });
 
 
+});
+describe('UserHover Component', () => {
+    test('shows and hides usernames on hover over favorited count', async () => {
+        const usernames = ['alice', 'bob'];
+
+        render(
+            <UserHover usernames={usernames}>
+                <div>2 favorited</div>
+            </UserHover>
+        );
+
+        // Initially only "2 favorited" should show
+        expect(screen.getByText('2 favorited')).toBeInTheDocument();
+        expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+
+        // Hover over "2 favorited"
+        fireEvent.mouseEnter(screen.getByText('2 favorited'));
+
+        await waitFor(() => {
+            expect(screen.getByText('Users:')).toBeInTheDocument();
+            expect(screen.getByText('alice')).toBeInTheDocument();
+            expect(screen.getByText('bob')).toBeInTheDocument();
+        });
+
+        // Mouse leave
+        fireEvent.mouseLeave(screen.getByText('2 favorited'));
+
+        await waitFor(() => {
+            expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+            expect(screen.queryByText('alice')).not.toBeInTheDocument();
+            expect(screen.queryByText('bob')).not.toBeInTheDocument();
+        });
+    });
 });
