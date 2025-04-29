@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import stemmer from "wink-porter2-stemmer"; // ✅ correct stemmer for React frontend
 
 const stopWords = new Set([
     "the", "and", "a", "to", "of", "in", "is", "it", "you", "that", "on", "for", "with",
@@ -20,8 +21,8 @@ const WordCloudPanel = ({
     const [hoveredSongId, setHoveredSongId] = useState(null);
     const [statusMessage, setStatusMessage] = useState("");
     const [loading, setLoading] = useState(false);
-    const [numProcessed, setNumProcessed] = useState(0); // the number of songs already added
-    const [songsAdding, setSongsAdding] = useState(0); // total number of songs being added to the word cloud
+    const [numProcessed, setNumProcessed] = useState(0);
+    const [songsAdding, setSongsAdding] = useState(0);
     const [expandedSong, setExpandedSong] = useState(null);
     const [isGeneratingEnabled, setIsGeneratingEnabled] = useState(isGeneratingEnabledProp);
 
@@ -51,12 +52,10 @@ const WordCloudPanel = ({
     }, [incomingSongs, isGeneratingEnabled]);
 
     const generateWordCloud = async (songs) => {
-        // setup loading bar
         setNumProcessed(0);
         setSongsAdding(songs.length);
         setLoading(true);
 
-        // process the songs
         const wordFreq = {};
         const updatedSongs = [];
 
@@ -70,30 +69,27 @@ const WordCloudPanel = ({
                     .replace(/[^a-zA-Z\s]/g, "");
                 const words = lyrics.split(/\s+/).filter(word => word && !stopWords.has(word));
                 words.forEach(word => {
-                    wordFreq[word] = (wordFreq[word] || 0) + 1;
+                    const baseWord = stemmer(word);
+                    wordFreq[baseWord] = (wordFreq[baseWord] || 0) + 1;
                 });
                 updatedSongs.push({ ...song, lyrics });
             } catch (err) {
                 console.error("Failed to fetch lyrics:", err);
                 updatedSongs.push({ ...song, lyrics: "" });
             }
-
             setNumProcessed(prev => prev + 1);
         }
 
         const entries = Object.entries(wordFreq).slice(0, 100);
 
-        // Apply softmax-like scaling for font sizes
         const counts = entries.map(([_, count]) => count);
         const max = Math.max(...counts);
         const min = Math.min(...counts);
         const range = max - min || 1;
 
-        // Define size limits
         const minFontSize = 12;
         const maxFontSize = 48;
 
-        // Scale frequencies to font sizes smoothly
         const scaled = entries.map(([word, count]) => {
             const norm = (count - min) / range;
             const smooth = 1 / (1 + Math.exp(-5 * (norm - 0.5)));
@@ -101,9 +97,7 @@ const WordCloudPanel = ({
             return { word, count, size };
         });
 
-        // Shuffle for visual randomness
         const shuffled = scaled.sort(() => 0.5 - Math.random());
-
         setWordMap(shuffled);
 
         setWordMap(shuffled);
@@ -115,17 +109,23 @@ const WordCloudPanel = ({
 
     const handleWordClick = (word) => {
         setSelectedWord(word);
-        const matches = wordCloudSongs.filter(song => song.lyrics?.toLowerCase().includes(word.toLowerCase()));
+
+        const matches = wordCloudSongs.filter(song => {
+            const lyricsWords = song.lyrics?.toLowerCase().split(/\s+/);
+            return lyricsWords.some(w => stemmer(w) === stemmer(word));
+        });
+
         const matchesData = matches.map((song) => {
             const lyrics = song.lyrics;
             const words = lyrics.split(/\s+/).filter(w => w && !stopWords.has(w));
-            const target = word.toLowerCase();
+            const targetStem = stemmer(word);
             let count = 0;
             for (let w of words) {
-                if (w === target) count++;
+                if (stemmer(w) === targetStem) count++;
             }
             return { ...song, wordCount: count };
         });
+
         setRelatedSongs(matchesData);
         setExpandedSong(null);
     };
@@ -155,9 +155,9 @@ const WordCloudPanel = ({
     };
 
     function HighlightedLyrics({ lyrics, word }) {
-        const target = word.toLowerCase();
+        const targetStem = stemmer(word);
         const highlighted = lyrics.split(" ").map((w, i) => (
-            <span aria-label={`Lyric word: ${w}`} key={i} style={{ backgroundColor: w === target ? 'yellow' : 'transparent' }}>
+            <span aria-label={`Lyric word: ${w}`} key={i} style={{ backgroundColor: stemmer(w) === targetStem ? 'yellow' : 'transparent' }}>
         {w + " "}
       </span>
         ));
@@ -166,6 +166,7 @@ const WordCloudPanel = ({
 
     return (
         <div>
+            {/* HEADER */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
                     <h2 aria-label="Word Cloud Page" className="text-xl font-semibold">Word Cloud</h2>
@@ -197,7 +198,6 @@ const WordCloudPanel = ({
                     <div className="flex border border-gray-300 rounded-md overflow-hidden">
                         <button
                             id="view-cloud"
-                            data-testid="view-cloud"
                             onClick={() => setViewMode("cloud")}
                             className={`px-3 py-1 text-sm ${
                                 viewMode === "cloud" ? "bg-purple-50 text-purple-600 font-medium" : "bg-white text-gray-500 hover:bg-gray-50"
@@ -218,15 +218,16 @@ const WordCloudPanel = ({
                         </button>
                     </div>
                 </div>
-
             </div>
 
+            {/* STATUS MESSAGE */}
             {statusMessage && (
                 <div aria-label={`Status Message: ${statusMessage}`} className="text-sm mb-2" style={{ color: statusMessage.startsWith("✅") ? "green" : "red" }}>
                     {statusMessage}
                 </div>
             )}
 
+            {/* SONGS LIST */}
             {Array.isArray(wordCloudSongs) && (
                 <div className="divide-y divide-gray-200">
                     {wordCloudSongs.map((song) => (
@@ -248,12 +249,12 @@ const WordCloudPanel = ({
                 </div>
             )}
 
+            {/* LOADING BAR */}
             {loading && isGeneratingEnabled && songsAdding > 0 && (
                 <div className="mt-6 space-y-2">
                     <div aria-label={`Processing ${numProcessed} of ${songsAdding} songs...`} className="text-sm text-gray-600">
                         Processing {numProcessed} of {songsAdding} songs…
                     </div>
-
                     <progress
                         className="w-full h-2 rounded-md bg-gray-200 overflow-hidden"
                         value={numProcessed}
@@ -267,6 +268,8 @@ const WordCloudPanel = ({
                     ⏳ Generating word cloud...
                 </p>
             )}
+
+            {/* WORD CLOUD or TABLE */}
             {!loading && isGeneratingEnabled && viewMode === "cloud" && (
                 <div style={{ marginTop: "20px", display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
                     {wordMap.map(({ word, size }) => (
@@ -293,7 +296,7 @@ const WordCloudPanel = ({
             {!loading && isGeneratingEnabled && viewMode === "table" && (
                 <table style={{ margin: "auto", marginTop: "20px", borderCollapse: "collapse" }}>
                     <thead>
-                    <tr aria-label={`Table Header: Word`}><th>Word</th><th aria-label={`Table Header: Count`}>Count</th></tr>
+                    <tr><th aria-label={`Table Header: Word`}>Word</th><th aria-label={`Table Header: Count`}>Count</th></tr>
                     </thead>
                     <tbody>
                     {wordMap.sort((a, b) => b.count - a.count).map(({ word, count }) => (
@@ -318,6 +321,7 @@ const WordCloudPanel = ({
                 </table>
             )}
 
+            {/* RELATED SONGS */}
             {selectedWord && (
                 <div>
                     <h2 aria-label={`Related Songs Header`} className="text-xl font-semibold mb-4">🎧 Songs containing "{selectedWord}"</h2>

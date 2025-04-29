@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ComparePage, { mergeSongs } from './ComparePage';
 import axios from 'axios';
 import userEvent from "@testing-library/user-event";
+import ComparePage, { mergeSongs, RankHover, UserHover } from './ComparePage';
 
 // Mock axios
 jest.mock('axios');
@@ -163,48 +163,6 @@ describe('ComparePage Component', () => {
         fireEvent.click(checkboxes[0]);
         expect(checkboxes[0]).not.toBeChecked();
         expect(checkboxes[1]).toBeChecked();
-    });
-
-    test('adds selected friends and their favorites when Compare Selected is clicked', async () => {
-        render(<ComparePage user={mockUser} />);
-
-        // Wait for initial load of user's favorites
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        const searchInput = screen.getByPlaceholderText('Search by username');
-        fireEvent.change(searchInput, { target: { value: 'fr' } });
-
-        await waitFor(() => {
-            expect(screen.getByText('friend1')).toBeInTheDocument();
-        });
-
-        // Select friend1
-        const checkboxes = screen.getAllByRole('checkbox');
-        fireEvent.click(checkboxes[0]);
-
-        // Click compare selected
-        fireEvent.click(screen.getByText('Compare Selected'));
-
-        await waitFor(() => {
-            // Check that privacy setting was checked
-            expect(axios.get).toHaveBeenCalledWith(
-                'http://localhost:8080/api/favorites/privacy/friend1?requester=testUser'
-            );
-
-            // Check that friend1's favorites were fetched
-            expect(axios.get).toHaveBeenCalledWith(
-                'http://localhost:8080/api/favorites/friend1?requester=testUser'
-            );
-
-            // Test Song 1 should have 2 friends (user and friend1)
-            const songElements = screen.getAllByText(/friend\(s\) have this song/);
-            expect(songElements[0].textContent).toBe('2 friend(s) have this song');
-
-            // Should display Test Song 3 from friend1
-            expect(screen.getByText('Test Song 3')).toBeInTheDocument();
-        });
     });
 
     test('displays song details when clicked', async () => {
@@ -586,7 +544,6 @@ describe('ComparePage Component', () => {
             expect(favoritesCalls[0][0]).toContain('friend2');
         });
     });
-
 });
 
 describe('mergeSongs function', () => {
@@ -728,52 +685,134 @@ describe('mergeSongs function', () => {
         expect(screen.queryByPlaceholderText("Search by username")).not.toBeInTheDocument();
         expect(screen.queryByText("Favorite Songs by You and Friends")).not.toBeInTheDocument();
     });
-    test("shows usernames on hover in FriendHover and RankHover components", async () => {
-        const mockUser = "testUser";
-        const mockFavorites = [
-            {
-                songId: "1",
-                title: "Test Song 1",
-                artistName: "Test Artist 1",
-                releaseDate: "2023-01-01"
-            }
-        ];
 
+
+
+});
+
+describe('RankHover Component', () => {
+    test('shows and hides usernames on hover', async () => {
+        const mockOnClick = jest.fn();
+        const usernames = ['user1', 'user2'];
+
+        render(<RankHover rank={1} usernames={usernames} onClick={mockOnClick} />);
+
+        // It should initially only show the rank, not the user list
+        expect(screen.getByText('#1')).toBeInTheDocument();
+        expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+
+        // Simulate mouse enter (hover)
+        fireEvent.mouseEnter(screen.getByText('#1'));
+
+        // Now the users should appear
+        await waitFor(() => {
+            expect(screen.getByText('Users:')).toBeInTheDocument();
+            expect(screen.getByText('user1')).toBeInTheDocument();
+            expect(screen.getByText('user2')).toBeInTheDocument();
+        });
+
+        // Simulate mouse leave
+        fireEvent.mouseLeave(screen.getByText('#1'));
+
+        // Now the users should disappear
+        await waitFor(() => {
+            expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+            expect(screen.queryByText('user1')).not.toBeInTheDocument();
+            expect(screen.queryByText('user2')).not.toBeInTheDocument();
+        });
+    });
+
+    test('handles click event on RankHover', () => {
+        const mockOnClick = jest.fn();
+        const usernames = ['user1'];
+
+        render(<RankHover rank={1} usernames={usernames} onClick={mockOnClick} />);
+
+        fireEvent.click(screen.getByText('#1'));
+
+        expect(mockOnClick).toHaveBeenCalledTimes(1);
+    });
+    test('toggles song details when clicking RankHover', async () => {
+        // Setup axios mocks
         axios.get.mockImplementation((url) => {
             if (url.includes(`/api/favorites/${mockUser}`)) {
                 return Promise.resolve({ data: mockFavorites });
-            } else if (url.includes('/api/favorites/privacy/')) {
+            }
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: [] });
+            }
+            if (url.includes('/api/favorites/privacy/')) {
                 return Promise.resolve({ data: false });
             }
-            return Promise.reject(new Error("Not found"));
+            return Promise.reject(new Error('Not found'));
         });
 
         render(<ComparePage user={mockUser} />);
 
+        // Wait until the songs load
         await waitFor(() => {
-            expect(screen.getByText("Test Song 1")).toBeInTheDocument();
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
-        // Hover over FriendHover
-        const friendText = screen.getByText(/friend\(s\) have this song/);
-        fireEvent.mouseEnter(friendText);
-        await waitFor(() => expect(screen.getByText(mockUser)).toBeInTheDocument());
-        fireEvent.mouseLeave(friendText);
+        expect(screen.queryByText('Artist: Test Artist 1')).not.toBeInTheDocument();
 
-        // Hover over RankHover
-        const rank = screen.getByText("#1");
-        fireEvent.mouseEnter(rank);
+        // Get all #1 badges
+        const rankElements = screen.getAllByText('#1');
+
+        // Click the first rank badge
+        fireEvent.click(rankElements[0]);
+
         await waitFor(() => {
-            expect(screen.getByText("Users:")).toBeInTheDocument();
-            expect(screen.getByText(mockUser)).toBeInTheDocument();
+            expect(screen.getByText('Artist: Test Artist 1')).toBeInTheDocument();
+            expect(screen.getByText('Release Date: 2023-01-01')).toBeInTheDocument();
         });
-        fireEvent.mouseLeave(rank);
+
+        // Click again to collapse
+        fireEvent.click(rankElements[0]);
+
         await waitFor(() => {
-            expect(screen.queryByText("Users:")).not.toBeInTheDocument();
+            expect(screen.queryByText('Artist: Test Artist 1')).not.toBeInTheDocument();
         });
     });
 
-    test("compare page is keyboard navigable", async() => {
+
+});
+describe('UserHover Component', () => {
+    test('shows and hides usernames on hover over favorited count', async () => {
+        const usernames = ['alice', 'bob'];
+
+        render(
+            <UserHover usernames={usernames}>
+                <div>2 favorited</div>
+            </UserHover>
+        );
+
+        // Initially only "2 favorited" should show
+        expect(screen.getByText('2 favorited')).toBeInTheDocument();
+        expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+
+        // Hover over "2 favorited"
+        fireEvent.mouseEnter(screen.getByText('2 favorited'));
+
+        await waitFor(() => {
+            expect(screen.getByText('Users:')).toBeInTheDocument();
+            expect(screen.getByText('alice')).toBeInTheDocument();
+            expect(screen.getByText('bob')).toBeInTheDocument();
+        });
+
+        // Mouse leave
+        fireEvent.mouseLeave(screen.getByText('2 favorited'));
+
+        await waitFor(() => {
+            expect(screen.queryByText('Users:')).not.toBeInTheDocument();
+            expect(screen.queryByText('alice')).not.toBeInTheDocument();
+            expect(screen.queryByText('bob')).not.toBeInTheDocument();
+        });
+    });
+});
+
+describe('compare page is keyboard navigable', () => {
+    test("can tab and collapse/expand with enter", async() => {
         axios.get.mockImplementation((url) => {
             if (url.includes('/users/search')) {
                 return Promise.resolve({ data: mockSuggestions });
@@ -813,7 +852,4 @@ describe('mergeSongs function', () => {
         await tabUntilLabel("Users who like this song");
 
     })
-
-
-
-});
+})

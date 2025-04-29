@@ -186,6 +186,11 @@ public class ComparisonStepDefs {
             .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//h1[text()='Find Friends']")));
     }
 
+    @When("I try to navigate to the comparison page")
+    public void iTryToNavigateToComparisonPage() {
+        driver.get("http://localhost:8080/compare");
+    }
+
     @When("I select {string} to compare with")
     public void iSelectUserToCompareWith(String username) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
