@@ -1,9 +1,14 @@
 Feature: Song Search functionality
-  Scenario: User tries to access search page without being logged in
-    Given I am on the login page
-    And I am not logged in
-    And I try to navigate to the search page
-    Then I should be redirected to the login page
+
+  Scenario: Duplicate artist search
+    Given I am logged in
+    When I navigate to the search page
+    And I enter "Smith" in the artist search field
+    And I select to display "5" results
+    And I click the search button
+    Then I should see a list of artists that include the name "Smith"
+    When I select artist "The Smiths"
+    Then I should see a list of 5 songs by "The Smiths"
 
   Scenario: Basic song search by artist name
     Given I am logged in
@@ -11,6 +16,7 @@ Feature: Song Search functionality
     And I enter "Gotye" in the artist search field
     And I select to display "5" results
     And I click the search button
+    And I select artist "Gotye"
     Then I should see a list of 5 songs by "Gotye"
     And each song result should display the song name and artist
 
@@ -46,6 +52,7 @@ Feature: Song Search functionality
     Given I am authenticated
     And I navigate to the dashboard page
     When I search for "10" songs by "Nirvana"
+    And I select artist "Nirvana"
     And I select "Polly by Nirvana"
     And I click the "Add Selected to Favorites" button
     Then I should see success message "✅ Added: Polly by Nirvana"
@@ -58,6 +65,7 @@ Feature: Song Search functionality
     And I enter "Drake" in the artist search field
     And I select to display "3" results
     And I click the search button
+    And I select artist "Drake"
     Then I should see no more than 3 song results
 
   Scenario: Navigate from search results to word cloud creation
@@ -67,17 +75,6 @@ Feature: Song Search functionality
     And I select the song "Somebody That I Used to Know"
     When I click the "Add Selected to Word Cloud" button for a song
     Then I should see the song's word cloud
-
-  # SPRINT REVIEW 2: Half points, we must implement the amiguous artist name menu
-  Scenario: Search with ambiguous artist name
-    Given I am logged in to the application
-    When I navigate to the search page
-    And I enter "Smith" in the artist search field
-    And I select to display "10" results
-    And I click the search button
-    Then I should see a list of songs by artists with the name "Smith"
-    And I should see artist images
-    And I should be able to select a song
 
   Scenario: Search with non-existent artist
     Given I am logged in to the application

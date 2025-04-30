@@ -58,6 +58,19 @@ public class FavoriteStepDefs {
 
         iSearchForSongsByArtist("10", artistName);
 
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
+        List<WebElement> artistElements = artistGrid.findElements(By.tagName("span"));
+
+        assertFalse(artistElements.isEmpty(), "No artist elements found in the artist grid.");
+        for (WebElement artistElement : artistElements) {
+            String title = artistElement.getText();
+            if (title.equalsIgnoreCase(artistName)) {
+                artistElement.click();
+                break;
+            }
+        }
+
         Wait<WebDriver> searchWait = new WebDriverWait(driver, Duration.ofSeconds(10));
         try {
             searchWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
@@ -97,7 +110,7 @@ public class FavoriteStepDefs {
     public void iSearchForSongsByArtist(String limit, String artistName) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         WebElement artistField = wait.until(driver -> {
-            WebElement el = driver.findElement(By.id("song-title"));
+            WebElement el = driver.findElement(By.id("artist-title"));
             return el.isDisplayed() ? el : null;
         });
 
@@ -113,35 +126,29 @@ public class FavoriteStepDefs {
     }
 
     @When("I select {string}")
-    public void iSelect(String songName) {
+    public void iSelect(String songTitle) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement resultsList = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
+        List<WebElement> songElements = resultsList.findElements(By.tagName("li"));
 
-        WebElement checkbox = null;
-        WebElement songNameElement = null;
-        List<WebElement> listItems = resultsList.findElements(By.tagName("li"));
-        assertFalse(listItems.isEmpty(), "Results list is empty.");
-
-        for (WebElement el : listItems) {
+        WebElement targetCheckbox = null;
+        for (WebElement songElement : songElements) {
             try {
-                songNameElement = el.findElement(By.id("song-name"));
-                if (songNameElement.getText().contains(songName)) {
-                    checkbox = el.findElement(By.tagName("input"));
+                WebElement nameElement = songElement.findElement(By.id("song-name"));
+                if (nameElement.getText().contains(songTitle)) {
+                    targetCheckbox = songElement.findElement(By.tagName("input"));
                     break;
                 }
             } catch (NoSuchElementException e) {
-                System.err.println("Skipping a list item due to missing elements.");
+                System.err.println("Skipping a result list item due to missing elements.");
             }
         }
 
-        assertNotNull(checkbox, "Could not find checkbox for song: " + songName);
-        assertNotNull(songNameElement, "Could not find song name element for: " + songName);
-
-        if (!checkbox.isSelected()) {
-            checkbox.click();
+        assertNotNull(targetCheckbox, "Could not find song '" + songTitle + "' in the results list to select.");
+        if (!targetCheckbox.isSelected()) {
+            targetCheckbox.click();
         }
-
-        assertTrue(checkbox.isSelected(), "Checkbox for song was not selected.");
+        assertTrue(targetCheckbox.isSelected(), "Checkbox for song '" + songTitle + "' was not selected after clicking.");
     }
 
     @Then("I should see success message {string}")

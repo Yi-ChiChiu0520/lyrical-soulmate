@@ -8,7 +8,11 @@ const Dashboard = ({ user }) => {
 
     const [query, setQuery] = useState("");
     const [songs, setSongs] = useState([]);
+    const [artists, setArtists] = useState([]);
+    const [selectedArtist, setSelectedArtist] = useState(null);
     const [selectedSongs, setSelectedSongs] = useState([]);
+    const [searching, setSearching] = useState(false);
+
     const [wordCloudSongs, setWordCloudSongs] = useState([]);
 
     const [songLimit, setSongLimit] = useState("");
@@ -47,49 +51,103 @@ const Dashboard = ({ user }) => {
         navigate("/");
     };
 
+    const fetchArtists = async () => {
+        setSearching(true);
 
-    const fetchSongs = async () => {
-        if (!query.trim()) return alert("Please enter an artist name!");
-        if (!songLimit || isNaN(songLimit) || parseInt(songLimit) <= 0) {
+        // basic guards
+        if (!query.trim())           return alert("Please enter an artist name!");
+        if (!songLimit || isNaN(songLimit) || +songLimit <= 0) {
+            setSearching(false);
             return alert("Please enter a valid number of songs to display.");
         }
 
         try {
-            let allResults = [];
-            let page = 1;
+            const res = await axios.get("http://localhost:8080/api/genius/artists", {
+                params: { q: query }
+            });
+            const list = res.data;
 
-            while (allResults.length < parseInt(songLimit)) {
-                const response = await axios.get("http://localhost:8080/api/genius/search", {
-                    params: { q: query, page }
-                });
-
-                const hits = response.data.response.hits;
-                if (hits.length === 0) break;
-
-                const filteredHits = hits.filter(hit =>
-                    hit.result.primary_artist.name.toLowerCase().includes(query.toLowerCase())
-                );
-
-                allResults = [...allResults, ...filteredHits];
-                page++;
-            }
-
-            if (allResults.length === 0) {
+            if (list.length === 0) {
+                setArtists([]); setSongs([]);
                 setSongs([]);
-                setErrorMessage("No matches found for your search query.");
+                setErrorMessage("No artists found.");
                 setSuccessMessage("");
+                setSearching(false);
                 return;
             }
-
-            setSongs(allResults.slice(0, parseInt(songLimit)));
+            setArtists(list);
+            setSongs([]);
+            setSelectedArtist(null);
             setSelectedSongs([]);
-            setSuccessMessage("");
-            setErrorMessage("");
-        } catch (error) {
-            console.error("Error fetching songs:", error);
-            setErrorMessage("An error occurred while fetching songs. Please try again later.");
+            setSuccessMessage(""); setErrorMessage("");
+        } catch (err) {
+            console.error(err);
+            setErrorMessage("Artist search failed. Try again."); setSuccessMessage("");
         }
+
+        setSearching(false);
     };
+
+    async function fetchArtistSongs(artist) {
+        setSearching(true);
+        setSelectedArtist(artist);
+        setArtists([]);
+        setSongs([]);
+        setSelectedSongs([]);
+        setSuccessMessage(""); setErrorMessage("");
+
+        const limit = +songLimit;
+        let collected = [];
+        let page = 1;
+
+        while (collected.length < limit) {
+            const { data } = await axios.get(
+                `http://localhost:8080/api/genius/artists/${artist.id}/songs`,
+                { params: { page } }
+            );
+            const chunk = data.response?.songs ?? [];
+            if (chunk.length === 0) break;          // ran out
+            collected.push(...chunk.map(normalizeSong));
+            page++;
+        }
+
+        if (collected.length < limit) {
+            page = 1;
+            while (collected.length < limit) {
+                const { data } = await axios.get("http://localhost:8080/api/genius/search", {
+                    params: { q: artist.name, page }
+                });
+                const hits = data.response?.hits ?? [];
+                if (hits.length === 0) break;
+
+                const newSongs = hits.map(normalizeSong);
+
+                const existingIds = new Set(collected.map(s => s.result.id));
+                newSongs.forEach(s => {
+                    if (!existingIds.has(s.result.id)) {
+                        collected.push(s);
+                    }
+                });
+
+                page++;
+            }
+        }
+
+        // try filtering by primary artist, but fall back to whatever we fetched
+        const filteredByPrimary = collected.filter(s =>
+            s.result.primary_artist?.id === artist.id &&
+            s.result.primary_artist?.name.toLowerCase().includes(artist.name.toLowerCase())
+        );
+
+        const songsToShow = filteredByPrimary.length > 0 ? filteredByPrimary : collected;
+        setSongs(songsToShow.slice(0, limit));
+        setSearching(false);
+    }
+
+    function normalizeSong(obj) {
+        const s = obj.result || obj;
+        return { result: s };
+    }
 
     const toggleSelectSong = (songId) => {
         setSelectedSongs(prev =>
@@ -247,7 +305,7 @@ const Dashboard = ({ user }) => {
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-grow">
-                            <label aria-label={`label for song search`} htmlFor="songSearch" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label aria-label={`label for song search`} htmlFor="artist-title" className="block text-sm font-medium text-gray-700 mb-1">
                                 Search songs
                             </label>
 
@@ -255,7 +313,7 @@ const Dashboard = ({ user }) => {
                                 <span aria-label={`Search query icon magnifying glass`} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
                                 <input
                                     aria-label={`Artist search query input`}
-                                    id="song-title"
+                                    id="artist-title"
                                     type="search"
                                     placeholder="Enter artist name..."
                                     value={query}
@@ -266,7 +324,7 @@ const Dashboard = ({ user }) => {
                             </div>
                         </div>
                         <div className="flex flex-col justify-end">
-                            <label aria-label={`label: number of search results`} htmlFor="resultCount" className="block text-xs font-medium text-gray-700 mb-1">
+                            <label aria-label={`label: number of search results`} htmlFor="song-limit" className="block text-xs font-medium text-gray-700 mb-1">
                                 Number of results
                             </label>
                             <div className="relative flex items-center">
@@ -287,16 +345,16 @@ const Dashboard = ({ user }) => {
                             <label aria-label={`padding space`} className="block text-sm font-medium text-transparent mb-1">&nbsp;</label>
                             <button
                                 id="search-button"
-                                onClick={fetchSongs}
+                                onClick={fetchArtists}
+                                disabled={searching}
+                                aria-busy={searching}
+                                aria-label={searching ? "Searching…" : "Search"}
                                 className="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-md transition duration-300 ease-in-out flex items-center justify-center shadow-sm"
-                                aria-label={`Search`}
                             >
-                                Search
+                                {searching ? "Searching…" : "Search"}
                             </button>
                         </div>
                     </div>
-
-
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-md">
@@ -335,7 +393,38 @@ const Dashboard = ({ user }) => {
                     {successMessage &&
                         <p aria-label={`success message: ${successMessage}`} id="search-success" style={{color: "green", marginTop: "10px"}}>{successMessage}</p>}
                     {errorMessage && <p aria-label={`error message: ${errorMessage}`} id="search-error" style={{color: "red"}}>{errorMessage}</p>}
-                    {songs.length > 0 ? (
+
+                    {artists.length > 0 && !searching && (
+                        <div className="bg-white p-6 rounded-lg shadow-md"
+                             aria-label="artist-results">
+                            <h2 className="text-xl font-semibold mb-4"
+                                aria-label={`header for artist selection section`}
+                            >
+
+                                Select an artist
+                            </h2>
+                            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
+                                 aria-label="Artist selection grid"
+                                 id = "artist-selection"
+                            >
+                                {artists.map(a => (
+                                    <button key={a.id}
+                                            id={`artist-${a.name}`}
+                                            aria-label={`Select artist ${a.name}`}
+                                            onClick={() => fetchArtistSongs(a)}
+                                            className="flex flex-col items-center p-4 border rounded-lg hover:shadow-md transition">
+                                        <img src={a.imageUrl || a.headerUrl}
+                                             alt={`${a.name} portrait`} className="w-24 h-24 rounded-full object-cover mb-2"/>
+                                        <span className="font-medium"
+                                              aria-label={`Artist name ${a.name}`}
+                                        >{a.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {songs.length > 0 && selectedArtist && !searching && (
                         <div>
                             <p aria-label={`Showing up to ${songLimit} results for ${query}`} className="text-center text-gray-500">{`Showing up to ${songLimit} results for "${query}"`}</p>
                             <ul id="results-list" style={{listStyleType: "none", padding: 0}}>
@@ -371,9 +460,29 @@ const Dashboard = ({ user }) => {
                                 ))}
                             </ul>
                         </div>
-                    ) : (
-                        <p aria-label={`no songs found.`} className="text-center text-gray-500">No songs found.</p>
                     )}
+
+                    {!searching && selectedArtist && songs.length === 0 && (
+                        <p role="alert" className="text-center text-gray-500">
+                            No songs found for “{selectedArtist.name}.”
+                        </p>
+                    )}
+
+                    {!searching && artists.length === 0 && query.trim() && !selectedArtist && errorMessage === "No artists found." && (
+                        <p role="alert" className="text-center text-gray-500">
+                            No artists found for “{query}.”
+                        </p>
+                    )}
+
+                    {searching && (
+                        <div className="flex justify-center">
+                            <svg aria-label={`loading spinner`} className="animate-spin h-8 w-8 text-purple-500" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor" fill="none"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 1 1 16 0A8 8 0 0 1 4 12zm2.5 0a5.5 5.5 0 1 0 11 0A5.5 5.5 0 0 0 6.5 12z"/>
+                            </svg>
+                        </div>
+                    )}
+
                 </div>
                 <div id="word-cloud" className="bg-white p-6 rounded-lg shadow-md">
                     <WordCloudPanel wordCloudSongs={wordCloudSongs} user={user} loading={cloudLoading}/>

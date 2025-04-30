@@ -120,12 +120,12 @@ Feature: User Favorites List Feature
     Given I am logged in
     And My favorites list is empty
     And I favorited "The Phone Works Both Ways by The Jazz June"
-    And I favorited "Me and Your Mama by Childish Gambino"
+    And I favorited "Redbone by Childish Gambino"
     And I favorited "Ribs by Lorde"
     When I navigate to the favorites page
     Then I should have the following order in my favorites list
       | 0 | The Phone Works Both Ways by The Jazz June |
-      | 1 | Me and Your Mama by Childish Gambino       |
+      | 1 | Redbone by Childish Gambino                |
       | 2 | Ribs by Lorde                              |
     When I hover over "Ribs by Lorde"
     And I click the move up button on "Ribs by Lorde"
@@ -134,13 +134,13 @@ Feature: User Favorites List Feature
     Then I should have the following order in my favorites list
       | 0 | Ribs by Lorde                              |
       | 1 | The Phone Works Both Ways by The Jazz June |
-      | 2 | Me and Your Mama by Childish Gambino       |
+      | 2 | Redbone by Childish Gambino       |
 
   Scenario: Moved favorites order persists after re-login
     Given I am logged in
     And My favorites list is empty
     And I favorited "The Phone Works Both Ways by The Jazz June"
-    And I favorited "Me and Your Mama by Childish Gambino"
+    And I favorited "Redbone by Childish Gambino"
     And I favorited "Ribs by Lorde"
     And I navigate to the favorites page
     And I hover over "Ribs by Lorde"
@@ -152,7 +152,7 @@ Feature: User Favorites List Feature
     Then I should have the following order in my favorites list
       | 0 | Ribs by Lorde                              |
       | 1 | The Phone Works Both Ways by The Jazz June |
-      | 2 | Me and Your Mama by Childish Gambino       |
+      | 2 | Redbone by Childish Gambino       |
 
   Scenario: Add no songs to favorites (none selected)
     Given I am logged in
@@ -182,6 +182,7 @@ Feature: User Favorites List Feature
     And I favorited "Toxic by Britney Spears"
     And I navigate to the dashboard page
     When I search for "10" songs by "Britney Spears"
+    And I select artist "Britney Spears"
     And I select "Toxic by Britney Spears"
     And I click the "Add Selected to Favorites" button
     Then I'll see error "⚠️ Already in favorites: Toxic by Britney Spears"
@@ -191,6 +192,7 @@ Feature: User Favorites List Feature
     And I favorited "the Moon by The Microphones"
     And I navigate to the dashboard page
     When I search for "20" songs by "The Microphones"
+    And I select artist "The Microphones"
     And I select "the Glow pt. 2 by The Microphones"
     And I select "the Moon by The Microphones"
     And I select "Headless Horseman by The Microphones"
