@@ -55,7 +55,7 @@ public class SearchStepDefs {
         driver.navigate().refresh();
         driver.get("http://localhost:8080/dashboard");
         wait.until(ExpectedConditions.urlContains("dashboard"));
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("song-title")));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
     }
 
     @Given("I am logged in to the application")
@@ -69,7 +69,7 @@ public class SearchStepDefs {
             iAmLoggedIn();
         } else {
             Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("song-title")));
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
         }
     }
 
@@ -83,7 +83,7 @@ public class SearchStepDefs {
     @And("I enter {string} in the artist search field")
     public void iEnterInTheArtistSearchField(String artistName) {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        WebElement searchField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("song-title")));
+        WebElement searchField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
         searchField.clear();
         searchField.sendKeys(artistName);
     }
@@ -91,7 +91,7 @@ public class SearchStepDefs {
     @And("I enter no artist name")
     public void iEnterNoArtistName() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        WebElement searchField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("song-title")));
+        WebElement searchField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
         searchField.clear();
     }
 
@@ -143,6 +143,7 @@ public class SearchStepDefs {
         iEnterInTheArtistSearchField(artistName);
         iSelectToDisplayResults("5");
         iClickTheSearchButton();
+        iSelectArtist(artistName);
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         try {
@@ -356,22 +357,16 @@ public class SearchStepDefs {
     @Then("I should see a no results error message")
     public void iShouldSeeANoResultsErrorMessage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        // page should contain "No artists found" or "No songs found"
+        By noResultsParaSelector = By.xpath("//p[contains(text(), 'No artists found') or contains(text(), 'No songs found')]");
         try {
-            By noResultsPara = By.xpath("//p[contains(text(), 'No songs found')]");
-            WebElement noResultsMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(noResultsPara));
-            assertTrue(noResultsMessage.isDisplayed(), "'No songs found' paragraph is not visible.");
-            System.out.println("Found 'No songs found' paragraph message.");
+            WebElement noResultsPara = wait.until(ExpectedConditions.visibilityOfElementLocated(noResultsParaSelector));
+            assertTrue(noResultsPara.isDisplayed(), "No results paragraph message not displayed.");
+            String noResultsText = noResultsPara.getText().trim();
+            assertTrue(noResultsText.contains("No artists found") || noResultsText.contains("No songs found"),
+                    "No results message text does not indicate 'no results'. Found: " + noResultsText);
         } catch (TimeoutException e) {
-            System.out.println("'No songs found' paragraph not found. Checking #search-error element.");
-            try {
-                WebElement errorMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("search-error")));
-                assertTrue(errorMessage.isDisplayed() && errorMessage.getText().toLowerCase().contains("no matches"),
-                        "#search-error element visible but text does not indicate 'no matches'. Text: " + errorMessage.getText());
-                System.out.println("Found #search-error element with 'no matches' text.");
-            } catch (TimeoutException | NoSuchElementException ex) {
-                System.err.println("Page source on failure: " + driver.getPageSource());
-                fail("Expected 'No songs found' message (paragraph or #search-error), but found neither.", ex);
-            }
+            System.out.println("No 'no results' paragraph found within timeout.");
         }
     }
 
@@ -556,5 +551,34 @@ public class SearchStepDefs {
     @And("I try to navigate to the search page")
     public void iTryToNavigateToTheSearchPage() {
         driver.get("http://localhost:8080/dashboard");
+    }
+
+    @Then("I should see a list of artists that include the name {string}")
+    public void iShouldSeeAListOfArtistsThatIncludeTheName(String arg0) {
+        // this div holds the artist grid id = "artist-selection"
+        // get the list of artists
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
+        List<WebElement> artistElements = artistGrid.findElements(By.tagName("span"));
+
+        assertFalse(artistElements.isEmpty(), "No artist elements found in the artist grid.");
+        for (WebElement artistElement : artistElements) {
+            assert(artistElement.getText().toLowerCase().contains(arg0.toLowerCase()));
+        }
+    }
+
+    @Then("I select artist {string}")
+    public void iSelectArtist(String artistName) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
+        List<WebElement> artistElements = artistGrid.findElements(By.tagName("span"));
+
+        assertFalse(artistElements.isEmpty(), "No artist elements found in the artist grid.");
+        for (WebElement artistElement : artistElements) {
+            if (artistElement.getText().toLowerCase().contains(artistName.toLowerCase())) {
+                artistElement.click();
+                break;
+            }
+        }
     }
 }

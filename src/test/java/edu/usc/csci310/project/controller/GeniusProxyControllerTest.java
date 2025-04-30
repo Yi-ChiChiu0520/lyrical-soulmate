@@ -18,6 +18,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
@@ -234,5 +238,110 @@ public class GeniusProxyControllerTest {
         }
     }
 
+    @Test
+    void testGetArtistSongs() throws Exception {
+        String mockResponse = "{ \"response\": { \"songs\": [] } }";
+        when(restTemplate.exchange(
+                eq("https://api.genius.com/artists/123456/songs?sort=popularity&per_page=50&page=1"),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/artists/123456/songs")
+                        .param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(mockResponse));
+    }
+
+    @Test
+    void testCombinedArtists_successfulMatch() throws Exception {
+        String query = "Radiohead";
+        String encodedQuery = UriUtils.encode(query, StandardCharsets.UTF_8);
+        String htmlUrl = "https://genius.com/search?q=" + encodedQuery;
+        String multiUrl = "https://genius.com/api/search/multi?q=" + encodedQuery;
+
+        try (MockedStatic<Jsoup> jsoupMock = Mockito.mockStatic(Jsoup.class)) {
+            // Mocks for HTML cookie request
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            when(htmlResp.cookies()).thenReturn(Map.of("cookie_key", "cookie_val"));
+
+            // Set up mock behavior for first Jsoup call
+            jsoupMock.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+
+            // Mocks for JSON artist search
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            String multiJson = """
+            {
+              "response": {
+                "sections": [
+                  {
+                    "type": "artist",
+                    "hits": [
+                      {
+                        "result": {
+                          "id": 1,
+                          "name": "Radiohead",
+                          "image_url": "img.jpg",
+                          "header_image_url": "header.jpg"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+        """;
+            when(multiResp.body()).thenReturn(multiJson);
+
+            // Set up mock behavior for second Jsoup call
+            jsoupMock.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(anyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+
+            // Genius API fallback result
+            String apiJson = """
+            {
+              "response": {
+                "hits": [
+                  {
+                    "result": {
+                      "primary_artist": {
+                        "id": 2,
+                        "name": "Thom Yorke",
+                        "image_url": "img2.jpg",
+                        "header_image_url": "header2.jpg"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+        """;
+            when(restTemplate.exchange(
+                    contains("https://api.genius.com/search?q="),
+                    eq(HttpMethod.GET),
+                    any(HttpEntity.class),
+                    eq(String.class)))
+                    .thenReturn(new ResponseEntity<>(apiJson, HttpStatus.OK));
+
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/artists")
+                            .param("q", "Radiohead")
+                            .param("pages", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].name").value("Radiohead"))
+                    .andExpect(jsonPath("$[1]").doesNotExist()); // only one result
+
+        }
+    }
 
 }
