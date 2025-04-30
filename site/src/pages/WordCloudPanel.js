@@ -61,7 +61,7 @@ const WordCloudPanel = ({
 
         for (const song of songs) {
             try {
-                const res = await axios.get("http://localhost:8080/api/genius/lyrics", {
+                const res = await axios.get("https://localhost:8080/api/genius/lyrics", {
                     params: { songId: song.songId }
                 });
                 const lyrics = (res.data.lyrics || "")
@@ -132,7 +132,7 @@ const WordCloudPanel = ({
 
     const addToFavorites = async (song) => {
         try {
-            await axios.post("http://localhost:8080/api/favorites/add", {
+            await axios.post("https://localhost:8080/api/favorites/add", {
                 username: user,
                 songId: song.songId,
                 title: song.title,

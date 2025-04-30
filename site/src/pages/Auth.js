@@ -38,7 +38,7 @@ const Auth = ({ setUser }) => {
             }
 
             try {
-                const response = await axios.post("http://localhost:8080/auth/signup", { username, password });
+                const response = await axios.post("https://localhost:8080/auth/signup", { username, password });
 
                 if (response.data.includes("User registered successfully")) {
                     setShowConfirmation(true);
@@ -52,7 +52,7 @@ const Auth = ({ setUser }) => {
             }
         } else {
             try {
-                const response = await axios.post("http://localhost:8080/auth/login", { username, password });
+                const response = await axios.post("https://localhost:8080/auth/login", { username, password });
 
                 if (response.data === "Login successful") {
                     localStorage.setItem("user", username);
@@ -85,7 +85,7 @@ const Auth = ({ setUser }) => {
     const confirmCancel = async () => {
         try {
             // Delete the user account
-            await axios.delete(`http://localhost:8080/auth/delete`, {
+            await axios.delete(`https://localhost:8080/auth/delete`, {
                 data: { username }
             });
             setShowConfirmation(false);
