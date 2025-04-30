@@ -227,7 +227,7 @@ describe('Favorites Component', () => {
 
         // Check if API was called
         expect(axios.delete).toHaveBeenCalledWith(
-            `http://localhost:8080/api/favorites/remove/${mockUser}/1`
+            `https://localhost:8080/api/favorites/remove/${mockUser}/1`
         );
 
         // Check if message is displayed
@@ -293,10 +293,10 @@ describe('Favorites Component', () => {
         await waitFor(() => {
             expect(axios.delete).toHaveBeenCalledTimes(2);
             expect(axios.delete).toHaveBeenCalledWith(
-                `http://localhost:8080/api/favorites/remove/${mockUser}/1`
+                `https://localhost:8080/api/favorites/remove/${mockUser}/1`
             );
             expect(axios.delete).toHaveBeenCalledWith(
-                `http://localhost:8080/api/favorites/remove/${mockUser}/2`
+                `https://localhost:8080/api/favorites/remove/${mockUser}/2`
             );
         });
 
@@ -360,7 +360,7 @@ describe('Favorites Component', () => {
         fireEvent.click(upButton);
 
         expect(axios.post).toHaveBeenCalledWith(
-            'http://localhost:8080/api/favorites/swap',
+            'https://localhost:8080/api/favorites/swap',
             null,
             {
                 params: {
@@ -394,7 +394,7 @@ describe('Favorites Component', () => {
         fireEvent.click(downButtons[0]);
 
         expect(axios.post).toHaveBeenCalledWith(
-            'http://localhost:8080/api/favorites/swap',
+            'https://localhost:8080/api/favorites/swap',
             null,
             {
                 params: {
@@ -439,7 +439,7 @@ describe('Favorites Component', () => {
 
         // ensure we POSTed with isPrivate=false
         expect(axios.post).toHaveBeenCalledWith(
-            `http://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=false`
+            `https://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=false`
         );
 
         // afterwards, we should see "Public"
@@ -478,7 +478,7 @@ describe('Favorites Component', () => {
 
         // axios.post should have been called with isPrivate=true
         expect(axios.post).toHaveBeenCalledWith(
-            `http://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=true`
+            `https://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=true`
         );
 
         // after toggle, “Private” label and success banner appear
