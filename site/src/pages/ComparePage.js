@@ -51,20 +51,8 @@ const ComparePage = ({ user }) => {
         fetchSuggestions();
     }, [searchInput]);
 
-    const loadOwnFavorites = async () => {
-        try {
-            const res = await axios.get(`https://localhost:8080/api/favorites/${user}?requester=${user}`);
-            const updated = mergeSongs(user, res.data, {});
-            setSongMap(updated);
-            setAddedFriends([user]);
-        } catch (err) {
-            console.error("Failed to load your own favorites");
-        }
-    };
 
-    useEffect(() => {
-        if (user) loadOwnFavorites();
-    }, [user]);
+
 
     const handleAddToCompareList = () => {
         const username = searchInput.trim();

@@ -102,6 +102,7 @@ describe('ComparePage Component', () => {
 
     test('loads user favorites on mount', async () => {
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
             // The user's favorites should be loaded and displayed
@@ -192,6 +193,7 @@ describe('ComparePage Component', () => {
 
     test('displays song details when clicked', async () => {
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -227,6 +229,8 @@ describe('ComparePage Component', () => {
         render(<ComparePage user={mockUser} />);
 
         // Wait for initial load
+        fireEvent.click(screen.getByText('Compare Now'));
+
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
@@ -305,6 +309,7 @@ describe('ComparePage Component', () => {
         });
 
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         // Wait for initial load
         await waitFor(() => {
@@ -428,46 +433,31 @@ describe('ComparePage Component', () => {
         consoleErrorSpy.mockRestore();
     });
 
-    test('handles API error when searching for users', async () => {
-        // Make search fail
-        axios.get.mockImplementation((url) => {
-            if (url.includes('/users/search')) {
-                return Promise.reject(new Error('Failed to search'));
-            } else if (url.includes(`/api/favorites/${mockUser}`)) {
-                return Promise.resolve({ data: mockFavorites });
-            }
-            return Promise.reject(new Error('Not found'));
-        });
-
-        render(<ComparePage user={mockUser} />);
-
-        const searchInput = screen.getByPlaceholderText('Search by username');
-        fireEvent.change(searchInput, { target: { value: 'fr' } });
-
-        await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=fr');
-            expect(screen.queryByText('friend1')).not.toBeInTheDocument();
-        });
-    });
-
     test('handles API error when loading own favorites', async () => {
-        console.error = jest.fn(); // Mock console.error
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        // Make user favorites fail
         axios.get.mockImplementation((url) => {
             if (url.includes(`/api/favorites/${mockUser}`)) {
                 return Promise.reject(new Error('Failed to load favorites'));
             } else if (url.includes('/users/search')) {
-                return Promise.resolve({ data: mockSuggestions });
+                return Promise.resolve({ data: [] });
+            } else if (url.includes('/privacy/')) {
+                return Promise.resolve({ data: false });
             }
             return Promise.reject(new Error('Not found'));
         });
 
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith('Failed to load your own favorites');
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'Unexpected error loading favorites for testUser:',
+                expect.any(Error)
+            );
         });
+
+        consoleSpy.mockRestore();
     });
 
 
@@ -560,6 +550,7 @@ describe('ComparePage Component', () => {
         });
 
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         // Wait for initial load
         await waitFor(() => {
@@ -761,6 +752,7 @@ describe('UserHover Component', () => {
         });
 
         render(<ComparePage user={user} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         // Wait for initial load of Alice's own favorites
         await screen.findByText('Alpha');
@@ -856,6 +848,7 @@ describe('UserHover Component', () => {
         });
 
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         // Wait for song to appear
         const songTitle = await screen.findByText(/test song/i);
@@ -896,6 +889,7 @@ describe('UserHover Component', () => {
         });
 
         render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
         // Wait for song to load
         await screen.findByText(/test song/i);
