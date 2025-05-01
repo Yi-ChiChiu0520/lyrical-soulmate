@@ -895,7 +895,7 @@ describe('UserHover Component', () => {
         await screen.findByText(/test song/i);
 
         // Locate and click the RankHover element (e.g., "#1")
-        const rankButton = screen.getByRole('button', { name: /#1/i });
+        const rankButton = screen.getByRole('button', { name: /song rank:#1/i });
         fireEvent.click(rankButton);
 
         // Confirm song details are shown
@@ -951,3 +951,87 @@ describe('mergeSongs', () => {
         expect(result.song1.users).toEqual(['alice']); // user should not be duplicated
     });
 });
+
+describe('compare page is keyboard navigable', () => {
+    test("can tab and collapse/expand with enter", async() => {
+        const user = 'alice';
+
+        // Mock API responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/alice')) {
+                return Promise.resolve({ data: false }); // alice is public
+            }
+            if (url.includes('/api/favorites/privacy/bob')) {
+                return Promise.resolve({ data: false }); // bob is public
+            }
+            if (url.includes('/api/favorites/alice')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' }
+                    ]
+                });
+            }
+            if (url.includes('/api/favorites/bob')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' },
+                        { songId: '2', title: 'Beta', artistName: 'B', releaseDate: '2022-02-02' },
+                        { songId: '3', title: 'Gamma', artistName: 'C', releaseDate: '2022-03-03' }
+                    ]
+                });
+            }
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: ['bob'] });
+            }
+
+            return Promise.resolve({ data: [] });
+        });
+
+        render(<ComparePage user={user} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for initial load of Alice's own favorites
+        await screen.findByText('Alpha');
+
+        const usere = userEvent.setup();
+        const tabUntilLabel = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await usere.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        // Simulate searching for "bob" and adding to compare list
+        fireEvent.change(screen.getByPlaceholderText('Search by username'), {
+            target: { value: 'bob' }
+        });
+
+        await tabUntilLabel('user bob');
+        await usere.keyboard('[Enter]');
+
+        await tabUntilLabel('Add to Compare List');
+        await usere.keyboard('[Enter]');
+        await tabUntilLabel('Compare Now');
+        await usere.keyboard('[Enter]');
+
+        await screen.findByText('Beta');
+        await screen.findByText('Gamma');
+
+        await tabUntilLabel("favorited");
+        await usere.keyboard('[Enter]');
+        expect(await screen.findByText(/artist: a/i)).toBeInTheDocument();
+        await usere.keyboard('[Enter]');
+
+        await tabUntilLabel("Song Rank:#");
+        await usere.keyboard('[Enter]');
+        expect(await screen.findByText(/artist: a/i)).toBeInTheDocument();
+        await usere.keyboard('[Enter]');
+        await tabUntilLabel("Users:");
+    })
+})
