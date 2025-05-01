@@ -24,7 +24,7 @@
     "wink-porter2-stemmer": "^2.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-scripts start --https",
     "build": "react-scripts build",
     "test": "react-scripts test"
   },

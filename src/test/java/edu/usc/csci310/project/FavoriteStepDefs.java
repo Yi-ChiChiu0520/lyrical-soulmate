@@ -50,7 +50,7 @@ public class FavoriteStepDefs {
 
     @Given("I favorited {string}")
     public void addSongToFavorites(String songName) {
-        driver.get("http://localhost:8080/dashboard");
+        driver.get("https://localhost:8080/dashboard");
 
         String[] parts = songName.split(" by ", 2);
         String artistName = parts.length == 2 ? parts[1] : null;
@@ -95,12 +95,12 @@ public class FavoriteStepDefs {
 
     @Given("I try to navigate to the favorites page")
     public void iTryToNavigateToTheFavoritesPage() {
-        driver.get("http://localhost:8080/favorites");
+        driver.get("https://localhost:8080/favorites");
     }
 
     @Given("I navigate to the favorites page")
     public void iNavigateToTheFavoritesPage() {
-        driver.get("http://localhost:8080/favorites");
+        driver.get("https://localhost:8080/favorites");
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         boolean favsRendered = wait.until(driver -> driver.findElement(By.id("favorites-header")).isDisplayed());
         assert favsRendered;

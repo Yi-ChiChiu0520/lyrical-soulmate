@@ -13,7 +13,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/")
-@CrossOrigin(origins = "http://localhost:3000") // adjust as needed
+@CrossOrigin(origins = "https://localhost:3000") // adjust as needed
 public class SocialController {
 
     @Autowired

@@ -114,7 +114,7 @@ public class DriverManager {
         DriverManager.createUserWithUsername(connection,"testUser");
 
         // go to the login page
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
 
         // add the user to localstorage so frontend sees that we are logged in
         JavascriptExecutor js = (JavascriptExecutor) driver;
