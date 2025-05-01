@@ -23,6 +23,9 @@ jobs:
     - name: Copy env file
       run: cp .env.example .env
 
+    - name: Copy env file
+      run: cp .env .env
+
     - name: Build with Maven
       run: mvn --batch-mode test
 

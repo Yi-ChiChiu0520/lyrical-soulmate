@@ -18,7 +18,7 @@ const Favorites = ({ user }) => {
     useEffect(() => {
         const fetchPrivacyStatus = async () => {
             try {
-                const res = await axios.get(`http://localhost:8080/api/favorites/privacy/${user}?requester=${user}`);
+                const res = await axios.get(`https://localhost:8080/api/favorites/privacy/${user}?requester=${user}`);
                 setIsPrivate(res.data);
             } catch (err) {
                 console.error("Failed to fetch privacy setting", err);
@@ -30,8 +30,8 @@ const Favorites = ({ user }) => {
 
     const handleTogglePrivacy = async () => {
         try {
-            await axios.post(`http://localhost:8080/api/favorites/privacy/${user}?isPrivate=${!isPrivate}`);
-            const res = await axios.get(`http://localhost:8080/api/favorites/privacy/${user}?requester=${user}`);
+            await axios.post(`https://localhost:8080/api/favorites/privacy/${user}?isPrivate=${!isPrivate}`);
+            const res = await axios.get(`https://localhost:8080/api/favorites/privacy/${user}?requester=${user}`);
             setIsPrivate(res.data);
             setMessage(`Favorites are now ${res.data ? "Private 🔒" : "Public 🌐"}`);
         } catch (err) {
@@ -73,7 +73,7 @@ const Favorites = ({ user }) => {
 
     const fetchFavorites = async () => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/favorites/${user}?requester=${user}`);
+            const response = await axios.get(`https://localhost:8080/api/favorites/${user}?requester=${user}`);
             const filtered = (response.data).filter(song => song && song.songId);
             setFavorites(filtered);
         } catch (error) {
@@ -84,7 +84,7 @@ const Favorites = ({ user }) => {
 
     const removeFromFavorites = async (songId) => {
         try {
-            await axios.delete(`http://localhost:8080/api/favorites/remove/${user}/${songId}`);
+            await axios.delete(`https://localhost:8080/api/favorites/remove/${user}/${songId}`);
             setFavorites([]);
             await fetchFavorites();
             resetInactivityTimer();
@@ -98,7 +98,7 @@ const Favorites = ({ user }) => {
     const clearAllFavorites = async () => {
         try {
             const requests = favorites.map(song =>
-                axios.delete(`http://localhost:8080/api/favorites/remove/${user}/${song.songId}`)
+                axios.delete(`https://localhost:8080/api/favorites/remove/${user}/${song.songId}`)
             );
             await Promise.all(requests);
             setFavorites([]);
@@ -114,7 +114,7 @@ const Favorites = ({ user }) => {
         if (newIndex < 0 || newIndex >= favorites.length) return;
 
         try {
-            await axios.post(`http://localhost:8080/api/favorites/swap`, null, {
+            await axios.post(`https://localhost:8080/api/favorites/swap`, null, {
                 params: {
                     username: user,
                     rank1: favorites[index].rank,

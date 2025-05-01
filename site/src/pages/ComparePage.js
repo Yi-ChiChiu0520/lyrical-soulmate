@@ -42,7 +42,7 @@ const ComparePage = ({ user }) => {
                 return;
             }
             try {
-                const res = await axios.get(`http://localhost:8080/users/search?prefix=${searchInput}`);
+                const res = await axios.get(`https://localhost:8080/users/search?prefix=${searchInput}`);
                 setSuggestions(res.data);
             } catch (err) {
                 setSuggestions([]);
@@ -53,7 +53,7 @@ const ComparePage = ({ user }) => {
 
     const loadOwnFavorites = async () => {
         try {
-            const res = await axios.get(`http://localhost:8080/api/favorites/${user}?requester=${user}`);
+            const res = await axios.get(`https://localhost:8080/api/favorites/${user}?requester=${user}`);
             const updated = mergeSongs(user, res.data, {});
             setSongMap(updated);
             setAddedFriends([user]);
@@ -81,7 +81,7 @@ const ComparePage = ({ user }) => {
 
         for (const username of allUsers) {
             try {
-                const privacyRes = await axios.get(`http://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
+                const privacyRes = await axios.get(`https://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
                 const isPrivate = privacyRes.data;
 
                 if (isPrivate) {
@@ -93,7 +93,7 @@ const ComparePage = ({ user }) => {
                     return; // Stop immediately if private
                 }
 
-                const favoritesRes = await axios.get(`http://localhost:8080/api/favorites/${username}?requester=${user}`);
+                const favoritesRes = await axios.get(`https://localhost:8080/api/favorites/${username}?requester=${user}`);
                 const favorites = favoritesRes.data;
                 if (Array.isArray(favorites)) {
                     newSongMap = mergeSongs(username, favorites, newSongMap);

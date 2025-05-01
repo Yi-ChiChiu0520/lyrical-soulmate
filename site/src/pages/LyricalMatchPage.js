@@ -28,11 +28,11 @@ const LyricalMatchPage = ({ user }) => {
 
         const fetchMatches = async () => {
             try {
-                const userRes = await axios.get(`http://localhost:8080/api/favorites/${user}`);
+                const userRes = await axios.get(`https://localhost:8080/api/favorites/${user}`);
                 const userMap = generateWordMap(userRes.data);
                 setUserSongs(userRes.data);
 
-                const othersRes = await axios.get(`http://localhost:8080/api/favorites/all-wordmaps`);
+                const othersRes = await axios.get(`https://localhost:8080/api/favorites/all-wordmaps`);
                 const othersRaw = Object.entries(othersRes.data);
 
                 const others = [];
@@ -41,7 +41,7 @@ const LyricalMatchPage = ({ user }) => {
                 for (const [username, data] of othersRaw) {
                     if (username === user) continue;
                     try {
-                        const privacyRes = await axios.get(`http://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
+                        const privacyRes = await axios.get(`https://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
                         if (privacyRes.status === 200 && privacyRes.data === false) {
                             others.push([username, data]);
                         } else {

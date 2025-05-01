@@ -117,7 +117,7 @@ describe('ComparePage Component', () => {
         fireEvent.change(searchInput, { target: { value: 'fr' } });
 
         await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/users/search?prefix=fr');
+            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=fr');
             expect(screen.getByText('friend1')).toBeInTheDocument();
             expect(screen.getByText('friend2')).toBeInTheDocument();
             expect(screen.getByText('friend3')).toBeInTheDocument();
@@ -445,7 +445,7 @@ describe('ComparePage Component', () => {
         fireEvent.change(searchInput, { target: { value: 'fr' } });
 
         await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/users/search?prefix=fr');
+            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=fr');
             expect(screen.queryByText('friend1')).not.toBeInTheDocument();
         });
     });
@@ -532,7 +532,7 @@ describe('ComparePage Component', () => {
         fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
         await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/users/search?prefix=nonexistent');
+            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=nonexistent');
             expect(screen.queryByText('friend1')).not.toBeInTheDocument();
         });
     });
