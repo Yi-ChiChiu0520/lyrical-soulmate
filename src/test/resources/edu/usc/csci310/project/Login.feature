@@ -1,7 +1,7 @@
 Feature: Login and Security Functionality
 
   Scenario: localhost:8080 is the login page
-    When I navigate to "http://localhost:8080"
+    When I navigate to "https://localhost:8080"
     Then I should be redirected to the login page
 
   Scenario: A user that isn't logged in can't go to any other page

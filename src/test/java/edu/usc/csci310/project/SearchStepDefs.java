@@ -45,7 +45,7 @@ public class SearchStepDefs {
     @Given("I am logged in")
     public void iAmLoggedIn() {
         DriverManager.createUserWithUsername(connection, "testUser");
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("loginButton")));
@@ -53,7 +53,7 @@ public class SearchStepDefs {
         JavascriptExecutor js = (JavascriptExecutor) driver;
         js.executeScript("window.localStorage.setItem('user', 'testUser');");
         driver.navigate().refresh();
-        driver.get("http://localhost:8080/dashboard");
+        driver.get("https://localhost:8080/dashboard");
         wait.until(ExpectedConditions.urlContains("dashboard"));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
     }
@@ -543,14 +543,14 @@ public class SearchStepDefs {
         driver.manage().deleteAllCookies();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         js.executeScript("window.localStorage.clear();");
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("loginButton")));
     }
 
     @And("I try to navigate to the search page")
     public void iTryToNavigateToTheSearchPage() {
-        driver.get("http://localhost:8080/dashboard");
+        driver.get("https://localhost:8080/dashboard");
     }
 
     @Then("I should see a list of artists that include the name {string}")

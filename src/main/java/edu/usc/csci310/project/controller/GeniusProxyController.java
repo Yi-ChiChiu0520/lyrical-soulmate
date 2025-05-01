@@ -25,7 +25,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
 @RequestMapping("/api/genius")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://localhost:3000")
 public class GeniusProxyController {
 
     private final String geniusAccessToken;

@@ -40,7 +40,7 @@ public class LoginStepDefs {
 
     @Given("I am on the login page")
     public void iAmOnTheLoginPage() {
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(driver -> {
@@ -105,7 +105,7 @@ public class LoginStepDefs {
     public void iShouldBeRedirectedToMyDashboard() throws InterruptedException {
         Thread.sleep(1000);
         String currentUrl = driver.getCurrentUrl();
-        assertEquals("http://localhost:8080/dashboard", currentUrl);
+        assertEquals("https://localhost:8080/dashboard", currentUrl);
     }
 
     @Then("The input {string} shows error {string}")
@@ -139,7 +139,7 @@ public class LoginStepDefs {
 
     @Given("I navigate to the dashboard page")
     public void iNavigateToTheDashboardPage() throws InterruptedException {
-        driver.get("http://localhost:8080/dashboard");
+        driver.get("https://localhost:8080/dashboard");
         Thread.sleep(1000);
     }
 
@@ -206,7 +206,7 @@ public class LoginStepDefs {
             return el.isDisplayed() ? el : null;
         });
         String url = driver.getCurrentUrl();
-        assertEquals("http://localhost:8080/", url);
+        assertEquals("https://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());
     }
 
