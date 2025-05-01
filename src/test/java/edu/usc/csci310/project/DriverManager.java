@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,7 +24,9 @@ public class DriverManager {
 
     public static WebDriver getDriver() {
         if (driver == null) {
-            driver = new ChromeDriver();
+            ChromeOptions options = new ChromeOptions();
+            options.setAcceptInsecureCerts(true);
+            driver = new ChromeDriver(options);
         }
         return driver;
     }
