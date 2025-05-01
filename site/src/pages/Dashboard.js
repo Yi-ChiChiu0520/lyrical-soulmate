@@ -62,7 +62,7 @@ const Dashboard = ({ user }) => {
         }
 
         try {
-            const res = await axios.get("http://localhost:8080/api/genius/artists", {
+            const res = await axios.get("https://localhost:8080/api/genius/artists", {
                 params: { q: query }
             });
             const list = res.data;
@@ -102,7 +102,7 @@ const Dashboard = ({ user }) => {
 
         while (collected.length < limit) {
             const { data } = await axios.get(
-                `http://localhost:8080/api/genius/artists/${artist.id}/songs`,
+                `https://localhost:8080/api/genius/artists/${artist.id}/songs`,
                 { params: { page } }
             );
             const chunk = data.response?.songs ?? [];
@@ -114,7 +114,7 @@ const Dashboard = ({ user }) => {
         if (collected.length < limit) {
             page = 1;
             while (collected.length < limit) {
-                const { data } = await axios.get("http://localhost:8080/api/genius/search", {
+                const { data } = await axios.get("https://localhost:8080/api/genius/search", {
                     params: { q: artist.name, page }
                 });
                 const hits = data.response?.hits ?? [];
@@ -168,7 +168,7 @@ const Dashboard = ({ user }) => {
                 let lyrics = "Unknown";
 
                 try {
-                    const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                    const lyricsRes = await axios.get(`https://localhost:8080/api/genius/lyrics`, {
                         params: { songId: song.result.id }
                     });
                     lyrics = lyricsRes.data.lyrics;
@@ -188,7 +188,7 @@ const Dashboard = ({ user }) => {
                 };
 
                 try {
-                    const res = await axios.post("http://localhost:8080/api/favorites/add", favoriteSong);
+                    const res = await axios.post("https://localhost:8080/api/favorites/add", favoriteSong);
                     if (res.status === 200) added.push(song.result.full_title);
                     else failed.push(song.result.full_title);
                 } catch {
@@ -211,7 +211,7 @@ const Dashboard = ({ user }) => {
         setCloudLoading(true);
         setIsAddingFavoritesToCloud(true);
 
-        const response = await axios.get(`http://localhost:8080/api/favorites/${user}`);
+        const response = await axios.get(`https://localhost:8080/api/favorites/${user}`);
         const favorites = response.data;
 
         if (!favorites || favorites.length === 0) {
@@ -230,7 +230,7 @@ const Dashboard = ({ user }) => {
             let lyrics = "Unknown";
 
             try {
-                const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                const lyricsRes = await axios.get(`https://localhost:8080/api/genius/lyrics`, {
                     params: { songId: song.songId }
                 });
                 lyrics = lyricsRes.data.lyrics;
@@ -270,7 +270,7 @@ const Dashboard = ({ user }) => {
             let lyrics = "Unknown";
 
             try {
-                const lyricsRes = await axios.get(`http://localhost:8080/api/genius/lyrics`, {
+                const lyricsRes = await axios.get(`https://localhost:8080/api/genius/lyrics`, {
                     params: { songId: song.result.id }
                 });
                 lyrics = lyricsRes.data.lyrics;
