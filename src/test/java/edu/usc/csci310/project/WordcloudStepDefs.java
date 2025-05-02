@@ -12,6 +12,7 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.Keys;
 
 import java.sql.Connection;
 import java.time.Duration;
@@ -922,6 +923,33 @@ public class WordcloudStepDefs {
 
         assertTrue(message.isDisplayed(), "Expected confirmation message not found.");
     }
+
+    @Then("I should only see {string} in the Word Cloud once")
+    public void iShouldOnlySeeInTheWordCloudOnce(String word) throws InterruptedException {
+        Thread.sleep(5000); // Allow Word Cloud time to render
+        WebElement cloud = new WebDriverWait(driver, Duration.ofSeconds(100))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.id("word-cloud")));
+
+        // Count how many times the word appears in the Word Cloud text
+        String cloudText = cloud.getText();
+        int occurrences = cloudText.split("\\b" + Pattern.quote(word) + "\\b", -1).length - 1;
+
+        assertEquals(1, occurrences, "Expected the word '" + word + "' to appear exactly once in the Word Cloud, but found it " + occurrences + " times.");
+    }
+
+    @And("I clear the search bar")
+    public void iClearTheSearchBar() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Clear artist search input
+        WebElement searchInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-title")));
+        searchInput.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE); // more reliable than BACK_SPACE
+
+        // Clear song limit input
+        WebElement limitInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("song-limit")));
+        limitInput.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
+    }
+
 
 }
 

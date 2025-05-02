@@ -284,3 +284,30 @@ Feature: Word Cloud Functionality
     And I started word cloud
     And I refresh the dashboard page
     Then I see the warning "Please start the word cloud before generating."
+
+  Scenario: Add song that is already in word cloud to word cloud
+    Given I am authenticated
+    When I navigate to the dashboard page
+    And I started word cloud
+    And I search for "10" songs by "Eminem"
+    And I clicked on "Eminem" picture in ambiguous search
+    And I select "Rap God"
+    And I click the "Add Selected to Word Cloud" button
+    And The Word Cloud is loaded
+    And I click the "Add Selected to Word Cloud" button
+    And The Word Cloud is loaded
+    Then I should only see "Rap God by Eminem" in the Word Cloud once
+
+  Scenario: Add song that is already in word cloud to word cloud through add favorites to word cloud
+    Given I am authenticated
+    When I navigate to the dashboard page
+    And I favorited "Rap God by Eminem"
+    And I favorited "Lose Yourself by Eminem"
+    And I refresh the dashboard page
+    And I started word cloud
+    And I add "Rap God by Eminem" into the Word Cloud
+    And The Word Cloud is loaded
+    And I click the "Add All Favorites to Word Cloud" button
+    And The Word Cloud is loaded
+    Then I should only see "Rap God by Eminem" in the Word Cloud once
+    And "Lose Yourself" should be visible inside the Word Cloud
