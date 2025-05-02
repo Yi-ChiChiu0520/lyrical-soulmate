@@ -1,7 +1,9 @@
 package edu.usc.csci310.project;
 
-import org.junit.jupiter.api.AfterEach;
+import io.github.cdimascio.dotenv.Dotenv;
+import io.github.cdimascio.dotenv.DotenvBuilder;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -10,8 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -23,6 +25,9 @@ class SpringBootAPITest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Mock
+    private Dotenv dotenv;
 
     @Test
     void testApplicationStarts() {
@@ -46,4 +51,20 @@ class SpringBootAPITest {
                 .andExpect(status().isNotFound()); // Expect HTTP 404 for API routes
     }
 
+    @Test
+    void throwsWhenTokenMissing() {
+        // one mock for the whole fluent chain
+        DotenvBuilder mockDotenv = mock(DotenvBuilder.class);
+
+        // stub the chain: configure() → ignoreIfMissing() → load()
+        when(mockDotenv.ignoreIfMissing()).thenReturn(mockDotenv);
+        when(mockDotenv.load()).thenReturn(dotenv);
+        when(dotenv.get("GENIUS_ACCESS_TOKEN")).thenReturn(null);
+
+        try (MockedStatic<Dotenv> dotenvStatic = mockStatic(Dotenv.class)) {
+            dotenvStatic.when(Dotenv::configure).thenReturn(mockDotenv);
+            assertThrows(IllegalStateException.class,
+                    () -> SpringBootAPI.main(new String[]{}));
+        }
+    }
 }

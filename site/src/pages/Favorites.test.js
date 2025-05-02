@@ -1,256 +1,348 @@
-// Favorites.test.js
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import Favorites from './Favorites';
 import axios from 'axios';
 import { BrowserRouter } from 'react-router-dom';
-import Favorites from './Favorites';
+import ComparePage from "./ComparePage";
+import userEvent from "@testing-library/user-event";
 
 // Mock axios
 jest.mock('axios');
 
-// Mock react-router-dom
-jest.mock('react-router-dom', () => {
-    const actual = jest.requireActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => jest.fn(),
-        Navigate: ({ to }) => <div data-testid="navigate" data-to={to} />
-    };
-});
+// Mock navigate
+const mockedNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+    ...jest.requireActual('react-router-dom'),
+    useNavigate: () => mockedNavigate,
+    Navigate: ({ to }) => <div data-testid="navigate" data-to={to} />
+}));
 
-// Mock WordCloudPanel component
-jest.mock('./WordCloudPanel', () => {
-    return function MockWordCloudPanel({ wordCloudSongs, user }) {
-        return (
-            <div data-testid="word-cloud-panel">
-                <div data-testid="word-cloud-songs">{JSON.stringify(wordCloudSongs)}</div>
-                <div data-testid="word-cloud-user">{user}</div>
-            </div>
-        );
+// Mock localStorage
+const localStorageMock = (function() {
+    let store = {};
+    return {
+        getItem: jest.fn(key => store[key]),
+        setItem: jest.fn((key, value) => {
+            store[key] = value.toString();
+        }),
+        removeItem: jest.fn(key => {
+            delete store[key];
+        }),
+        clear: jest.fn(() => {
+            store = {};
+        }),
+        getAll: () => store
     };
-});
+})();
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+// Sample data
+const mockUser = 'testUser';
+const mockFavorites = [
+    {
+        songId: '1',
+        title: 'Test Song 1',
+        artistName: 'Test Artist 1',
+        releaseDate: '2023-01-01',
+        imageUrl: 'test-image-1.jpg',
+        rank: 1
+    },
+    {
+        songId: '2',
+        title: 'Test Song 2',
+        artistName: 'Test Artist 2',
+        releaseDate: '2023-01-02',
+        imageUrl: 'test-image-2.jpg',
+        rank: 2
+    }
+];
 
 describe('Favorites Component', () => {
-    const mockUser = 'testUser';
-    const mockFavorites = [
-        {
-            songId: '1',
-            title: 'Test Song 1',
-            artistName: 'Test Artist 1',
-            releaseDate: '2025-01-01',
-            imageUrl: 'http://example.com/image1.jpg',
-            rank: 1
-        },
-        {
-            songId: '2',
-            title: 'Test Song 2',
-            artistName: 'Test Artist 2',
-            releaseDate: '2025-02-01',
-            imageUrl: 'http://example.com/image2.jpg',
-            rank: 2
-        }
-    ];
-
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.useFakeTimers();
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
 
-        // Mock localStorage
-        Object.defineProperty(window, 'localStorage', {
-            value: {
-                getItem: jest.fn(),
-                setItem: jest.fn(),
-                removeItem: jest.fn()
-            },
-            writable: true
+        // Default axios responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false }); // Default to public
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
         });
-
-        // Mock window.location.reload
-        Object.defineProperty(window, 'location', {
-            value: {
-                reload: jest.fn()
-            },
-            writable: true
-        });
-
-        // Setup default axios response
-        axios.get.mockResolvedValue({ data: mockFavorites });
-        axios.post.mockResolvedValue({ data: { message: 'Success' } });
-        axios.delete.mockResolvedValue({ data: { message: 'Deleted' } });
     });
 
-    test('fetches and displays favorites when user is logged in', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+    afterEach(() => {
+        jest.useRealTimers();
+    });
 
-        expect(axios.get).toHaveBeenCalledWith(`http://localhost:8080/api/favorites/${mockUser}`);
+    test('redirects to home when user is not provided', async () => {
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={null}/>
+                </BrowserRouter>
+            );
+        });
+
+        expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/');
+    });
+
+    test('renders the favorites list when user is provided', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
-            expect(screen.getByText("💖 testUser's Favorite Songs")).toBeInTheDocument();
+            expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
             expect(screen.getByText('Test Song 2')).toBeInTheDocument();
         });
     });
 
-    test('handles empty favorites array', async () => {
-        axios.get.mockResolvedValueOnce({ data: [] });
+    test('displays no favorites message when list is empty', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: [] });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
         });
     });
 
-    test('handles favorites fetch error', async () => {
-        axios.get.mockRejectedValueOnce(new Error('Failed to fetch'));
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
-        });
-    });
-
-    test('handles logging out on inactivity', async () => {
-        jest.useFakeTimers();
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Fast-forward time by more than 60 seconds
+    test('expands song details when clicking on a song title', async () => {
         await act(async () => {
-            jest.advanceTimersByTime(61000);
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
         });
 
-        expect(window.localStorage.removeItem).toHaveBeenCalledWith('user');
-        expect(window.location.reload).toHaveBeenCalled();
-
-        jest.useRealTimers();
-    });
-
-    test('resets inactivity timer on user interaction', async () => {
-        jest.useFakeTimers();
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Fast-forward time by less than 60 seconds
-        await act(async () => {
-            jest.advanceTimersByTime(30000);
-        });
-
-        // Simulate user interaction
-        fireEvent.click(screen.getByText("💖 testUser's Favorite Songs"));
-
-        // Fast-forward time again
-        await act(async () => {
-            jest.advanceTimersByTime(30000);
-        });
-
-        // Logout should not have been called yet
-        expect(window.localStorage.removeItem).not.toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
-
-        // Now advance past the full 60 seconds from the reset
-        await act(async () => {
-            jest.advanceTimersByTime(31000);
-        });
-
-        // Now logout should be called
-        expect(window.localStorage.removeItem).toHaveBeenCalledWith('user');
-
-        jest.useRealTimers();
-    });
-
-    test('toggles song expansion when song is clicked', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText(/Test Song 1/)).toBeInTheDocument();
-        });
-
-        // Artist info should not be visible initially
-        expect(screen.queryByText(/Artist:/)).not.toBeInTheDocument();
-
-        // Click to expand
-        const songTitleElements = screen.getAllByText(/Test Song/);
-        fireEvent.click(songTitleElements[0]);
-
-        // Artist info should now be visible
-        await waitFor(() => {
-            expect(screen.getByText(/Artist:/)).toBeInTheDocument();
-            expect(screen.getByText(/Test Artist 1/)).toBeInTheDocument();
-        });
-
-        // Click again to collapse
-        fireEvent.click(songTitleElements[0]);
-
-        // Artist info should not be visible again
-        await waitFor(() => {
-            expect(screen.queryByText(/Artist:/)).not.toBeInTheDocument();
-        });
-    });
-
-    //
-    // NOTE: The following tests changed to simulate hover before clicking remove/move.
-    //
-
-    test('removes a song from favorites', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
-        // Hover over song 1's <li> so the Remove button appears
-        const song1Li = screen.getByText('Test Song 1').closest('li');
-        fireEvent.mouseEnter(song1Li);
+        fireEvent.click(screen.getByText('Test Song 1'));
 
-        // Now the remove button is in the DOM
-        const removeButtons = screen.getAllByText('❌');
+        await waitFor(() => {
+            expect(screen.getByText('🎤 Artist:')).toBeInTheDocument();
+            expect(screen.getByText('Test Artist 1')).toBeInTheDocument();
+            expect(screen.getByText('📅 Release Date:')).toBeInTheDocument();
+            expect(screen.getByText('2023-01-01')).toBeInTheDocument();
+        });
+
+        // Click again to collapse
+        fireEvent.click(screen.getByText('Test Song 1'));
+
+        await waitFor(() => {
+            expect(screen.queryByText('🎤 Artist:')).not.toBeInTheDocument();
+        });
+    });
+
+    test('shows removal confirmation when clicking remove button', async () => {
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song to show buttons
+        fireEvent.mouseEnter(screen.getByText('Test Song 1').closest('li'));
+
+        // Click remove button
+        const removeButtons = await screen.findAllByLabelText('Remove');
         fireEvent.click(removeButtons[0]);
 
-        const confirmRemove = screen.getAllByText('Yes, remove song');
-        fireEvent.click(confirmRemove[0]);
+        // Modal should appear
+        expect(screen.getByText('Confirm Removal')).toBeInTheDocument();
+        expect(screen.getByText('Are you sure you want to remove Test Song 1 from your favorites?')).toBeInTheDocument();
+    });
 
+    test('removes song when confirming removal', async () => {
+        axios.delete.mockResolvedValue({});
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song to show buttons
+        fireEvent.mouseEnter(screen.getByText('Test Song 1').closest('li'));
+
+        // Click remove button
+        const removeButtons = await screen.findAllByLabelText('Remove');
+        fireEvent.click(removeButtons[0]);
+
+        // Click confirm button
+        fireEvent.click(screen.getByText('Yes, remove song'));
+
+        // Check if API was called
         expect(axios.delete).toHaveBeenCalledWith(
-            `http://localhost:8080/api/favorites/remove/${mockUser}/1`
+            `https://localhost:8080/api/favorites/remove/${mockUser}/1`
         );
-        expect(axios.get).toHaveBeenCalledTimes(3); // Initial load and after deletion
+
+        // Check if message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('❌ Song removed from favorites.')).toBeInTheDocument();
+        });
+    });
+
+    test('cancels removal when clicking cancel button', async () => {
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song to show buttons
+        fireEvent.mouseEnter(screen.getByText('Test Song 1').closest('li'));
+
+        // Click remove button
+        const removeButtons = await screen.findAllByLabelText('Remove');
+        fireEvent.click(removeButtons[0]);
+
+        // Click cancel button
+        fireEvent.click(screen.getByText('No'));
+
+        // Modal should disappear
+        expect(screen.queryByText('Confirm Removal')).not.toBeInTheDocument();
+
+        // Check that delete API wasn't called
+        expect(axios.delete).not.toHaveBeenCalled();
+    });
+
+    test('clears all favorites when clicking clear all button', async () => {
+        axios.delete.mockResolvedValue({});
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+                );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
+        });
+
+        // fire click on clear all button
+        fireEvent.click(screen.getByText('🧹 Clear All Favorites'));
+
+        // accept on the modal
+        fireEvent.click(screen.getByText('Yes, clear all'));
+
+        // Check if API was called for each song
+        await waitFor(() => {
+            expect(axios.delete).toHaveBeenCalledTimes(2);
+            expect(axios.delete).toHaveBeenCalledWith(
+                `https://localhost:8080/api/favorites/remove/${mockUser}/1`
+            );
+            expect(axios.delete).toHaveBeenCalledWith(
+                `https://localhost:8080/api/favorites/remove/${mockUser}/2`
+            );
+        });
+
+        // Check if message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('🧹 All songs cleared from favorites.')).toBeInTheDocument();
+        });
+    });
+
+    test('doesnt clear all favorites when clicking decline clear all button', async () => {
+        axios.delete.mockResolvedValue({});
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
+        });
+
+        // fire click on clear all button
+        fireEvent.click(screen.getByText('🧹 Clear All Favorites'));
+
+        // accept on the modal
+        fireEvent.click(screen.getByText('No'));
+
+        // Check if API was called for each song
+        await waitFor(() => {
+            expect(axios.delete).toHaveBeenCalledTimes(0);
+        });
     });
 
     test('moves a favorite up', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 2')).toBeInTheDocument();
@@ -260,11 +352,15 @@ describe('Favorites Component', () => {
         const song2Li = screen.getByText('Test Song 2').closest('li');
         fireEvent.mouseEnter(song2Li);
 
-        const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[0]); // or upButtons[1], depending on test indexing
+
+        const upButtons = screen.getAllByRole('button', { name: /Move up/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const upButton = upButtons[0];
+        fireEvent.click(upButton);
 
         expect(axios.post).toHaveBeenCalledWith(
-            'http://localhost:8080/api/favorites/swap',
+            'https://localhost:8080/api/favorites/swap',
             null,
             {
                 params: {
@@ -277,11 +373,14 @@ describe('Favorites Component', () => {
     });
 
     test('moves a favorite down', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -295,7 +394,7 @@ describe('Favorites Component', () => {
         fireEvent.click(downButtons[0]);
 
         expect(axios.post).toHaveBeenCalledWith(
-            'http://localhost:8080/api/favorites/swap',
+            'https://localhost:8080/api/favorites/swap',
             null,
             {
                 params: {
@@ -307,12 +406,404 @@ describe('Favorites Component', () => {
         );
     });
 
-    test('does not allow invalid moves (beyond array bounds)', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
+
+    it("toggles from Private to Public when clicking the switch", async () => {
+        // 1) initial GET → privacy = true  (starts Private)
+        // 2) initial GET → favorites list []
+        // 3) POST toggle → resolves
+        // 4) final GET → privacy = false (becomes Public)
+        axios.get
+            .mockResolvedValueOnce({ data: true })         // initial privacy
+            .mockResolvedValueOnce({ data: mockFavorites })// fetchFavorites()
+            .mockResolvedValueOnce({ data: false });       // after toggle
+        axios.post.mockResolvedValueOnce({});             // toggle succeeds
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        // wait for the "Private" label
+        await waitFor(() => {
+            expect(screen.getByText("Private")).toBeInTheDocument();
+        });
+
+        // click the toggle DIV next to the lock‐icon label
+        const lockLabel = screen.getByText("🔒 Favorites Privacy:");
+        const toggleDiv = lockLabel.nextSibling;
+        fireEvent.click(toggleDiv);
+
+        // ensure we POSTed with isPrivate=false
+        expect(axios.post).toHaveBeenCalledWith(
+            `https://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=false`
         );
+
+        // afterwards, we should see "Public"
+        await waitFor(() => {
+            expect(screen.getByText("Public")).toBeInTheDocument();
+        });
+
+        // and the corresponding banner
+        expect(screen.getByText("Favorites are now Public 🌐")).toBeInTheDocument();
+    });
+    test("toggles privacy setting when clicking toggle switch (success path)", async () => {
+        // 1️⃣ initial GET → privacy = false (Public)
+        // 2️⃣ initial GET → favorites list
+        // 3️⃣ POST toggle → succeed
+        // 4️⃣ final GET → privacy = true (Private)
+        axios.get
+            .mockResolvedValueOnce({ data: false })
+            .mockResolvedValueOnce({ data: mockFavorites })
+            .mockResolvedValueOnce({ data: true });
+        axios.post.mockResolvedValueOnce({});
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+        // wait for “Public” label
+        await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
+
+        // click the toggle `<div>`
+        const toggleDiv = screen.getByText("Public").previousSibling;
+        fireEvent.click(toggleDiv);
+
+        // axios.post should have been called with isPrivate=true
+        expect(axios.post).toHaveBeenCalledWith(
+            `https://localhost:8080/api/favorites/privacy/${mockUser}?isPrivate=true`
+        );
+
+        // after toggle, “Private” label and success banner appear
+        await waitFor(() => expect(screen.getByText("Private")).toBeInTheDocument());
+        expect(screen.getByText("Favorites are now Private 🔒")).toBeInTheDocument();
+    });
+
+
+
+    test("shows error banner when toggle fails (failure path)", async () => {
+        // 1️⃣ initial GET → privacy = false
+        // 2️⃣ initial GET → favorites list
+        // 3️⃣ POST toggle → fail
+        axios.get
+            .mockResolvedValueOnce({ data: false })
+            .mockResolvedValueOnce({ data: mockFavorites });
+        axios.post.mockRejectedValueOnce(new Error("network error"));
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+        await waitFor(() => expect(screen.getByText("Public")).toBeInTheDocument());
+
+        const toggleDiv = screen.getByText("Public").previousSibling;
+        fireEvent.click(toggleDiv);
+
+        // error banner appears
+        await waitFor(() =>
+            expect(screen.getByText("⚠️ Failed to update privacy.")).toBeInTheDocument()
+        );
+    });
+
+    test('handles errors when fetching favorites', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.reject(new Error('API Error'));
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
+        });
+    });
+
+    test('handles errors when fetching privacy setting', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.reject(new Error('API Error'));
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('⚠️ Could not load privacy settings.')).toBeInTheDocument();
+        });
+    });
+
+    test('handles errors when updating privacy setting', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        axios.post.mockRejectedValue(new Error('API Error'));
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Public')).toBeInTheDocument();
+        });
+
+        // Click toggle switch
+        fireEvent.click(screen.getByText('Public').previousSibling);
+
+        // Check if error message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('⚠️ Failed to update privacy.')).toBeInTheDocument();
+        });
+    });
+
+    test('handles errors when removing a song', async () => {
+        axios.delete.mockRejectedValue(new Error('API Error'));
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over song to show buttons
+        fireEvent.mouseEnter(screen.getByText('Test Song 1').closest('li'));
+
+        // Click remove button
+        const removeButtons = await screen.findAllByLabelText('Remove');
+        fireEvent.click(removeButtons[0]);
+
+        // Click confirm button
+        fireEvent.click(screen.getByText('Yes, remove song'));
+
+        // Check if error message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('⚠️ Failed to remove song.')).toBeInTheDocument();
+        });
+    });
+
+    test('handles errors when clearing all favorites', async () => {
+        axios.delete.mockRejectedValue(new Error('API Error'));
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('🧹 Clear All Favorites')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('🧹 Clear All Favorites'))
+        fireEvent.click(screen.getByText('Yes, clear all'));
+
+        // Check if error message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('⚠️ Failed to clear favorites.')).toBeInTheDocument();
+        });
+    });
+
+    test('handles errors when moving a song', async () => {
+        axios.post.mockRejectedValue(new Error('API Error'));
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Hover over the first song to show buttons
+        fireEvent.mouseEnter(screen.getByText('Test Song 1').closest('li'));
+
+        // Click move down button
+        const moveDownButtons = await screen.findAllByLabelText('Move down');
+        fireEvent.click(moveDownButtons[0]);
+
+        // Check if error message is displayed
+        await waitFor(() => {
+            expect(screen.getByText('⚠️ Failed to reorder favorites.')).toBeInTheDocument();
+        });
+    });
+
+    test('logs out user after inactivity period', async () => {
+        Object.defineProperty(window, 'location', {
+            value: { reload: jest.fn() }
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
+        });
+
+        // Fast-forward time by more than the inactivity timeout (60000ms)
+        act(() => {
+            jest.advanceTimersByTime(65000);
+        });
+
+        // Check if localStorage was cleared
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+        expect(window.location.reload).toHaveBeenCalled();
+    });
+
+    test('resets inactivity timer on user interaction', async () => {
+        Object.defineProperty(window, 'location', {
+            value: { reload: jest.fn() }
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText(`💖 ${mockUser}'s Favorite Songs`)).toBeInTheDocument();
+        });
+
+        // Fast-forward time by less than the timeout
+        act(() => {
+            jest.advanceTimersByTime(50000);
+        });
+
+        // Simulate user interaction
+        fireEvent.click(screen.getByText(`💖 ${mockUser}'s Favorite Songs`));
+
+        // Fast-forward time again, but not enough to trigger logout
+        act(() => {
+            jest.advanceTimersByTime(50000);
+        });
+
+        // Check that logout wasn't called
+        expect(localStorageMock.removeItem).not.toHaveBeenCalled();
+        expect(window.location.reload).not.toHaveBeenCalled();
+
+        // Now advance time enough to trigger logout
+        act(() => {
+            jest.advanceTimersByTime(15000);
+        });
+
+        // Now logout should be called
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+        expect(window.location.reload).toHaveBeenCalled();
+    });
+
+    test('filters out invalid songs from favorites data', async () => {
+        const invalidFavorites = [
+            {
+                songId: '1',
+                title: 'Test Song 1',
+                artistName: 'Test Artist 1',
+                imageUrl: 'test-image-1.jpg',
+            },
+            null,
+            {},
+            { title: 'Invalid Song' } // Missing songId
+        ];
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: invalidFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+            // The invalid entries should be filtered out
+            expect(screen.queryByText('Invalid Song')).not.toBeInTheDocument();
+        });
+    });
+
+    test('does not allow invalid moves (beyond array bounds)', async () => {
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
+            );
+        });
+
 
         await waitFor(() => {
             expect(screen.getByText('Test Song 1')).toBeInTheDocument();
@@ -323,8 +814,11 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song1Li);
 
         // Try to move first song up (should do nothing)
-        const upButtons = screen.getAllByText('⬆️');
-        fireEvent.click(upButtons[0]);
+        const upButtons = screen.getAllByRole('button', { name: /Move up/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const upButton = upButtons[0];
+        fireEvent.click(upButton);
         expect(axios.post).not.toHaveBeenCalled();
 
         // Hover over second song so Down button appears
@@ -332,175 +826,141 @@ describe('Favorites Component', () => {
         fireEvent.mouseEnter(song2Li);
 
         // Try to move last song down (should do nothing)
-        const downButtons = screen.getAllByText('⬇️');
-        fireEvent.click(downButtons[0]);
+        const downButtons = screen.getAllByRole('button', { name: /Move down/i }).filter(
+            (button) => button.parentElement?.classList.contains('opacity-100')
+        );
+        const downButton = downButtons[0];
+        fireEvent.click(downButton);
         expect(axios.post).not.toHaveBeenCalled();
     });
+    it("shows action buttons on hover and hides them on mouse leave", async () => {
+        const mockUser = "testUser";
+        const mockSongs = [
+            {
+                songId: "1",
+                title: "HoverSong",
+                artistName: "Artist",
+                releaseDate: "2023-01-01",
+                imageUrl: "img.jpg",
+                rank: 1,
+            },
+        ];
 
-    test('handles swap ranks error', async () => {
-        console.error = jest.fn(); // Mock console.error
-        axios.post.mockRejectedValueOnce(new Error('Swap failed'));
+        // 1) privacy check  2) fetchFavorites
+        axios.get
+            .mockResolvedValueOnce({ data: false })
+            .mockResolvedValueOnce({ data: mockSongs });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        // Hover over first song so the down button appears
-        const song1Li = screen.getByText('Test Song 1').closest('li');
-        fireEvent.mouseEnter(song1Li);
-
-        const downButtons = screen.getAllByText('⬇️');
-        fireEvent.click(downButtons[0]);
-
-        await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith(
-                'Error swapping ranks:',
-                expect.any(Error)
+        await act(async () => {
+            render(
+                <BrowserRouter>
+                    <Favorites user={mockUser} />
+                </BrowserRouter>
             );
         });
-    });
 
-    test('handles null response data gracefully in fetchFavorites', async () => {
-        axios.get.mockResolvedValueOnce({ data: null });
 
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
+        // wait for our song to render
+        const songTitle = await screen.findByText("HoverSong");
+        const listItem = songTitle.closest("li");
 
+        const moveUpButtons = screen.getAllByLabelText("Move up");
+        const moveDownButtons = screen.getAllByLabelText("Move down");
+        const removeButtons = screen.getAllByLabelText("Remove");
+
+
+        // Before hover: no action buttons
+        const countVisible = (buttons) =>
+            buttons.filter((button) => button.parentElement?.classList.contains('opacity-100')).length;
+
+        // Before hover: none should be visible
+        expect(countVisible(moveUpButtons)).toBe(0);
+        expect(countVisible(moveDownButtons)).toBe(0);
+        expect(countVisible(removeButtons)).toBe(0);
+
+        // Hover
+        fireEvent.mouseEnter(listItem);
         await waitFor(() => {
-            expect(screen.getByText('No favorite songs yet.')).toBeInTheDocument();
-        });
-    });
-
-    test('redirects to home if user is not provided', () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={null} />
-            </BrowserRouter>
-        );
-
-        // Check that the Navigate component was rendered
-        const nav = screen.getByTestId('navigate');
-        expect(nav).toBeInTheDocument();
-        expect(nav).toHaveAttribute('data-to', '/');
-    });
-
-    test('handles remove from favorites error', async () => {
-        console.error = jest.fn(); // Mock console.error
-        axios.delete.mockRejectedValueOnce(new Error('Delete failed'));
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+            expect(countVisible(moveUpButtons)).toBe(1);
+            expect(countVisible(moveDownButtons)).toBe(1);
+            expect(countVisible(removeButtons)).toBe(1);
         });
 
-        // Hover over song 1 so the remove button appears
-        const song1Li = screen.getByText('Test Song 1').closest('li');
-        fireEvent.mouseEnter(song1Li);
+        // Mouse leave
+        fireEvent.mouseLeave(listItem);
 
-        const removeButtons = screen.getAllByText('❌');
-        fireEvent.click(removeButtons[0]);
-
-        const confirmRemove = screen.getAllByText('Yes, remove song');
-        fireEvent.click(confirmRemove[0]);
-
+        // After leave: none visible again
         await waitFor(() => {
-            expect(console.error).toHaveBeenCalledWith(
-                'Error removing from favorites:',
-                expect.any(Error)
-            );
+            expect(countVisible(moveUpButtons)).toBe(0);
+            expect(countVisible(moveDownButtons)).toBe(0);
+            expect(countVisible(removeButtons)).toBe(0);
         });
     });
-
-    test('handles remove cancellation', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        // Hover over song 1's <li> so the Remove button appears
-        const song1Li = screen.getByText('Test Song 1').closest('li');
-        fireEvent.mouseEnter(song1Li);
-
-        // Now the remove button is in the DOM
-        const removeButtons = screen.getAllByText('❌');
-        fireEvent.click(removeButtons[0]);
-
-        const declineRemove = screen.getAllByText('No');
-        fireEvent.click(declineRemove[0]);
-
-
-        expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-    });
-
-    test('filters out invalid songs from API response', async () => {
-        // API returns some invalid songs without songId
-        axios.get.mockResolvedValueOnce({
-            data: [
-                ...mockFavorites,
-                null,
-                { title: 'Invalid Song', artistName: 'No ID' },
-                { songId: '', title: 'Empty ID' }
-            ]
-        });
-
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getAllByText(/Test Song/)).toHaveLength(2);
-            expect(screen.queryByText('Invalid Song')).not.toBeInTheDocument();
-            expect(screen.queryByText('Empty ID')).not.toBeInTheDocument();
-        });
-    });
-
-    test('hides action buttons on mouse leave', async () => {
-        render(
-            <BrowserRouter>
-                <Favorites user={mockUser} />
-            </BrowserRouter>
-        );
-
-        // Wait for songs to load
-        await waitFor(() => {
-            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-        });
-
-        // Hover over the first song so the action buttons appear
-        const song1Li = screen.getByText('Test Song 1').closest('li');
-        fireEvent.mouseEnter(song1Li);
-
-        // Confirm the Remove button is now visible
-        expect(screen.queryByText('❌')).toBeInTheDocument();
-
-        // Trigger mouse leave
-        fireEvent.mouseLeave(song1Li);
-
-        // The Remove button should no longer be visible
-        await waitFor(() => {
-            expect(screen.queryByText('❌')).not.toBeInTheDocument();
-        });
-    });
-
 });
+
+describe("favorites page is keyboard navigable",() => {
+    test("everything tabbable, expand/collapse on enter", async() => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false }); // Default to public
+            } else if (url.includes('/api/favorites/')) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        const user = userEvent.setup();
+        const tabUntilLabel = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await user.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        render(
+            <BrowserRouter>
+                <Favorites user={mockUser} />
+            </BrowserRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // toggle privacy
+        await tabUntilLabel("Toggle Privacy");
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        await tabUntilLabel("Move up")
+        await user.tab();
+        // move second song up
+        await tabUntilLabel("Move up");
+        await user.keyboard("[Space]");
+        await waitFor(() => {
+            // moveFavorite causes fetchFavorites, so let's wait for any favorite to be in DOM
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+        // await new Promise((x) => setTimeout(x, 1000));
+
+        // expand top song
+        await tabUntilLabel("Favorite Song:")
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.getByText('Test Artist 1')).toBeInTheDocument();
+        });
+        // collapse
+        await user.keyboard("[Enter]");
+        await waitFor(() => {
+            expect(screen.queryByText('Test Artist 1')).not.toBeInTheDocument();
+        });
+    })
+})

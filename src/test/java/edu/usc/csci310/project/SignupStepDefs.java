@@ -44,7 +44,7 @@ public class SignupStepDefs {
 
     @Given("I am on the signup page")
     public void iAmOnTheSignupPage() {
-        driver.get("http://localhost:8080/");
+        driver.get("https://localhost:8080/");
 
         WebElement signupButton = driver.findElement(By.id("switchSignup"));
         signupButton.click();
@@ -193,7 +193,7 @@ public class SignupStepDefs {
             return el.isDisplayed() ? el : null;
         });
         String url = driver.getCurrentUrl();
-        assertEquals("http://localhost:8080/", url);
+        assertEquals("https://localhost:8080/", url);
         assertTrue(loginButton.isDisplayed());
 
     }

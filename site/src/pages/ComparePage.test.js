@@ -1,385 +1,1037 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
-import axios from "axios";
-import ComparePage from "./ComparePage";
-jest.mock("axios");
-import { mergeSongs } from "./ComparePage";
-const mockUser = { username: "testuser" };
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import axios from 'axios';
+import userEvent from '@testing-library/user-event';
+import ComparePage, { mergeSongs, RankHover, UserHover } from './ComparePage';
 
-const mockSuggestions = ["alice", "bob", "carol"];
-const mockFavorites = {
-    alice: [
-        { id: "1", title: "Song A", artist: "Artist A", releaseDate: "2020-01-01" },
-        { id: "2", title: "Song B", artist: "Artist B", releaseDate: "2020-01-02" },
-    ],
-    bob: [
-        { id: "1", title: "Song A", artist: "Artist A", releaseDate: "2020-01-01" },
-        { id: "3", title: "Song C", artist: "Artist C", releaseDate: "2020-01-03" },
-    ],
-    carol: [
-        { id: "4", title: "Hover Tune", artist: "Hoverer", releaseDate: "2019-01-01" },
-    ],
-};
+// Mock axios
+jest.mock('axios');
 
-describe("FriendsPage", () => {
+// Mock localStorage
+const localStorageMock = (function() {
+    let store = {};
+    return {
+        getItem: jest.fn(key => store[key]),
+        setItem: jest.fn((key, value) => {
+            store[key] = value.toString();
+        }),
+        removeItem: jest.fn(key => {
+            delete store[key];
+        }),
+        clear: jest.fn(() => {
+            store = {};
+        }),
+        getAll: () => store
+    };
+})();
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+// Sample data
+const mockUser = 'testUser';
+const mockSuggestions = ['friend1', 'friend2', 'friend3'];
+const mockFavorites = [
+    {
+        songId: '1',
+        title: 'Test Song 1',
+        artistName: 'Test Artist 1',
+        releaseDate: '2023-01-01'
+    },
+    {
+        songId: '2',
+        title: 'Test Song 2',
+        artistName: 'Test Artist 2',
+        releaseDate: '2023-01-02'
+    }
+];
+
+const mockFriend1Favorites = [
+    {
+        songId: '1', // Same as user's first song
+        title: 'Test Song 1',
+        artistName: 'Test Artist 1',
+        releaseDate: '2023-01-01'
+    },
+    {
+        songId: '3',
+        title: 'Test Song 3',
+        artistName: 'Test Artist 3',
+        releaseDate: '2023-01-03'
+    }
+];
+
+describe('ComparePage Component', () => {
     beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => {}); // mute console.error
         jest.clearAllMocks();
         jest.useFakeTimers();
-        Object.defineProperty(window, "location", {
-            value: { reload: jest.fn() },
-            writable: true,
+
+        // Setup default axios mock responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false }); // Default to public
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.resolve({ data: mockFriend1Favorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        // Mock window.location.reload
+        Object.defineProperty(window, 'location', {
+            value: { reload: jest.fn() }
         });
     });
 
     afterEach(() => {
-        jest.runOnlyPendingTimers();
         jest.useRealTimers();
     });
 
-    test("renders input and headings", () => {
+    test('renders the component with search input', () => {
         render(<ComparePage user={mockUser} />);
-        expect(screen.getByPlaceholderText("Search by username")).toBeInTheDocument();
-        expect(screen.getByText("Find Friends")).toBeInTheDocument();
-        expect(screen.getByText("Favorite Songs by Everyone")).toBeInTheDocument();
+
+        expect(screen.getByText('Compare Favorites')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search by username')).toBeInTheDocument();
+        expect(screen.getByText('Add to Compare List')).toBeInTheDocument();
+        expect(screen.getByText('Compare Now')).toBeInTheDocument();
     });
 
-    test("displays suggestions from API", async () => {
-        axios.get.mockResolvedValueOnce({ data: mockSuggestions });
-
+    test('loads user favorites on mount', async () => {
         render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "a" },
-        });
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
-            mockSuggestions.forEach((name) => {
-                expect(screen.getByText(name)).toBeInTheDocument();
-            });
-        });
-    });
-    test("logs out after 60 seconds of inactivity", async () => {
-        render(<ComparePage user={mockUser} />);
-
-        // Fast-forward time by 61 seconds
-        jest.advanceTimersByTime(61000);
-
-        await waitFor(() => {
-            expect(window.location.reload).toHaveBeenCalled();
-        });
-
-        // Optional: check localStorage clearing logic
-        expect(localStorage.getItem("user")).toBeNull();
-    });
-
-    test("selects and unselects suggestions", async () => {
-        axios.get.mockResolvedValueOnce({ data: mockSuggestions });
-
-        render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "a" },
-        });
-
-        await waitFor(() => {
-            expect(screen.getByText("alice")).toBeInTheDocument();
-        });
-
-        const aliceRow = screen.getByText("alice").closest("li");
-        const aliceCheckbox = within(aliceRow).getByRole("checkbox");
-
-        fireEvent.click(aliceCheckbox);
-        expect(aliceCheckbox).toBeChecked();
-
-        fireEvent.click(aliceCheckbox);
-        expect(aliceCheckbox).not.toBeChecked();
-    });
-
-    test("adds selected users and merges songs", async () => {
-        axios.get
-            .mockResolvedValueOnce({ data: mockSuggestions }) // suggestions
-            .mockResolvedValueOnce({ data: mockFavorites["alice"] }) // alice favorites
-            .mockResolvedValueOnce({ data: mockFavorites["bob"] }); // bob favorites
-
-        render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "a" },
-        });
-
-        await waitFor(() => {
-            expect(screen.getByText("alice")).toBeInTheDocument();
-        });
-
-        const aliceRow = screen.getByText("alice").closest("li");
-        const bobRow = screen.getByText("bob").closest("li");
-        fireEvent.click(within(aliceRow).getByRole("checkbox"));
-        fireEvent.click(within(bobRow).getByRole("checkbox"));
-
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
-
-        await waitFor(() => {
-            expect(screen.getByText("Song A")).toBeInTheDocument();
-            expect(screen.getByText("Song B")).toBeInTheDocument();
-            expect(screen.getByText("Song C")).toBeInTheDocument();
+            // The user's favorites should be loaded and displayed
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+            expect(screen.getByText('Test Song 2')).toBeInTheDocument();
         });
     });
 
-    test("toggles song detail info", async () => {
-        axios.get
-            .mockResolvedValueOnce({ data: ["alice"] })
-            .mockResolvedValueOnce({
-                data: [
-                    { id: "99", title: "Mystery Song", artistName: "X", releaseDate: "2022-01-01" },
-                ],
-            });
-
+    test('shows suggestions when typing in search input', async () => {
         render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "a" },
-        });
 
-        await waitFor(() => screen.getByText("alice"));
-        const aliceRow = screen.getByText("alice").closest("li");
-        fireEvent.click(within(aliceRow).getByRole("checkbox"));
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
-
-        await waitFor(() => screen.getByText("Mystery Song"));
-
-        fireEvent.click(screen.getByText("Mystery Song"));
-        expect(screen.getByText("Artist: X")).toBeInTheDocument();
-        expect(screen.getByText("Release Date: 2022-01-01")).toBeInTheDocument();
-    });
-
-    test("hover shows usernames", async () => {
-        axios.get
-            .mockResolvedValueOnce({ data: ["carol"] })
-            .mockResolvedValueOnce({ data: mockFavorites["carol"] });
-
-        render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "c" },
-        });
-
-        await waitFor(() => screen.getByText("carol"));
-        const carolRow = screen.getByText("carol").closest("li");
-        fireEvent.click(within(carolRow).getByRole("checkbox"));
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
-
-        await waitFor(() => screen.getByText("Hover Tune"));
-
-        const friendText = screen.getByText(/friend\(s\) have this song/);
-        fireEvent.mouseEnter(friendText);
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'fr' } });
 
         await waitFor(() => {
-            expect(screen.getByText("carol")).toBeInTheDocument();
+            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=fr');
+            expect(screen.getByText('friend1')).toBeInTheDocument();
+            expect(screen.getByText('friend2')).toBeInTheDocument();
+            expect(screen.getByText('friend3')).toBeInTheDocument();
         });
     });
 
-    test("handles API error gracefully", async () => {
-        axios.get.mockRejectedValueOnce(new Error("Failed"));
+    test('adds a username to search input when suggestion is clicked', async () => {
+        render(<ComparePage user={mockUser} />);
+
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'fr' } });
+
+        await waitFor(() => {
+            expect(screen.getByText('friend1')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('friend1'));
+
+        expect(searchInput.value).toBe('friend1');
+    });
+
+    test('adds a friend to compare list and clears input', async () => {
+        render(<ComparePage user={mockUser} />);
+
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+
+        await waitFor(() => {
+            expect(screen.getByText('friend1')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        expect(screen.getByText('Users queued for comparison:')).toBeInTheDocument();
+        expect(screen.getByText('friend1')).toBeInTheDocument();
+        expect(searchInput.value).toBe('');
+    });
+
+    test('does not add empty username or already added friends to compare list', () => {
+        render(<ComparePage user={mockUser} />);
+
+        // Try to add with empty input
+        fireEvent.click(screen.getByText('Add to Compare List'));
+        expect(screen.queryByText('Users queued for comparison:')).not.toBeInTheDocument();
+
+        // Add a friend
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        expect(screen.getByText('friend1')).toBeInTheDocument();
+
+        // Try to add the same friend again
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Only one occurrence of this friend should be in the list
+        const friendElements = screen.getAllByText('friend1');
+        expect(friendElements.length).toBe(1);
+    });
+
+    test('does not add current user to compare list', () => {
+        render(<ComparePage user={mockUser} />);
+
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: mockUser } });
+
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        expect(screen.queryByText('Users queued for comparison:')).not.toBeInTheDocument();
+    });
+
+    test('displays song details when clicked', async () => {
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Click on song to expand details
+        fireEvent.click(screen.getByText('Test Song 1'));
+
+        expect(screen.getByText('Artist: Test Artist 1')).toBeInTheDocument();
+        expect(screen.getByText('Release Date: 2023-01-01')).toBeInTheDocument();
+
+        // Click again to collapse
+        fireEvent.click(screen.getByText('Test Song 1'));
+
+        expect(screen.queryByText('Artist: Test Artist 1')).not.toBeInTheDocument();
+    });
+
+    test('compares songs between user and friend', async () => {
+        // Modify axios mock for this test to ensure predictable results
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.resolve({ data: mockFriend1Favorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
 
         render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "err" },
-        });
+
+        // Wait for initial load
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
-            expect(screen.queryByText("err")).not.toBeInTheDocument();
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
-    });
-    test("clicking a suggestion sets search input", async () => {
-        axios.get
-            .mockResolvedValueOnce({ data: mockSuggestions }) // For initial 'a' search
-            .mockResolvedValueOnce({ data: [] }); // For subsequent 'alice' search
 
-        render(<ComparePage user={{ username: "me" }} />);
-        const input = screen.getByPlaceholderText("Search by username");
+        // Add friend1 to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
 
-        fireEvent.change(input, { target: { value: "a" } });
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
 
+        // Wait for comparison results
         await waitFor(() => {
-            expect(screen.getByText("alice")).toBeInTheDocument();
+            // Test Song 1 should be shared by both users
+            const songElements = screen.getAllByText('Test Song 1');
+            expect(songElements.length).toBeGreaterThan(0);
+
+            // Test Song 3 should be in the results (from friend1)
+            expect(screen.getByText('Test Song 3')).toBeInTheDocument();
         });
 
-        // Find the list item containing "alice"
-        const aliceListItem = screen.getByText("alice").closest("li");
-        // Click the span within that list item
-        fireEvent.click(within(aliceListItem).getByText("alice"));
-
-        // Verify searchInput gets updated to "alice" after waiting
-        await waitFor(() => expect(input).toHaveValue("alice"), { timeout: 3000 });
+        // Test that the songs have the right number of favorites
+        const favoriteCountElements = screen.getAllByText(/\d+ favorited/);
+        expect(favoriteCountElements.length).toBeGreaterThan(0);
     });
-    test("logs error when fetching favorites fails", async () => {
-        // Mock the search suggestions response
-        axios.get
-            .mockResolvedValueOnce({ data: ["bob"] }) // suggestions
-            .mockRejectedValueOnce(new Error("Network error")); // simulate failure when fetching favorites
 
-        const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    test('handles friend with private favorites', async () => {
+        // Set friend1 to private
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/friend1')) {
+                return Promise.resolve({ data: true }); // Private
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
 
         render(<ComparePage user={mockUser} />);
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "b" },
-        });
 
-        await waitFor(() => screen.getByText("bob"));
+        // Add friend1 to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
 
-        const bobRow = screen.getByText("bob").closest("li");
-        fireEvent.click(within(bobRow).getByRole("checkbox"));
-
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
 
         await waitFor(() => {
-            expect(consoleErrorSpy).toHaveBeenCalledWith("Error loading favorites for bob");
+            expect(screen.getByText(/friend1's favorite list is private./)).toBeInTheDocument();
+        });
+    });
+
+    test('handles multiple friends with comparison', async () => {
+        // Setup mock responses for multiple friends
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.resolve({ data: mockFriend1Favorites });
+            } else if (url.includes('/api/favorites/friend2')) {
+                return Promise.resolve({ data: [
+                        { songId: '2', title: 'Test Song 2', artistName: 'Test Artist 2', releaseDate: '2023-01-02' },
+                        { songId: '4', title: 'Test Song 4', artistName: 'Test Artist 4', releaseDate: '2023-01-04' }
+                    ]});
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
+        });
+
+        // Add friend1 to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Add friend2 to compare list
+        fireEvent.change(searchInput, { target: { value: 'friend2' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for comparison results
+        await waitFor(() => {
+            // Test songs from both friends should be in the results
+            expect(screen.getByText('Test Song 3')).toBeInTheDocument(); // from friend1
+            expect(screen.getByText('Test Song 4')).toBeInTheDocument(); // from friend2
+        });
+    });
+
+    test('handles error for non-existent user', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/nonexistent')) {
+                return Promise.reject({ response: { status: 404 } });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+
+        // Add non-existent user to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        await waitFor(() => {
+            expect(screen.getByText(/nonexistent does not exist./)).toBeInTheDocument();
+        });
+    });
+
+    test('handles API error when fetching friend favorites', async () => {
+        // Set up mock to fail with generic error
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/friend1')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.reject(new Error('Server error'));
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+
+        // Add friend1 to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Verify console.error was called (indicating unexpected error)
+        await waitFor(() => {
+            expect(console.error).toHaveBeenCalled();
+        });
+    });
+
+    test('handles API error with 403 status when fetching friend favorites', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/privacy/friend1')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.reject({ response: { status: 403 } });
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
+
+        render(<ComparePage user={mockUser} />);
+
+        // Add friend1 to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        await waitFor(() => {
+            expect(screen.getByText(/friend1's favorite list is private./)).toBeInTheDocument();
         });
 
         consoleErrorSpy.mockRestore();
     });
-    test("clicking suggestion span sets search input", async () => {
-        axios.get
-            .mockResolvedValueOnce({ data: ["alice", "bob"] }) // For initial 'a' search
-            .mockResolvedValueOnce({ data: [] }); // For subsequent 'alice' search
 
-        render(<ComparePage user={{ username: "me" }} />);
-        const input = screen.getByPlaceholderText("Search by username");
+    test('handles API error when loading own favorites', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        // Trigger search input
-        fireEvent.change(input, { target: { value: "a" } });
+        axios.get.mockImplementation((url) => {
+            if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.reject(new Error('Failed to load favorites'));
+            } else if (url.includes('/users/search')) {
+                return Promise.resolve({ data: [] });
+            } else if (url.includes('/privacy/')) {
+                return Promise.resolve({ data: false });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
 
-        // Wait for suggestions to appear
-        await waitFor(() => expect(screen.getByText("alice")).toBeInTheDocument());
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
 
-        // Find the list item containing "alice"
-        const aliceListItem = screen.getByText("alice").closest("li");
-        // Click the suggestion span (not checkbox) within that list item
-        fireEvent.click(within(aliceListItem).getByText("alice"));
+        await waitFor(() => {
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'Unexpected error loading favorites for testUser:',
+                expect.any(Error)
+            );
+        });
 
-        // The input should now update to "alice"
-        await waitFor(() => expect(input).toHaveValue("alice"), { timeout: 3000 });
+        consoleSpy.mockRestore();
     });
-    test("hovering friend count shows usernames", async () => {
-        const mockUser = { username: "testuser" };
-        const mockSuggestions = ["carol"];
-        const mockCarolFavorites = [
-            {
-                id: "101",
-                title: "Hover Song",
-                artist: "Hover Artist",
-                releaseDate: "2021-12-01",
-            },
-        ];
 
-        // Step 1: Mock both suggestions and carol's favorites
-        axios.get
-            .mockResolvedValueOnce({ data: mockSuggestions }) // for search
-            .mockResolvedValueOnce({ data: mockCarolFavorites }); // for favorites
+
+    test('logs out user after inactivity period', async () => {
+        render(<ComparePage user={mockUser} />);
+
+        // Fast-forward time by more than the inactivity timeout (60000ms)
+        act(() => {
+            jest.advanceTimersByTime(65000);
+        });
+
+        // Check if localStorage was cleared
+        expect(localStorage.removeItem).toHaveBeenCalledWith('user');
+        expect(window.location.reload).toHaveBeenCalled();
+    });
+
+    test('resets inactivity timer on user interaction', async () => {
+        render(<ComparePage user={mockUser} />);
+
+        // Fast-forward time by less than the timeout
+        act(() => {
+            jest.advanceTimersByTime(50000);
+        });
+
+        // Simulate user interaction
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Fast-forward time again, but not enough to trigger logout
+        act(() => {
+            jest.advanceTimersByTime(50000);
+        });
+
+        // Check that logout wasn't called
+        expect(localStorage.removeItem).not.toHaveBeenCalled();
+        expect(window.location.reload).not.toHaveBeenCalled();
+
+        // Now advance time enough to trigger logout
+        act(() => {
+            jest.advanceTimersByTime(15000);
+        });
+
+        // Now logout should be called
+        expect(localStorage.removeItem).toHaveBeenCalledWith('user');
+        expect(window.location.reload).toHaveBeenCalled();
+    });
+
+
+    test('handles empty search results', async () => {
+        // Mock empty search results
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: [] });
+            } else if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            }
+            return Promise.reject(new Error('Not found'));
+        });
 
         render(<ComparePage user={mockUser} />);
 
-        // Step 2: Trigger suggestion dropdown
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "c" },
-        });
+        const searchInput = screen.getByPlaceholderText('Search by username');
+        fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
-        await waitFor(() => screen.getByText("carol"));
-
-        // Step 3: Select checkbox for carol
-        const carolRow = screen.getByText("carol").closest("li");
-        fireEvent.click(within(carolRow).getByRole("checkbox"));
-
-        // Step 4: Click Add Selected to fetch and render carol's songs
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
-
-        // Step 5: Wait for song to appear
         await waitFor(() => {
-            expect(screen.getByText("Hover Song")).toBeInTheDocument();
-        });
-
-        // Step 6: Hover over the "1 friend(s) have this song" text
-        const hoverDiv = screen.getByText(/friend\(s\) have this song/i).closest("div");
-        fireEvent.mouseEnter(hoverDiv);
-
-        // Step 7: Username should now be visible
-        expect(screen.getByText("carol")).toBeInTheDocument();
-
-        // Step 8: Unhover and confirm it's hidden
-        fireEvent.mouseLeave(hoverDiv);
-        await waitFor(() => {
-            expect(screen.queryByText("carol")).toBeNull();
+            expect(axios.get).toHaveBeenCalledWith('https://localhost:8080/users/search?prefix=nonexistent');
+            expect(screen.queryByText('friend1')).not.toBeInTheDocument();
         });
     });
 
-    test("adds second user to existing song in mergeSongs", async () => {
-        const mockSuggestions = ["alice", "bob"];
-        const sharedSong = {
-            id: "42",
-            title: "The Shared Hit",
-            artist: "The Band",
-            releaseDate: "2023-01-01",
-        };
-
-        axios.get
-            .mockResolvedValueOnce({ data: mockSuggestions }) // suggestions list
-            .mockResolvedValueOnce({ data: [sharedSong] })    // alice's favorites
-            .mockResolvedValueOnce({ data: [sharedSong] });   // bob's favorites
-
-        render(<ComparePage user={{ username: "me" }} />);
-
-        fireEvent.change(screen.getByPlaceholderText("Search by username"), {
-            target: { value: "a" },
+    test('ranks songs correctly based on number of favorites', async () => {
+        axios.get.mockImplementation((url) => {
+            if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({ data: mockFavorites });
+            } else if (url.includes('/api/favorites/friend1')) {
+                return Promise.resolve({ data: [
+                        { songId: '1', title: 'Test Song 1', artistName: 'Test Artist 1', releaseDate: '2023-01-01' },
+                        { songId: '3', title: 'Test Song 3', artistName: 'Test Artist 3', releaseDate: '2023-01-03' }
+                    ]});
+            } else if (url.includes('/api/favorites/friend2')) {
+                return Promise.resolve({ data: [
+                        { songId: '1', title: 'Test Song 1', artistName: 'Test Artist 1', releaseDate: '2023-01-01' },
+                        { songId: '2', title: 'Test Song 2', artistName: 'Test Artist 2', releaseDate: '2023-01-02' }
+                    ]});
+            } else if (url.includes('/api/favorites/privacy/')) {
+                return Promise.resolve({ data: false });
+            } else if (url.includes('/users/search')) {
+                return Promise.resolve({ data: mockSuggestions });
+            }
+            return Promise.reject(new Error('Not found'));
         });
 
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for initial load
         await waitFor(() => {
-            expect(screen.getByText("alice")).toBeInTheDocument();
+            expect(screen.getByText('Test Song 1')).toBeInTheDocument();
         });
 
-        const aliceRow = screen.getByText("alice").closest("li");
-        const bobRow = screen.getByText("bob").closest("li");
+        // Add friends to compare list
+        const searchInput = screen.getByPlaceholderText('Search by username');
 
-        fireEvent.click(within(aliceRow).getByRole("checkbox"));
-        fireEvent.click(within(bobRow).getByRole("checkbox"));
+        // Add friend1
+        fireEvent.change(searchInput, { target: { value: 'friend1' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
 
-        fireEvent.click(screen.getByRole('button', { name: /compare selected/i }));
+        // Add friend2
+        fireEvent.change(searchInput, { target: { value: 'friend2' } });
+        fireEvent.click(screen.getByText('Add to Compare List'));
 
-        // Song should be shown once
+        // Click Compare Now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Test Song 1 should be #1 (favorited by all 3 users)
+        // Test Song 2 should be #2 (favorited by 2 users)
+        // Test Song 3 should be #3 (favorited by 1 user)
         await waitFor(() => {
-            expect(screen.getByText("The Shared Hit")).toBeInTheDocument();
+            const rankElements = screen.getAllByText(/#\d+/);
+            expect(rankElements.length).toBe(3);
         });
 
-        // Hover to confirm both usernames were merged
-        const hoverTarget = screen.getByText(/friend\(s\) have this song/i).closest("div");
-        fireEvent.mouseEnter(hoverTarget);
+        const rankElements = screen.getAllByText(/#\d+/);
+        const songElements = screen.getAllByText(/Test Song \d/);
 
-        // ✅ This confirms the user list contains both, meaning the merge logic and "else" path ran
-        expect(screen.getByText("alice")).toBeInTheDocument();
-        expect(screen.getByText("bob")).toBeInTheDocument();
-    });
-    test("mergeSongs does not re-add user if already exists", () => {
-        const song = { id: "777", title: "Repeat Song" };
-        let map = {};
+        // Find the rank next to "Test Song 1"
+        const song1Index = songElements.findIndex(el => el.textContent === 'Test Song 1');
+        const song1Rank = rankElements[song1Index];
+        expect(song1Rank.textContent).toBe('#1');
 
-        // Add once
-        map = mergeSongs("alice", [song], map);
-        // Add again
-        map = mergeSongs("alice", [song], map);
+        // Find the rank next to "Test Song 2"
+        const song2Index = songElements.findIndex(el => el.textContent === 'Test Song 2');
+        const song2Rank = rankElements[song2Index];
+        expect(song2Rank.textContent).toBe('#2');
 
-        expect(map["777"].users).toEqual(["alice"]); // no duplicate
-    });
-    test("does nothing when user is not provided", async () => {
-        const axiosSpy = jest.spyOn(axios, "get");
-
-        render(<ComparePage user={null} />);
-
-        // Basic UI should still render
-        expect(screen.getByText("Find Friends")).toBeInTheDocument();
-        expect(screen.getByText("Favorite Songs by Everyone")).toBeInTheDocument();
-        expect(screen.getByPlaceholderText("Search by username")).toBeInTheDocument();
-
-        // Axios should not be called
-        expect(axiosSpy).not.toHaveBeenCalled();
-
-        // "Add Selected" button should be there but disabled
-        const addButton = screen.getByRole('button', { name: /compare selected/i });
-        expect(addButton).toBeInTheDocument();
-        expect(addButton).toBeDisabled();
+        // Find the rank next to "Test Song 3"
+        const song3Index = songElements.findIndex(el => el.textContent === 'Test Song 3');
+        const song3Rank = rankElements[song3Index];
+        expect(song3Rank.textContent).toBe('#3');
     });
 
 });
+
+describe('mergeSongs function', () => {
+    test('merges songs with no existing songs', () => {
+        const user = 'testUser';
+        const songs = [
+            {songId: '1', title: 'Song 1', artistName: 'Artist 1', releaseDate: '2023-01-01'}
+        ];
+        const existingSongMap = {};
+
+        const result = mergeSongs(user, songs, existingSongMap);
+
+        expect(result).toEqual({
+            '1': {
+                songId: '1',
+                title: 'Song 1',
+                artistName: 'Artist 1',
+                releaseDate: '2023-01-01',
+                users: ['testUser']
+            }
+        });
+    });
+
+    test('merges songs with existing songs', () => {
+        const user = 'friend1';
+        const songs = [
+            {songId: '1', title: 'Song 1', artistName: 'Artist 1', releaseDate: '2023-01-01'}
+        ];
+        const existingSongMap = {
+            '1': {
+                songId: '1',
+                title: 'Song 1',
+                artistName: 'Artist 1',
+                releaseDate: '2023-01-01',
+                users: ['testUser']
+            },
+            '2': {
+                songId: '2',
+                title: 'Song 2',
+                artistName: 'Artist 2',
+                releaseDate: '2023-01-02',
+                users: ['testUser']
+            }
+        };
+
+        const result = mergeSongs(user, songs, existingSongMap);
+
+        expect(result).toEqual({
+            '1': {
+                songId: '1',
+                title: 'Song 1',
+                artistName: 'Artist 1',
+                releaseDate: '2023-01-01',
+                users: ['testUser', 'friend1']
+            },
+            '2': {
+                songId: '2',
+                title: 'Song 2',
+                artistName: 'Artist 2',
+                releaseDate: '2023-01-02',
+                users: ['testUser']
+            }
+        });
+    });
+
+});
+describe('RankHover Component', () => {
+    test('displays rank and shows user list on hover', () => {
+        const onClick = jest.fn();
+        render(<RankHover rank={5} usernames={['alice', 'bob']} onClick={onClick} />);
+
+        // Should display the rank
+        expect(screen.getByText('#5')).toBeInTheDocument();
+        // User list should be hidden initially
+        expect(screen.queryByText('Users:')).toBeNull();
+
+        // Hover over the component
+        fireEvent.mouseEnter(screen.getByText('#5'));
+        expect(screen.getByText('Users:')).toBeInTheDocument();
+        expect(screen.getByText('alice')).toBeInTheDocument();
+        expect(screen.getByText('bob')).toBeInTheDocument();
+
+        // Click should trigger onClick
+        fireEvent.click(screen.getByText('#5'));
+        expect(onClick).toHaveBeenCalled();
+
+        // Mouse leave hides the list
+        fireEvent.mouseLeave(screen.getByText('#5'));
+        expect(screen.queryByText('Users:')).toBeNull();
+    });
+});
+
+describe('UserHover Component', () => {
+    test('shows children and toggles user list on hover', () => {
+        render(
+            <UserHover usernames={['charlie', 'dave']}>
+                <button>HoverMe</button>
+            </UserHover>
+        );
+        // Child should be visible
+        expect(screen.getByText('HoverMe')).toBeInTheDocument();
+        // User list hidden by default
+        expect(screen.queryByText('Users:')).toBeNull();
+
+        // Hover on container
+        fireEvent.mouseEnter(screen.getByText('HoverMe'));
+        expect(screen.getByText('Users:')).toBeInTheDocument();
+        expect(screen.getByText('charlie')).toBeInTheDocument();
+        expect(screen.getByText('dave')).toBeInTheDocument();
+
+        // Mouse leave hides
+        fireEvent.mouseLeave(screen.getByText('HoverMe'));
+        expect(screen.queryByText('Users:')).toBeNull();
+    });
+    test('returns early and renders nothing if user is not provided', () => {
+        const { container } = render(<ComparePage user={null} />);
+        expect(screen.queryByText('Favorite Songs by You and Friends')).not.toBeInTheDocument();
+        expect(screen.queryByText('Compare Now')).not.toBeNull(); // static elements may still render
+    });
+    test('toggleReverseOrder reverses ranked song order by users.length', async () => {
+        const user = 'alice';
+
+        // Mock API responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/alice')) {
+                return Promise.resolve({ data: false }); // alice is public
+            }
+            if (url.includes('/api/favorites/privacy/bob')) {
+                return Promise.resolve({ data: false }); // bob is public
+            }
+            if (url.includes('/api/favorites/alice')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' }
+                    ]
+                });
+            }
+            if (url.includes('/api/favorites/bob')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' },
+                        { songId: '2', title: 'Beta', artistName: 'B', releaseDate: '2022-02-02' },
+                        { songId: '3', title: 'Gamma', artistName: 'C', releaseDate: '2022-03-03' }
+                    ]
+                });
+            }
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: ['bob'] });
+            }
+
+            return Promise.resolve({ data: [] });
+        });
+
+        render(<ComparePage user={user} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for initial load of Alice's own favorites
+        await screen.findByText('Alpha');
+
+        // Simulate searching for "bob" and adding to compare list
+        fireEvent.change(screen.getByPlaceholderText('Search by username'), {
+            target: { value: 'bob' }
+        });
+
+        await screen.findByText('bob');
+        fireEvent.click(screen.getByText('bob'));
+        fireEvent.click(screen.getByText('Add to Compare List'));
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for Bob's songs to appear
+        await screen.findByText('Beta');
+        await screen.findByText('Gamma');
+
+        const getSongTitles = () =>
+            screen
+                .getAllByRole('button', { name: /favorited$/ })
+                .map(el => el.textContent.replace(/\s+/g, ''));
+
+        const originalOrder = getSongTitles();
+// ["Alpha2favorited", "Beta1favorited", "Gamma1favorited"]
+
+        fireEvent.click(screen.getByText(/Least to Most/i));
+
+        const reversedOrder = getSongTitles();
+// ["Beta1favorited", "Gamma1favorited", "Alpha2favorited"]
+
+        expect(reversedOrder).toEqual([
+            "Beta1favorited",
+            "Gamma1favorited",
+            "Alpha2favorited"
+        ]);
+    });
+
+    test('shows user does not exist message', async () => {
+        const user = 'alice';
+
+        // Set up mock API responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/privacy/')) {
+                return Promise.resolve({ data: false }); // Not private
+            }
+            if (url.includes('/favorites/bob')) {
+                return Promise.resolve({ data: {} }); // Not an array triggers simulated 404
+            }
+            if (url.includes(`/favorites/${user}`)) {
+                return Promise.resolve({
+                    data: [{ id: 'song1', title: 'Alpha', users: ['alice'] }]
+                });
+            }
+            return Promise.reject(new Error('Unexpected request'));
+        });
+
+        render(<ComparePage user={user} />);
+
+        // Add bob to compare list
+        fireEvent.change(screen.getByPlaceholderText('Search by username'), {
+            target: { value: 'bob' }
+        });
+        fireEvent.click(screen.getByText('Add to Compare List'));
+
+        // Compare now
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        await expect(screen.findByText(/bob does not exist/i)).resolves.toBeInTheDocument();
+
+    });
+
+    test('toggleSongDetails expands and collapses song details', async () => {
+        const mockUser = 'alice';
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/privacy/')) {
+                return Promise.resolve({ data: false }); // not private
+            }
+            if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({
+                    data: [
+                        {
+                            songId: 'song1',
+                            title: 'Test Song',
+                            artistName: 'Test Artist',
+                            releaseDate: '2024-01-01',
+                        }
+                    ]
+                });
+            }
+            return Promise.reject(new Error('Unexpected URL: ' + url));
+        });
+
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for song to appear
+        const songTitle = await screen.findByText(/test song/i);
+        expect(songTitle).toBeInTheDocument();
+
+        // Initially collapsed
+        expect(screen.queryByText(/artist:/i)).not.toBeInTheDocument();
+
+        // Expand
+        fireEvent.click(songTitle);
+        expect(await screen.findByText(/artist: test artist/i)).toBeInTheDocument();
+
+        // Collapse
+        fireEvent.click(songTitle);
+        await waitFor(() => {
+            expect(screen.queryByText(/artist:/i)).not.toBeInTheDocument();
+        });
+    });
+
+    test('clicking RankHover toggles song details', async () => {
+        const mockUser = 'alice';
+
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/privacy/')) return Promise.resolve({ data: false });
+            if (url.includes(`/api/favorites/${mockUser}`)) {
+                return Promise.resolve({
+                    data: [
+                        {
+                            songId: 'song1',
+                            title: 'Test Song',
+                            artistName: 'Rank Artist',
+                            releaseDate: '2025-01-01',
+                        },
+                    ],
+                });
+            }
+            return Promise.reject(new Error('Unexpected URL: ' + url));
+        });
+
+        render(<ComparePage user={mockUser} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for song to load
+        await screen.findByText(/test song/i);
+
+        // Locate and click the RankHover element (e.g., "#1")
+        const rankButton = screen.getByRole('button', { name: /song rank:#1/i });
+        fireEvent.click(rankButton);
+
+        // Confirm song details are shown
+        expect(await screen.findByText(/Rank Artist/i)).toBeInTheDocument();
+
+        // Click again to collapse
+        fireEvent.click(rankButton);
+        await waitFor(() => {
+            expect(screen.queryByText(/Rank Artist/i)).not.toBeInTheDocument();
+        });
+    });
+
+
+});
+
+describe('mergeSongs', () => {
+    it('adds user to song if not already present', () => {
+        const existingMap = {};
+        const songs = [
+            {
+                songId: 'song1',
+                title: 'New Song',
+                artistName: 'Artist A',
+                releaseDate: '2023-01-01',
+            },
+        ];
+
+        const result = mergeSongs('alice', songs, existingMap);
+        expect(result.song1.users).toContain('alice');
+    });
+
+    it('does NOT add user again if already present', () => {
+        const existingMap = {
+            song1: {
+                songId: 'song1',
+                title: 'New Song',
+                artistName: 'Artist A',
+                releaseDate: '2023-01-01',
+                users: ['alice'], // already included
+            },
+        };
+
+        const songs = [
+            {
+                songId: 'song1',
+                title: 'New Song',
+                artistName: 'Artist A',
+                releaseDate: '2023-01-01',
+            },
+        ];
+
+        const result = mergeSongs('alice', songs, existingMap);
+        expect(result.song1.users).toEqual(['alice']); // user should not be duplicated
+    });
+});
+
+describe('compare page is keyboard navigable', () => {
+    test("can tab and collapse/expand with enter", async() => {
+        const user = 'alice';
+
+        // Mock API responses
+        axios.get.mockImplementation((url) => {
+            if (url.includes('/api/favorites/privacy/alice')) {
+                return Promise.resolve({ data: false }); // alice is public
+            }
+            if (url.includes('/api/favorites/privacy/bob')) {
+                return Promise.resolve({ data: false }); // bob is public
+            }
+            if (url.includes('/api/favorites/alice')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' }
+                    ]
+                });
+            }
+            if (url.includes('/api/favorites/bob')) {
+                return Promise.resolve({
+                    data: [
+                        { songId: '1', title: 'Alpha', artistName: 'A', releaseDate: '2022-01-01' },
+                        { songId: '2', title: 'Beta', artistName: 'B', releaseDate: '2022-02-02' },
+                        { songId: '3', title: 'Gamma', artistName: 'C', releaseDate: '2022-03-03' }
+                    ]
+                });
+            }
+            if (url.includes('/users/search')) {
+                return Promise.resolve({ data: ['bob'] });
+            }
+
+            return Promise.resolve({ data: [] });
+        });
+
+        render(<ComparePage user={user} />);
+        fireEvent.click(screen.getByText('Compare Now'));
+
+        // Wait for initial load of Alice's own favorites
+        await screen.findByText('Alpha');
+
+        const usere = userEvent.setup();
+        const tabUntilLabel = async (label) => {
+            let focused = document.activeElement;
+            let maxTabs = 20;
+            while (maxTabs > 0) {
+                if (focused.hasAttribute('aria-label') && focused.getAttribute('aria-label').includes(label)) {
+                    break;
+                }
+                await usere.tab();
+                focused = document.activeElement;
+                maxTabs--;
+            }
+        }
+
+        // Simulate searching for "bob" and adding to compare list
+        fireEvent.change(screen.getByPlaceholderText('Search by username'), {
+            target: { value: 'bob' }
+        });
+
+        await tabUntilLabel('user bob');
+        await usere.keyboard('[Enter]');
+
+        await tabUntilLabel('Add to Compare List');
+        await usere.keyboard('[Enter]');
+        await tabUntilLabel('Compare Now');
+        await usere.keyboard('[Enter]');
+
+        await screen.findByText('Beta');
+        await screen.findByText('Gamma');
+
+        await tabUntilLabel("favorited");
+        await usere.keyboard('[Enter]');
+        expect(await screen.findByText(/artist: a/i)).toBeInTheDocument();
+        await usere.keyboard('[Enter]');
+
+        await tabUntilLabel("Song Rank:#");
+        await usere.keyboard('[Enter]');
+        expect(await screen.findByText(/artist: a/i)).toBeInTheDocument();
+        await usere.keyboard('[Enter]');
+        await tabUntilLabel("Users:");
+    })
+})

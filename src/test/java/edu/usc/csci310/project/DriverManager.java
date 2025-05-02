@@ -1,12 +1,16 @@
 package edu.usc.csci310.project;
 
+import edu.usc.csci310.project.repository.FavoriteRepository;
 import edu.usc.csci310.project.repository.UserRepository;
 import edu.usc.csci310.project.services.AuthService;
+import edu.usc.csci310.project.services.FavoriteService;
+import edu.usc.csci310.project.services.UserService;
 import io.cucumber.java.Before;
 import org.junit.jupiter.api.AfterAll;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +24,9 @@ public class DriverManager {
 
     public static WebDriver getDriver() {
         if (driver == null) {
-            driver = new ChromeDriver();
+            ChromeOptions options = new ChromeOptions();
+            options.setAcceptInsecureCerts(true);
+            driver = new ChromeDriver(options);
         }
         return driver;
     }
@@ -29,15 +35,16 @@ public class DriverManager {
         try (Statement stmt = connection.createStatement()) {
             // drop and create users table
             stmt.executeUpdate("DROP TABLE IF EXISTS users");
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
+            String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     "username TEXT UNIQUE NOT NULL, " +
                     "raw_username TEXT UNIQUE NOT NULL, " +
                     "password TEXT NOT NULL, " +
                     "failed_login_attempts INTEGER DEFAULT 0, " +
-                    "account_locked BOOLEAN DEFAULT FALSE, " +
-                    "lock_time TIMESTAMP DEFAULT NULL)";
-            stmt.executeUpdate(createTableSQL);
+                    "account_locked INTEGER DEFAULT 0, " +
+                    "lock_time TIMESTAMP DEFAULT NULL, " +
+                    "favorites_private INTEGER DEFAULT 0)";
+            stmt.executeUpdate(createUsersTableSQL);
 
             // Drop and Create Favorites Table
             stmt.executeUpdate("DROP TABLE IF EXISTS favorites");
@@ -94,13 +101,20 @@ public class DriverManager {
         }
     }
 
+    // toggle user favorites privacy
+    public static void setUserFavorites(Connection connection, String username, boolean isPrivate) {
+        UserRepository userRepository = new UserRepository(connection);
+        UserService userService = new UserService(userRepository);
+        userService.setFavoritesPrivacy(username, isPrivate);
+    }
+
     // creates a test user and signs in using localstorage
     public static void signInAsTester(Connection connection) {
         // create user in the database
         DriverManager.createUserWithUsername(connection,"testUser");
 
         // go to the login page
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
 
         // add the user to localstorage so frontend sees that we are logged in
         JavascriptExecutor js = (JavascriptExecutor) driver;

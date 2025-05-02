@@ -1,5 +1,27 @@
 Feature: Login and Security Functionality
 
+  Scenario: localhost:8080 is the login page
+    When I navigate to "https://localhost:8080"
+    Then I should be redirected to the login page
+
+  Scenario: A user that isn't logged in can't go to any other page
+    Given I am on the login page
+    And I am not authenticated
+    When I navigate to the dashboard page
+    Then I should be redirected to the login page
+    When I try to navigate to the favorites page
+    Then I should be redirected to the login page
+    When I navigate to the soulmates page
+    Then I should be redirected to the login page
+    When I try to navigate to the comparison page
+    Then I should be redirected to the login page
+
+  Scenario: A user can switch to the signup page
+    Given I am on the login page
+    And I am not authenticated
+    When I click the switch to signup button
+    Then I should be redirected to the signup page
+
   Scenario: Logout correctly revokes user access and redirects to login
     Given I am authenticated
     And I navigate to the dashboard page

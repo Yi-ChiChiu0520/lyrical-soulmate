@@ -261,4 +261,30 @@ public class UserRepository {
 
         return Optional.empty();
     }
+    public boolean isFavoritesPrivate(String username) {
+        String hashedUsername = hashUsername(username);
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT favorites_private FROM users WHERE username = ?")) {
+            stmt.setString(1, hashedUsername); // ✅ Use hashed username
+            ResultSet rs = stmt.executeQuery();
+            return rs.next() && rs.getBoolean("favorites_private");
+        } catch (SQLException e) {
+            throw new RuntimeException("Error checking privacy setting", e);
+        }
+    }
+
+
+    public void updateFavoritesPrivacy(String username, boolean isPrivate) {
+        String hashedUsername = hashUsername(username); // ✅ Add this
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "UPDATE users SET favorites_private = ? WHERE username = ?")) {
+            stmt.setBoolean(1, isPrivate);
+            stmt.setString(2, hashedUsername); // ✅ Use hashed
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating privacy setting", e);
+        }
+    }
+
+
 }
