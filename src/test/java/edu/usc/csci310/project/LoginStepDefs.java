@@ -40,7 +40,7 @@ public class LoginStepDefs {
 
     @Given("I am on the login page")
     public void iAmOnTheLoginPage() {
-        driver.get("http://localhost:8080");
+        driver.get("https://localhost:8080");
 
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(driver -> {
@@ -105,7 +105,7 @@ public class LoginStepDefs {
     public void iShouldBeRedirectedToMyDashboard() throws InterruptedException {
         Thread.sleep(1000);
         String currentUrl = driver.getCurrentUrl();
-        assertEquals("http://localhost:8080/dashboard", currentUrl);
+        assertEquals("https://localhost:8080/dashboard", currentUrl);
     }
 
     @Then("The input {string} shows error {string}")
@@ -121,16 +121,25 @@ public class LoginStepDefs {
         assert(StepHelper.InputShowsError(path, expectedMessage));
     }
 
-    @When("I am not authenticated")
-    public void iAmNotAuthenticated() {
+    public void logout() {
         driver.manage().deleteAllCookies();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         js.executeScript("window.localStorage.clear();");
     }
 
+    @When("I am not authenticated")
+    public void iAmNotAuthenticated() {
+        logout();
+    }
+
+    @When("I am logged out")
+    public void iAmLoggedOut() {
+        logout();
+    }
+
     @Given("I navigate to the dashboard page")
     public void iNavigateToTheDashboardPage() throws InterruptedException {
-        driver.get("http://localhost:8080/dashboard");
+        driver.get("https://localhost:8080/dashboard");
         Thread.sleep(1000);
     }
 
@@ -170,10 +179,41 @@ public class LoginStepDefs {
         DriverManager.signInAsTester(connection);
     }
 
+    @When("I log out and log back in")
+    public void logoutAndIn() {
+        logout();
+        DriverManager.signInAsTester(connection);
+    }
+
     @And("My access to the app is restricted")
     public void myAccessToTheAppIsRestricted() {
         JavascriptExecutor js = (JavascriptExecutor) driver;
         String user = (String) js.executeScript("return window.localStorage.getItem('user');");
         assertNull(user);
+    }
+
+    @When("I navigate to {string}")
+    public void iNavigateTo(String arg0) {
+        driver.get(arg0);
+    }
+
+    @Then("I should be redirected to the signup page")
+    public void iShouldBeRedirectedToTheSignupPage() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(4));
+        WebElement loginButton = wait.until(driver -> {
+            WebElement el = driver.findElement(By.id("signupButton"));
+
+            return el.isDisplayed() ? el : null;
+        });
+        String url = driver.getCurrentUrl();
+        assertEquals("https://localhost:8080/", url);
+        assertTrue(loginButton.isDisplayed());
+    }
+
+    @When("I click the switch to signup button")
+    public void iClickTheSwitchToSignupButton() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebElement signupButton = wait.until(driver -> driver.findElement(By.id("switchSignup")));
+        signupButton.click();
     }
 }

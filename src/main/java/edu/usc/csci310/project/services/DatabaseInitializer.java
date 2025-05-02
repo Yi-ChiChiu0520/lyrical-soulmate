@@ -22,17 +22,19 @@ public class DatabaseInitializer {
     public void initializeDatabase() {
         try (Statement stmt = connection.createStatement()) {
             System.out.println("✅ Initializing database...");
-            //stmt.executeUpdate("DROP TABLE IF EXISTS users");
+//            stmt.executeUpdate("DROP TABLE IF EXISTS users");
 
             // Create Users Table
             String createUsersTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username TEXT UNIQUE NOT NULL, " +            // hashed username
-                    "raw_username TEXT UNIQUE NOT NULL, " +        // NEW: display name
+                    "username TEXT UNIQUE NOT NULL, " +
+                    "raw_username TEXT UNIQUE NOT NULL, " +
                     "password TEXT NOT NULL, " +
                     "failed_login_attempts INTEGER DEFAULT 0, " +
-                    "account_locked BOOLEAN DEFAULT FALSE, " +
-                    "lock_time TIMESTAMP DEFAULT NULL)";
+                    "account_locked INTEGER DEFAULT 0, " +  // ✅ FIXED
+                    "lock_time TIMESTAMP DEFAULT NULL, " +
+                    "favorites_private INTEGER DEFAULT 0)"; // ✅ FIXED
+
 
             stmt.executeUpdate(createUsersTableSQL);
             System.out.println("✅ Users table created or already exists.");

@@ -4,26 +4,26 @@ import axios from "axios";
 const ComparePage = ({ user }) => {
     const [searchInput, setSearchInput] = useState("");
     const [suggestions, setSuggestions] = useState([]);
-    const [selectedSuggestions, setSelectedSuggestions] = useState([]);
     const [addedFriends, setAddedFriends] = useState([]);
-    const [songMap, setSongMap] = useState({}); // songId -> { song, users: [] }
+    const [compareList, setCompareList] = useState([]);
+    const [songMap, setSongMap] = useState({});
     const [expandedSongs, setExpandedSongs] = useState({});
     const [lastActivity, setLastActivity] = useState(Date.now());
+    const [privateUserErrors, setPrivateUserErrors] = useState([]);
+    const [reverseOrder, setReverseOrder] = useState(false);
+
     const resetInactivityTimer = () => setLastActivity(Date.now());
 
     useEffect(() => {
         if (!user) return;
-
         const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
         events.forEach(event => window.addEventListener(event, resetInactivityTimer));
-
         const timeoutCheck = setInterval(() => {
-            if (Date.now() - lastActivity > 60000) { // 1 minute
+            if (Date.now() - lastActivity > 60000) {
                 handleLogout();
                 clearInterval(timeoutCheck);
             }
         }, 1000);
-
         return () => {
             events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
             clearInterval(timeoutCheck);
@@ -41,142 +41,263 @@ const ComparePage = ({ user }) => {
                 setSuggestions([]);
                 return;
             }
-
             try {
-                const res = await axios.get(`http://localhost:8080/users/search?prefix=${searchInput}`);
+                const res = await axios.get(`https://localhost:8080/users/search?prefix=${searchInput}`);
                 setSuggestions(res.data);
             } catch (err) {
                 setSuggestions([]);
             }
         };
-
         fetchSuggestions();
     }, [searchInput]);
 
-    const handleSelectSuggestion = (name) => {
-        setSearchInput(name);
+    const handleAddToCompareList = () => {
+        const username = searchInput.trim();
+        if (!username || compareList.includes(username) || username === user) return;
+        setCompareList(prev => [...prev, username]);
+        setSearchInput("");
+        setPrivateUserErrors([]);
     };
 
-    const handleBulkAdd = async () => {
-        const usernamesToAdd = selectedSuggestions.filter(name => !addedFriends.includes(name));
-        let updatedMap = { ...songMap };
+    const handleCompare = async () => {
+        const allUsers = [user, ...compareList];
+        let newSongMap = {};
+        let errors = [];
 
-        for (const username of usernamesToAdd) {
+        for (const username of allUsers) {
             try {
-                const res = await axios.get(`http://localhost:8080/api/favorites/${username}`);
-                const favorites = res.data;
+                const privacyRes = await axios.get(`https://localhost:8080/api/favorites/privacy/${username}?requester=${user}`);
+                const isPrivate = privacyRes.data;
 
-                updatedMap = mergeSongs(username, favorites, updatedMap);
-                setAddedFriends(prev => [...prev, username]);
+                if (isPrivate) {
+                    errors.push(`${username}'s favorite list is private.`);
+                    setSongMap({});
+                    setCompareList([]);
+                    setAddedFriends([]);
+                    setPrivateUserErrors(errors);
+                    return; // Stop immediately if private
+                }
+
+                const favoritesRes = await axios.get(`https://localhost:8080/api/favorites/${username}?requester=${user}`);
+                const favorites = favoritesRes.data;
+                if (Array.isArray(favorites)) {
+                    newSongMap = mergeSongs(username, favorites, newSongMap);
+                } else {
+                    throw { response: { status: 404 } }; // Simulate not found
+                }
             } catch (err) {
-                console.error(`Error loading favorites for ${username}`);
+                if (username !== user && err.response?.status === 404) {
+                    errors.push(`${username} does not exist.`);
+                } else if (username !== user && err.response?.status === 403) {
+                    errors.push(`${username}'s favorite list is private.`);
+                    setSongMap({});
+                    setCompareList([]);
+                    setAddedFriends([]);
+                    setPrivateUserErrors(errors);
+                    return; // Stop immediately if private
+                } else {
+                    console.error(`Unexpected error loading favorites for ${username}:`, err);
+                }
             }
         }
 
-        setSongMap(updatedMap);
-        setSearchInput("");
-        setSuggestions([]);
-        setSelectedSuggestions([]);
+        setSongMap(newSongMap);
+        setPrivateUserErrors(errors);
     };
 
     const toggleSongDetails = (songId) => {
-        setExpandedSongs(prev => ({
-            ...prev,
-            [songId]: !prev[songId]
-        }));
+        setExpandedSongs(prev => ({ ...prev, [songId]: !prev[songId] }));
     };
+
+    const toggleReverseOrder = () => {
+        setReverseOrder(prev => !prev);
+    };
+
+    const rankedSongs = Object.entries(songMap)
+        .map(([id, data]) => ({ id, ...data }))
+        .sort((a, b) => reverseOrder ? a.users.length - b.users.length : b.users.length - a.users.length);
+
+    let currentRank = 1;
+    let lastCount = null;
+    const rankedWithPosition = rankedSongs.map((song, index) => {
+        if (song.users.length !== lastCount) {
+            currentRank = index + 1;
+            lastCount = song.users.length;
+        }
+        return { ...song, rank: currentRank };
+    });
 
     return (
         <div onClick={resetInactivityTimer} className="p-6 text-white bg-[#2d203f] min-h-screen">
-            <h1 className="text-2xl font-bold mb-4">Find Friends</h1>
+            <h1 className="text-2xl font-bold mb-4" aria-label={`Compare Favorites`}>Compare Favorites</h1>
 
-            <div className="mb-6 relative">
-                <input
-                    type="text"
-                    placeholder="Search by username"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="p-2 text-black rounded-md w-64"
-                    id="compare-search-input"
-                />
-
-                {suggestions.length > 0 && (
-                    <ul className="absolute z-10 bg-white text-black mt-1 rounded shadow w-64 max-h-60 overflow-y-auto" id="compare-suggestions-list">
-                        {suggestions.map((suggestion) => (
-                            <li key={suggestion} className="px-4 py-2 hover:bg-purple-100 flex items-center">
-                                <input
-                                    type="checkbox"
-                                    className="mr-2"
-                                    value={suggestion}
-                                    checked={selectedSuggestions.includes(suggestion)}
-                                    onChange={(e) => {
-                                        if (e.target.checked) {
-                                            setSelectedSuggestions(prev => [...prev, suggestion]);
-                                        } else {
-                                            setSelectedSuggestions(prev =>
-                                                prev.filter(name => name !== suggestion)
-                                            );
+            <div className="mb-6 flex flex-wrap gap-4 items-start relative z-0">
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Search by username"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        className="p-2 text-black rounded-md w-64"
+                        aria-label={`input search by username`}
+                    />
+                    {suggestions.length > 0 && (
+                        <ul aria-label={`suggestions list`} className="absolute z-10 bg-white text-black mt-1 rounded shadow w-full max-h-60 overflow-y-auto">
+                            {suggestions.map(s => (
+                                <li
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            setSearchInput(s);
                                         }
                                     }}
-                                />
-                                <span onClick={() => handleSelectSuggestion(suggestion)} className="cursor-pointer">{suggestion}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label={`user ${s}`}
+                                    key={s}
+                                    className="px-4 py-2 hover:bg-purple-100 cursor-pointer"
+                                    onClick={() => setSearchInput(s)}>{s}</li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
 
-                <button
-                    id="compare-add-button"
-                    onClick={handleBulkAdd}
-                    disabled={selectedSuggestions.length === 0}
-                    className={`ml-4 px-4 py-2 mt-2 rounded ${selectedSuggestions.length > 0 ? "bg-purple-500 hover:bg-purple-600" : "bg-gray-500 cursor-not-allowed"}`}
-                >
-                    Compare Selected
+                <button aria-label={`Add to Compare List`} onClick={handleAddToCompareList} className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded">
+                    Add to Compare List
+                </button>
+
+                <button aria-label={`Compare Now`} onClick={handleCompare} className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded">
+                    Compare Now
+                </button>
+
+                <button aria-label={`${reverseOrder ? "Most to Least" : "Least to Most"}`} onClick={toggleReverseOrder} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded">
+                    {reverseOrder ? "Most to Least" : "Least to Most"}
                 </button>
             </div>
 
-            <div id="comparison-results">
-                {/* Render results based on state */}
-            </div>
-            <div id="common-songs">
-                {/* Render common songs based on state */}
-            </div>
+            {compareList.length > 0 && (
+                <div className="mb-4 text-sm text-gray-300">
+                    <p className="mb-1" aria-label={`Users queued for comparison:`}>Users queued for comparison:</p>
+                    <ul className="list-disc list-inside" aria-label={`compare list`}>
+                        {compareList.map(name => <li aria-label={`${name}`} key={name}>{name}</li>)}
+                    </ul>
+                </div>
+            )}
 
-            <h2 className="text-xl font-bold mt-10 mb-4">Favorite Songs by Everyone</h2>
-            <ul className="space-y-4">
-                {Object.entries(songMap).map(([songId, data]) => (
-                    <li key={songId} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
-                        <div onClick={() => toggleSongDetails(songId)} className="cursor-pointer text-lg font-semibold">
-                            {data.title}
-                        </div>
-                        {expandedSongs[songId] && (
-                            <div className="mt-2 text-sm text-gray-300">
-                                <p>Artist: {data.artistName}</p>
-                                <p>Release Date: {data.releaseDate}</p>
-                            </div>
-                        )}
-                        <FriendHover usernames={data.users} />
-                    </li>
-                ))}
-            </ul>
+            {privateUserErrors.length > 0 && (
+                <div className="mb-6 text-red-400 bg-red-900 bg-opacity-20 p-4 rounded">
+                    {privateUserErrors.map((msg, idx) => (
+                        <div aria-label={`Warning msg: ${msg}`} key={idx}>⚠️ {msg}</div>
+                    ))}
+                </div>
+            )}
+
+            {rankedWithPosition.length > 0 && (
+                <>
+                    <h2 className="text-xl font-bold mt-10 mb-4" aria-label={`Favorite Songs by You and Friends`}>Favorite Songs by You and Friends</h2>
+                    <ul className="space-y-4">
+                        {rankedWithPosition.map((data) => (
+                            <li key={data.id} className="bg-[#3d2f5d] p-4 rounded hover:bg-[#4c3b6d]">
+                                <div className="flex justify-between items-center">
+                                    <div
+                                        onClick={() => toggleSongDetails(data.id)}
+                                        className="cursor-pointer text-lg font-semibold flex flex-col"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                toggleSongDetails(data.id);
+                                            }
+                                        }}
+                                        aria-label={`favorited`}
+                                        role="button"
+                                    >
+                                        <span aria-label={data.title}>{data.title}</span>
+                                        <UserHover usernames={data.users}>
+                                            <span aria-label={`${data.users.length} favorited`} className="text-xs text-gray-300">{data.users.length} favorited</span>
+                                        </UserHover>
+                                    </div>
+                                    <RankHover
+                                        rank={data.rank}
+                                        usernames={data.users}
+                                        tabIndex={0}
+                                        role="button"
+                                        onClick={() => toggleSongDetails(data.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                toggleSongDetails(data.id);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                {expandedSongs[data.id] && (
+                                    <div className="mt-2 text-sm text-gray-300">
+                                        <p aria-label={`Artist: ${data.artistName}`}>Artist: {data.artistName}</p>
+                                        <p aria-label={`Release Date: ${data.releaseDate}`}>Release Date: {data.releaseDate}</p>
+                                        <div className="mt-2">
+                                            <p aria-label={`Favorited by (${data.users.length} friends):`}>Favorited by ({data.users.length} friends):</p>
+                                            <ul className="list-disc list-inside">
+                                                {data.users.map((username) => (
+                                                    <li aria-label={`${username}`} key={username}>{username}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
         </div>
     );
 };
 
-const FriendHover = ({ usernames }) => {
+export const RankHover = ({ rank, usernames, onClick, ...props }) => {
     const [hovered, setHovered] = useState(false);
-
     return (
         <div
+            className="relative text-sm font-bold bg-purple-600 px-2 py-1 rounded text-white cursor-pointer"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="relative mt-2 text-sm"
+            onClick={onClick}
+            {...props}
+            onFocus={() => setHovered(true)}
+            onBlur={() => setHovered(false)}
+            aria-label={`Song Rank:#${rank}`}
         >
-            <span>{usernames.length} friend(s) have this song</span>
+            #{rank}
             {hovered && (
-                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow">
-                    {usernames.map(name => (
-                        <div key={name}>{name}</div>
+                <div className="absolute right-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10 whitespace-nowrap">
+                    <div aria-label={`Users:`} className="font-semibold mb-1">Users:</div>
+                    {usernames.map((name) => (
+                        <div aria-label={name} key={name}>{name}</div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export const UserHover = ({ usernames, children }) => {
+    const [hovered, setHovered] = useState(false);
+    return (
+        <div
+            className="relative inline-block"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            tabIndex={0}
+            aria-label={`User List:`}
+            onFocus={() => setHovered(true)}
+            onBlur={() => setHovered(false)}
+        >
+            {children}
+            {hovered && (
+                <div className="absolute left-0 mt-1 bg-gray-800 text-white text-xs p-2 rounded shadow z-10 whitespace-nowrap">
+                    <div aria-label={`Users:`} className="font-semibold mb-1">Users:</div>
+                    {usernames.map((name) => (
+                        <div aria-label={name} key={name}>{name}</div>
                     ))}
                 </div>
             )}
@@ -186,10 +307,8 @@ const FriendHover = ({ usernames }) => {
 
 export const mergeSongs = (user, songs, existingSongMap) => {
     const updatedMap = { ...existingSongMap };
-
     songs.forEach(song => {
         const songKey = song.songId || song.id;
-
         if (!updatedMap[songKey]) {
             updatedMap[songKey] = {
                 songId: songKey,
@@ -199,12 +318,10 @@ export const mergeSongs = (user, songs, existingSongMap) => {
                 users: [],
             };
         }
-
         if (!updatedMap[songKey].users.includes(user)) {
             updatedMap[songKey].users.push(user);
         }
     });
-
     return updatedMap;
 };
 

@@ -1,5 +1,6 @@
 package edu.usc.csci310.project.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -18,11 +19,18 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(GeniusProxyController.class)
@@ -70,7 +78,7 @@ public class GeniusProxyControllerTest {
                 .thenReturn(new ResponseEntity<>(mockSearchResponse, HttpStatus.OK));
 
         // Perform the test with CSRF token
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/search")
+        mockMvc.perform(get("/api/genius/search")
                         .with(csrf())
                         .param("q", MOCK_SEARCH_QUERY))
                 .andExpect(status().isOk())
@@ -99,7 +107,7 @@ public class GeniusProxyControllerTest {
                 .thenReturn(new ResponseEntity<>(mockSearchResponse, HttpStatus.OK));
 
         // Perform the test with CSRF token
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/search")
+        mockMvc.perform(get("/api/genius/search")
                         .with(csrf())
                         .param("q", MOCK_SEARCH_QUERY)
                         .param("page", "2"))
@@ -134,7 +142,7 @@ public class GeniusProxyControllerTest {
         // In a more complex setup, we could use PowerMockito to mock static Jsoup methods
 
         // Perform the test with CSRF token
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/lyrics")
+        mockMvc.perform(get("/api/genius/lyrics")
                         .with(csrf())
                         .param("songId", MOCK_SONG_ID))
                 .andExpect(status().isInternalServerError())
@@ -152,7 +160,7 @@ public class GeniusProxyControllerTest {
                 .thenThrow(new RuntimeException("API Error"));
 
         // Perform the test with CSRF token
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/lyrics")
+        mockMvc.perform(get("/api/genius/lyrics")
                         .with(csrf())
                         .param("songId", MOCK_SONG_ID))
                 .andExpect(status().is5xxServerError())
@@ -191,7 +199,7 @@ public class GeniusProxyControllerTest {
                     .thenReturn(mockConnection);
 
             // ✅ Perform the test and assert line breaks in lyrics
-            mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/lyrics")
+            mockMvc.perform(get("/api/genius/lyrics")
                             .param("songId", MOCK_SONG_ID))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.lyrics").value("Mocked line 1\nMocked line 2"));
@@ -227,12 +235,428 @@ public class GeniusProxyControllerTest {
                     .thenReturn(mockConnection);
 
             // Perform the request and expect "Unknown"
-            mockMvc.perform(MockMvcRequestBuilders.get("/api/genius/lyrics")
+            mockMvc.perform(get("/api/genius/lyrics")
                             .param("songId", MOCK_SONG_ID))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.lyrics").value("Unknown"));
         }
     }
 
+    @Test
+    void testGetArtistSongs() throws Exception {
+        String mockResponse = "{ \"response\": { \"songs\": [] } }";
+        when(restTemplate.exchange(
+                eq("https://api.genius.com/artists/123456/songs?sort=popularity&per_page=50&page=1"),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
+        mockMvc.perform(get("/api/genius/artists/123456/songs")
+                        .param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(mockResponse));
+    }
+
+    @Test
+    void testCombinedArtists_successfulMatch() throws Exception {
+        String query = "Radiohead";
+        String encodedQuery = UriUtils.encode(query, StandardCharsets.UTF_8);
+        String htmlUrl = "https://genius.com/search?q=" + encodedQuery;
+        String multiUrl = "https://genius.com/api/search/multi?q=" + encodedQuery;
+
+        try (MockedStatic<Jsoup> jsoupMock = Mockito.mockStatic(Jsoup.class)) {
+            // Mocks for HTML cookie request
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            when(htmlResp.cookies()).thenReturn(Map.of("cookie_key", "cookie_val"));
+
+            // Set up mock behavior for first Jsoup call
+            jsoupMock.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+
+            // Mocks for JSON artist search
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            String multiJson = """
+            {
+              "response": {
+                "sections": [
+                  {
+                    "type": "artist",
+                    "hits": [
+                      {
+                        "result": {
+                          "id": 1,
+                          "name": "Radiohead",
+                          "image_url": "img.jpg",
+                          "header_image_url": "header.jpg"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+        """;
+            when(multiResp.body()).thenReturn(multiJson);
+
+            // Set up mock behavior for second Jsoup call
+            jsoupMock.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(anyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+
+            // Genius API fallback result
+            String apiJson = """
+            {
+              "response": {
+                "hits": [
+                  {
+                    "result": {
+                      "primary_artist": {
+                        "id": 2,
+                        "name": "Thom Yorke",
+                        "image_url": "img2.jpg",
+                        "header_image_url": "header2.jpg"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+        """;
+            when(restTemplate.exchange(
+                    contains("https://api.genius.com/search?q="),
+                    eq(HttpMethod.GET),
+                    any(HttpEntity.class),
+                    eq(String.class)))
+                    .thenReturn(new ResponseEntity<>(apiJson, HttpStatus.OK));
+
+            mockMvc.perform(get("/api/genius/artists")
+                            .param("q", "Radiohead")
+                            .param("pages", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].name").value("Radiohead"))
+                    .andExpect(jsonPath("$[1]").doesNotExist()); // only one result
+
+        }
+    }
+
+    @Test
+    void test_noArtistSection_returnsEmptyArray() throws Exception {
+        String query   = "Foo";
+        String enc     = UriUtils.encode(query, StandardCharsets.UTF_8);
+        String htmlUrl = "https://genius.com/search?q=" + enc;
+        String multiUrl= "https://genius.com/api/search/multi?q=" + enc;
+
+        // Only a not_artist section
+        String multiJson = """
+            {
+              "response": {
+                "sections": [
+                  {
+                    "type": "not_artist",
+                    "hits": [
+                      { "result": { "id": 99, "name": "ShouldBeSkipped" } }
+                    ]
+                  }
+                ]
+              }
+            }
+            """;
+
+        try (MockedStatic<Jsoup> jsoup = Mockito.mockStatic(Jsoup.class)) {
+            // Stub HTML fetch
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+            when(htmlResp.cookies()).thenReturn(Collections.emptyMap());
+
+            // Stub multi-search
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(Collections.emptyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+            when(multiResp.body()).thenReturn(multiJson);
+
+            // pages=0 to skip the API pagination loop entirely
+            mockMvc.perform(get("/api/genius/artists")
+                            .param("q", query)
+                            .param("pages", "0"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("[]"));
+
+            // pagination never invoked
+            verifyNoInteractions(restTemplate);
+        }
+    }
+
+    /**
+     * 2) sections has an artist → unique gets 1 entry;
+     *    pagination page 1 returns empty hits → break out after 1 call
+     */
+    @Test
+    void test_paginationEmptyHits_breaksLoop() throws Exception {
+        String query   = "Artist1";
+        String enc     = UriUtils.encode(query, StandardCharsets.UTF_8);
+        String htmlUrl = "https://genius.com/search?q=" + enc;
+        String multiUrl= "https://genius.com/api/search/multi?q=" + enc;
+
+        // One artist in the multi-search
+        String multiJson = """
+            {
+              "response": {
+                "sections": [
+                  {
+                    "type": "artist",
+                    "hits": [
+                      {
+                        "result": {
+                          "id": 1,
+                          "name": "Artist1",
+                          "image_url": "url1",
+                          "header_image_url": "hdr1"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+            """;
+
+        // API → empty hits array triggers break
+        String apiEmptyHits = """
+            { "response": { "hits": [] } }
+            """;
+
+        try (MockedStatic<Jsoup> jsoup = Mockito.mockStatic(Jsoup.class)) {
+            // Stub HTML fetch (same as above)
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+            when(htmlResp.cookies()).thenReturn(Collections.emptyMap());
+
+            // Stub multi-search
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(Collections.emptyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+            when(multiResp.body()).thenReturn(multiJson);
+
+            // Stub RestTemplate for page 1 only
+            when(restTemplate.exchange(
+                    eq("https://api.genius.com/search?q=" + enc + "&page=1"),
+                    eq(HttpMethod.GET),
+                    any(HttpEntity.class),
+                    eq(String.class))
+            ).thenReturn(new ResponseEntity<>(apiEmptyHits, HttpStatus.OK));
+
+            ObjectMapper mapper = new ObjectMapper();
+            String expected = mapper.writeValueAsString(
+                    List.of(Map.of(
+                            "id", 1,
+                            "name", "Artist1",
+                            "imageUrl", "url1",
+                            "headerUrl", "hdr1")));
+
+            mockMvc.perform(get("/api/genius/artists")
+                            .param("q", query)
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().json(expected, false));
+        }
+    }
+
+    @Test
+    void test_malformedHitsNode_breaksLoop() throws Exception {
+        String query = "Artist1";
+        String enc   = UriUtils.encode(query, StandardCharsets.UTF_8);
+        String htmlUrl = "https://genius.com/search?q=" + enc;
+        String multiUrl= "https://genius.com/api/search/multi?q=" + enc;
+
+        // One artist in the multi-search
+        String multiJson = """
+            {
+              "response": {
+                "sections": [
+                  {
+                    "type": "artist",
+                    "hits": [
+                      {
+                        "result": {
+                          "id": 1,
+                          "name": "Artist1",
+                          "image_url": "url1",
+                          "header_image_url": "hdr1"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+            """;
+
+        // API page 1 → "hits" is an OBJECT, not an array
+        String apiBadHits = """
+        { "response": { "hits": { "bogus": true } } }
+        """;
+
+        try (MockedStatic<Jsoup> jsoup = Mockito.mockStatic(Jsoup.class)) {
+            // Stub HTML fetch (same as above)
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+            when(htmlResp.cookies()).thenReturn(Collections.emptyMap());
+
+            // Stub multi-search
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(Collections.emptyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+            when(multiResp.body()).thenReturn(multiJson);
+
+            when(restTemplate.exchange(
+                    eq("https://api.genius.com/search?q=" + enc + "&page=1"),
+                    eq(HttpMethod.GET),
+                    any(HttpEntity.class),
+                    eq(String.class))
+            ).thenReturn(new ResponseEntity<>(apiBadHits, HttpStatus.OK));
+
+            // Expected JSON (just the single artist from the multi-search section)
+            ObjectMapper mapper = new ObjectMapper();
+            String expected = mapper.writeValueAsString(
+                    List.of(Map.of(
+                            "id", 1,
+                            "name", "Artist1",
+                            "imageUrl", "url1",
+                            "headerUrl", "hdr1")));
+
+            mockMvc.perform(get("/api/genius/artists").param("q", query))
+                    .andExpect(status().isOk())
+                    .andExpect(content().json(expected, false));
+        }
+    }
+
+
+    /**
+     * 3) multi-search returns two artists out of order →
+     *    sorted(...) comparator is exercised and final JSON is alphabetical
+     */
+    @Test
+    void test_sortedAlphabetically() throws Exception {
+        // 1) Arrange: query="" so the final `.contains("")` filter never removes anything
+        String query   = "";
+        String enc     = "";
+        String htmlUrl = "https://genius.com/search?q=" + enc;
+        String multiUrl= "https://genius.com/api/search/multi?q=" + enc;
+
+        // 2) Stub multi-search JSON with two out-of-order artists: Beta then Alpha
+        String multiJson = """
+        {
+          "response": {
+            "sections": [
+              {
+                "type": "artist",
+                "hits": [
+                  {
+                    "result": {
+                      "id": 2,
+                      "name": "Beta",
+                      "image_url": "img2",
+                      "header_image_url": "hdr2"
+                    }
+                  },
+                  {
+                    "result": {
+                      "id": 1,
+                      "name": "Alpha",
+                      "image_url": "img1",
+                      "header_image_url": "hdr1"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        """;
+
+        try (MockedStatic<Jsoup> jsoup = Mockito.mockStatic(Jsoup.class)) {
+            // 3) Stub the initial HTML fetch to return no cookies
+            Connection htmlConn = mock(Connection.class);
+            Connection.Response htmlResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(htmlUrl)).thenReturn(htmlConn);
+            when(htmlConn.method(Connection.Method.GET)).thenReturn(htmlConn);
+            when(htmlConn.userAgent(anyString())).thenReturn(htmlConn);
+            when(htmlConn.timeout(anyInt())).thenReturn(htmlConn);
+            when(htmlConn.execute()).thenReturn(htmlResp);
+            when(htmlResp.cookies()).thenReturn(Collections.emptyMap());
+
+            // 4) Stub the multi-search call itself
+            Connection multiConn = mock(Connection.class);
+            Connection.Response multiResp = mock(Connection.Response.class);
+            jsoup.when(() -> Jsoup.connect(multiUrl)).thenReturn(multiConn);
+            when(multiConn.cookies(Collections.emptyMap())).thenReturn(multiConn);
+            when(multiConn.ignoreContentType(true)).thenReturn(multiConn);
+            when(multiConn.userAgent(anyString())).thenReturn(multiConn);
+            when(multiConn.timeout(anyInt())).thenReturn(multiConn);
+            when(multiConn.execute()).thenReturn(multiResp);
+            when(multiResp.body()).thenReturn(multiJson);
+
+            // 5) Act & Assert: call with pages=0 to skip the API loop, then verify sorted output
+            mockMvc.perform(get("/api/genius/artists")
+                            .param("q",     query)
+                            .param("pages","0")
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(content().json("""
+            [
+              {
+                "id":        1,
+                "name":      "Alpha",
+                "imageUrl":  "img1",
+                "headerUrl": "hdr1"
+              },
+              {
+                "id":        2,
+                "name":      "Beta",
+                "imageUrl":  "img2",
+                "headerUrl": "hdr2"
+              }
+            ]
+        """));
+        }
+    }
 }
