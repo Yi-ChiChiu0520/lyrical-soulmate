@@ -250,7 +250,7 @@ const Dashboard = ({ user }) => {
             });
         }
 
-        setWordCloudSongs(mapped);
+        setWordCloudSongs(prev => mergeWordCloudSongs(prev, mapped));
         setCloudLoading(false);
         setIsAddingFavoritesToCloud(false);
     };
@@ -495,8 +495,8 @@ const Dashboard = ({ user }) => {
 };
 
 export function mergeWordCloudSongs(prev, incoming) {
-    const existingIds = new Set(prev.map(song => song.songId));
-    const newSongs = incoming.filter(song => !existingIds.has(song.songId));
+    const existingIds = new Set(prev.map(song => String(song.songId))); // normalize to string
+    const newSongs = incoming.filter(song => !existingIds.has(String(song.songId)));
     return [...prev, ...newSongs];
 }
 
