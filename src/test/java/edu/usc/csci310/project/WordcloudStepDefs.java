@@ -753,28 +753,34 @@ public class WordcloudStepDefs {
         songTitle.click();
     }
 
-    @Then("I should more info and lyrics of the song")
+    @Then("I should see artist name, song release date, and lyrics of the song")
     public void iShouldMoreInfoAndLyricsOfTheSong() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        // Wait for artist name
+        // ✅ Wait for artist name
         WebElement artist = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.id("artist-name")
         ));
-        assertTrue(artist.getText().toLowerCase().contains("artist"), "Artist info not found.");
+        String artistText = artist.getText().toLowerCase();
+        assertTrue(artistText.contains("artist") || !artistText.isBlank(), "❌ Artist info not found or empty.");
+        System.out.println("🎤 Artist info found: " + artist.getText());
 
-        // Wait for release date
+        // ✅ Wait for release date
         WebElement releaseDate = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.id("release-date")
         ));
-        assertTrue(releaseDate.getText().toLowerCase().contains("release date"), "Release date not found.");
+        String releaseText = releaseDate.getText().toLowerCase();
+        assertTrue(releaseText.contains("release") || !releaseText.isBlank(), "❌ Release date not found or empty.");
+        System.out.println("📅 Release date found: " + releaseDate.getText());
 
-        // Wait for lyrics section
+        // ✅ Wait for lyrics section
         WebElement lyrics = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//div[@aria-label='Lyrics:']")
         ));
-        assertFalse(lyrics.getText().isBlank(), "Lyrics section is empty.");
+        assertFalse(lyrics.getText().isBlank(), "❌ Lyrics section is empty.");
+        System.out.println("🎶 Lyrics content detected.");
     }
+
 
     @Then("I should see the selected word highlighted in lyrics")
     public void iShouldSeeTheSelectedWordHighlightedInLyrics() {

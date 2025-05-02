@@ -203,7 +203,7 @@ Feature: Word Cloud Functionality
     And The Word Cloud is loaded
     Then Word cloud should follow word stemming
 
-  Scenario: Click on songs with selected word should show more info and lyrics
+  Scenario: Click on songs with selected word should show artist name, song release date, and lyrics
     Given I am authenticated
     When I navigate to the dashboard page
     And I started word cloud
@@ -211,7 +211,7 @@ Feature: Word Cloud Functionality
     And The Word Cloud is loaded
     And I click on the word "i" in word cloud
     And I clicked on a song with the word
-    Then I should more info and lyrics of the song
+    Then I should see artist name, song release date, and lyrics of the song
 
   Scenario: Selected word should be highlighted in lyrics
     Given I am authenticated
