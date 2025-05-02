@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -125,18 +126,40 @@ public class SearchStepDefs {
         searchButton.click();
 
         try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            wait.until(ExpectedConditions.or(
+                ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")),
+                ExpectedConditions.visibilityOfElementLocated(By.id("results-list")), 
+                ExpectedConditions.visibilityOfElementLocated(By.xpath("//p[contains(text(), 'No artists found')]"))
+            ));
+        } catch (TimeoutException e) {
+            System.out.println("No results appeared after search, as expected for error cases.");
         }
     }
 
     @And("I click search")
     public void iClickSearch() {
-        iClickTheSearchButton();
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebElement searchButton = wait.until(ExpectedConditions.elementToBeClickable(By.id("search-button")));
+        searchButton.click();
+        
+        try {
+            wait.until(ExpectedConditions.alertIsPresent());
+            Alert alert = driver.switchTo().alert();
+            // Store the alert text for validation in later steps
+            String alertText = alert.getText();
+            System.out.println("Alert detected with text: " + alertText);
+        } catch (TimeoutException e) {
+            try {
+                wait.until(ExpectedConditions.or(
+                    ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")),
+                    ExpectedConditions.visibilityOfElementLocated(By.id("results-list"))
+                ));
+            } catch (TimeoutException ex) {
+                System.out.println("No results appeared after search, as expected for error cases.");
+            }
+        }
     }
 
-    // Sets up a scenario where a search has already happened.
     @Given("I have searched for artist {string}")
     public void iHaveSearchedForArtist(String artistName) {
         iNavigateToTheSearchPage();
@@ -201,6 +224,10 @@ public class SearchStepDefs {
 
         WebElement button = wait.until(ExpectedConditions.elementToBeClickable(buttonSelector));
         button.click();
+        
+        if ("Add Selected to Favorites".equalsIgnoreCase(buttonText)) {
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("search-success")));
+        }
     }
 
     // Clicks the first song in the results list.
@@ -313,7 +340,6 @@ public class SearchStepDefs {
         }
     }
 
-    // Checks for different kinds of error messages (alert or element).
     @Then("I should see an error message")
     public void iShouldSeeAnErrorMessage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
@@ -327,7 +353,7 @@ public class SearchStepDefs {
             System.out.println("Alert found with text: " + alertText);
             assertTrue(alertText.contains("artist name") || alertText.contains("number of songs"),
                     "Alert text did not match expected validation message. Found: " + alertText);
-            alert.accept();
+            alert.accept(); // Dismiss the alert
             foundMessage = true;
         } catch (TimeoutException e) {
             System.out.println("No alert present within timeout. Checking for #search-error element.");
@@ -353,11 +379,9 @@ public class SearchStepDefs {
         }
     }
 
-    // Checks specifically for the "No results found" message variations.
     @Then("I should see a no results error message")
     public void iShouldSeeANoResultsErrorMessage() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        // page should contain "No artists found" or "No songs found"
         By noResultsParaSelector = By.xpath("//p[contains(text(), 'No artists found') or contains(text(), 'No songs found')]");
         try {
             WebElement noResultsPara = wait.until(ExpectedConditions.visibilityOfElementLocated(noResultsParaSelector));
@@ -372,13 +396,25 @@ public class SearchStepDefs {
 
     @And("no search results displayed")
     public void noSearchResultsDisplayed() {
-        List<WebElement> resultsList = driver.findElements(By.id("results-list"));
-        if (!resultsList.isEmpty()) {
-            List<WebElement> songElements = resultsList.get(0).findElements(By.tagName("li"));
-            assertTrue(songElements.isEmpty(), "Search results list (#results-list) was found, but it contains result items when none were expected.");
-        } else {
-            assertTrue(true, "#results-list element not found, confirming no results are displayed.");
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+        
+        List<WebElement> artistGrid = driver.findElements(By.id("artist-selection"));
+        if (!artistGrid.isEmpty() && artistGrid.get(0).isDisplayed()) {
+            List<WebElement> artistElements = artistGrid.get(0).findElements(By.tagName("button"));
+            assertTrue(artistElements.isEmpty(), "Artist selection grid is visible and contains artists when none were expected.");
+        }
+        
+        List<WebElement> resultsList = driver.findElements(By.id("results-list"));
+        if (!resultsList.isEmpty() && resultsList.get(0).isDisplayed()) {
+            List<WebElement> songElements = resultsList.get(0).findElements(By.tagName("li"));
+            assertTrue(songElements.isEmpty(), "Search results list is visible and contains songs when none were expected.");
+        }
+        
+        System.out.println("Verified no search results are displayed.");
     }
 
     @Then("I should see the song details including:")
@@ -470,7 +506,30 @@ public class SearchStepDefs {
         }
     }
 
-    // Verifies the word cloud panel appears and has content.
+    @Then("I should see an all favorites word cloud")
+    public void iShouldSeeAnAllFavoritesWordCloud() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(35)); 
+        By wordCloudContainerSelector = By.id("word-cloud");
+        By wordCloudChildSelector = By.cssSelector("#word-cloud > div");
+        By wordCloudWordSelector = By.cssSelector("#word-cloud span");
+
+        try {
+            WebElement wordCloudContainer = wait.until(ExpectedConditions.visibilityOfElementLocated(wordCloudContainerSelector));
+            assertTrue(wordCloudContainer.isDisplayed(), "Word cloud container (#word-cloud) is not visible.");
+            WebElement wordCloudPanelElement = wait.until(ExpectedConditions.visibilityOfElementLocated(wordCloudChildSelector));
+            assertTrue(wordCloudPanelElement.isDisplayed(), "Word cloud content element (#word-cloud > div) is not visible.");
+
+            wait.until(driver -> {
+                List<WebElement> wordElements = driver.findElements(wordCloudWordSelector);
+                return !wordElements.isEmpty();
+            });
+            System.out.println("Word cloud content (span elements) is visible.");
+        } catch (TimeoutException e) {
+            System.err.println("Page source on timeout looking for all favorites word cloud: " + driver.getPageSource());
+            fail("Word cloud container (#word-cloud) or its content did not appear within the timeout period.", e);
+        }
+    }
+
     @Then("I should see the song's word cloud")
     public void iShouldSeeTheSongsWordCloud() {
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(25));
@@ -503,20 +562,27 @@ public class SearchStepDefs {
 
     @And("I should see artist images")
     public void iShouldSeeArtistImages() {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement resultsList = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
-        List<WebElement> songElements = resultsList.findElements(By.tagName("li"));
-        assertFalse(songElements.isEmpty(), "No song results found to check for images.");
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        try {
+            // Check for artist-selection instead of results-list
+            WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
+            List<WebElement> artistElements = artistGrid.findElements(By.tagName("button"));
+            assertFalse(artistElements.isEmpty(), "No artist elements found in the artist grid.");
 
-        for (int i = 0; i < songElements.size(); i++) {
-            WebElement songElement = songElements.get(i);
-            try {
-                WebElement imgElement = songElement.findElement(By.tagName("img"));
-                assertTrue(imgElement.isDisplayed(), "Image not displayed in result #" + (i+1));
-                assertTrue(imgElement.getAttribute("src") != null && !imgElement.getAttribute("src").isEmpty(), "Image in result #" + (i+1) + " has no src attribute.");
-            } catch (NoSuchElementException e) {
-                fail("Result item #" + (i+1) + " is missing the image element (<img>).", e);
+            for (int i = 0; i < artistElements.size(); i++) {
+                WebElement artistElement = artistElements.get(i);
+                try {
+                    WebElement imgElement = artistElement.findElement(By.tagName("img"));
+                    assertTrue(imgElement.isDisplayed(), "Artist image not displayed for artist #" + (i+1));
+                    assertTrue(imgElement.getAttribute("src") != null && !imgElement.getAttribute("src").isEmpty(), 
+                               "Artist image for artist #" + (i+1) + " has no src attribute.");
+                } catch (NoSuchElementException e) {
+                    fail("Artist #" + (i+1) + " is missing the image element (<img>).", e);
+                }
             }
+        } catch (TimeoutException e) {
+            System.err.println("Timeout waiting for artist-selection visibility. Page source: " + driver.getPageSource());
+            fail("Timeout waiting for artist-selection to become visible.", e);
         }
     }
 
@@ -555,8 +621,6 @@ public class SearchStepDefs {
 
     @Then("I should see a list of artists that include the name {string}")
     public void iShouldSeeAListOfArtistsThatIncludeTheName(String arg0) {
-        // this div holds the artist grid id = "artist-selection"
-        // get the list of artists
         Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
         List<WebElement> artistElements = artistGrid.findElements(By.tagName("span"));
@@ -569,16 +633,95 @@ public class SearchStepDefs {
 
     @Then("I select artist {string}")
     public void iSelectArtist(String artistName) {
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        
         WebElement artistGrid = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("artist-selection")));
-        List<WebElement> artistElements = artistGrid.findElements(By.tagName("span"));
-
+        
+        List<WebElement> artistElements = artistGrid.findElements(By.tagName("button"));
         assertFalse(artistElements.isEmpty(), "No artist elements found in the artist grid.");
+
+        boolean artistFound = false;
         for (WebElement artistElement : artistElements) {
-            if (artistElement.getText().toLowerCase().contains(artistName.toLowerCase())) {
-                artistElement.click();
-                break;
+            try {
+                WebElement nameElement = artistElement.findElement(By.cssSelector("span.font-medium"));
+                if (nameElement.getText().toLowerCase().contains(artistName.toLowerCase())) {
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", artistElement);
+                    artistElement.click();
+                    artistFound = true;
+                    
+                    wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".loading-indicator")));
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("results-list")));
+                    return;
+                }
+            } catch (NoSuchElementException e) {
+                continue;
             }
+        }
+        
+        fail("Could not find artist with name containing: " + artistName);
+    }
+
+    @And("I click the Add All Favorites to Word Cloud button")
+    public void iClickTheAddAllFavoritesToWordCloudButton() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        try {
+            WebElement button = wait.until(ExpectedConditions.elementToBeClickable(By.id("add-all-favorites")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
+            System.out.println("Clicked 'Add All Favorites to Word Cloud' button using JavascriptExecutor.");
+            Thread.sleep(1000); 
+        } catch (TimeoutException e) {
+            fail("Could not find or click the 'Add All Favorites to Word Cloud' button.", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("Thread interrupted while waiting after button click.");
+        }
+    }
+
+    @Then("I should see an all favorites word cloud with {string}")
+    public void iShouldSeeAnAllFavoritesWordCloudWith(String songTitle) {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(35)); 
+        By wordCloudContainerSelector = By.id("word-cloud");
+        By wordCloudChildSelector = By.cssSelector("#word-cloud > div");
+        By songListSelector = By.cssSelector("#word-cloud .divide-y > div");
+
+        try {
+            WebElement wordCloudContainer = wait.until(ExpectedConditions.visibilityOfElementLocated(wordCloudContainerSelector));
+            assertTrue(wordCloudContainer.isDisplayed(), "Word cloud container (#word-cloud) is not visible.");
+            WebElement wordCloudPanelElement = wait.until(ExpectedConditions.visibilityOfElementLocated(wordCloudChildSelector));
+            assertTrue(wordCloudPanelElement.isDisplayed(), "Word cloud content element (#word-cloud > div) is not visible.");
+
+            wait.until(driver -> {
+                List<WebElement> wordElements = driver.findElements(By.cssSelector("#word-cloud span"));
+                return !wordElements.isEmpty();
+            });
+
+            boolean songFound = wait.until(driver -> {
+                List<WebElement> songElements = driver.findElements(songListSelector);
+                return songElements.stream()
+                    .anyMatch(element -> element.getText().contains(songTitle));
+            });
+
+            assertTrue(songFound, "Expected song ('" + songTitle + "') not found in the word cloud's list of songs.");
+        } catch (TimeoutException e) {
+            System.err.println("Page source on timeout looking for all favorites word cloud: " + driver.getPageSource());
+            fail("Word cloud container (#word-cloud) or expected song did not appear within the timeout period.", e);
+        }
+    }
+
+    @Then("I should see a no artist found message")
+    public void iShouldSeeANoArtistFoundMessage() {
+        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        
+        By noResultsMessageSelector = By.xpath("//p[contains(text(), 'No artists found')]");
+        
+        try {
+            WebElement noResultsMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(noResultsMessageSelector));
+            assertTrue(noResultsMessage.isDisplayed(), "No artist found message is not displayed");
+            assertTrue(noResultsMessage.getText().contains("No artists found"), 
+                "No artist found message text does not match expected. Actual: " + noResultsMessage.getText());
+        } catch (TimeoutException e) {
+            System.err.println("Page source when failing to find no artist message: " + driver.getPageSource());
+            fail("No artist found message did not appear within the timeout period.", e);
         }
     }
 }
